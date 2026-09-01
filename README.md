@@ -1,5 +1,7 @@
 # PolicyWeave
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ContextualWisdomLab/PolicyWeave)
+
 웹·앱 운영자가 실제 개인정보 처리 흐름을 입력하면, 누락과 모순을 표시하면서 개인정보처리방침 검토본을 만드는 로컬 우선 웹 앱입니다.
 
 > 생성 결과는 법률 자문이나 준법 보장이 아닙니다. 공개 전 개인정보보호책임자 또는 법률 전문가의 검토가 필요합니다.
