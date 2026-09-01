@@ -124,8 +124,8 @@ button { cursor: pointer; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 
 @media (max-width: 1300px) {
-  .workspace { grid-template-columns: 210px 1fr; }
-  .preview { display: none; }
+  .workspace { grid-template-columns: 210px minmax(0, 1fr); height: auto; min-height: 630px; }
+  .preview { display: block; grid-column: 1 / -1; border-top: 1px solid var(--line); max-height: 720px; }
   .review-bar { grid-template-columns: 1fr 150px 150px 240px; }
 }
 
@@ -138,13 +138,14 @@ button { cursor: pointer; }
   .rail li { min-width: 145px; }
   .rail li::after, .rail .full { display: none; }
   .form-panel { border: 0; padding: 18px 14px; }
-  .preview { display: block; padding: 18px 14px; border-top: 1px solid var(--line); }
+  .preview { display: block; padding: 18px 14px; border-top: 1px solid var(--line); max-height: none; }
   .table-head { display: none; }
   .item-row { grid-template-columns: 1fr 78px; }
   .item-row > span { grid-row: 2; grid-column: 1 / -1; padding-left: 25px; }
   .conditional { grid-template-columns: 1fr; }
   .review-bar { grid-template-columns: 1fr 1fr; padding: 12px 14px; }
   .review-bar > div:first-child, .publish { grid-column: 1 / -1; }
+  .review-bar output { position: static; grid-column: 1 / -1; text-align: right; }
   .document-name { max-width: 190px; overflow: hidden; white-space: nowrap; }
   .brand { font-size: 23px; }
   .paper { padding: 18px 14px; }
