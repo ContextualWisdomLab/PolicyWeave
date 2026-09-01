@@ -16,6 +16,20 @@ describe('policy editing workflow', () => {
     }
   })
 
+  it('수집 단계에서는 선택 항목의 수집 경로를 항상 편집하고 처리 목적은 다음 단계에서 편집한다', () => {
+    const { container } = render(<App />)
+    expect(container.querySelectorAll<HTMLInputElement>('input[placeholder="예: 회원가입 화면"]')).toHaveLength(3)
+    expect(container.querySelector<HTMLInputElement>('input[placeholder="예: 본인 확인, 알림 발송"]')).toBeNull()
+
+    const phone = container.querySelectorAll<HTMLInputElement>('.check-label input')[2]
+    fireEvent.click(phone)
+    expect(container.querySelectorAll<HTMLInputElement>('input[placeholder="예: 회원가입 화면"]')).toHaveLength(4)
+    expect(container.querySelector<HTMLInputElement>('input[placeholder="예: 본인 확인, 알림 발송"]')).toBeNull()
+
+    fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[2])
+    expect(container.querySelector<HTMLInputElement>('input[name="purpose-phone"]')).not.toBeNull()
+  })
+
   it('미리보기 경고에서 처리 목적 단계로 이동한다', () => {
     const { container } = render(<App />)
     const phone = container.querySelectorAll<HTMLInputElement>('.check-label input')[2]
