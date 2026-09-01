@@ -10,7 +10,7 @@ PolicyWeave is a local-first privacy-policy fact-authoring workspace. It structu
 - Re-fetch the PR head before every commit/push. Never force-push or weaken branch/ruleset protections to merge.
 - Keep `ARCHITECTURE.md`, `docs/TRD.md`, ADRs, `docs/research-traceability.md`, `CHANGELOG.md`, and `docs/product-technical-gap-baseline.md` aligned with implementation.
 - Do not encode legal conclusions from memory. Every legal/rule/template decision needs an authoritative source, effective date, source revision, and implementation/test trace.
-- Do not commit real personal or institutional names in tests or documentation. Production must not consume synthetic demo data.
+- Do not commit identifying customer, individual, or real operational-organization data in tests, examples, fixtures, or product documentation. Publicly documented legal authorities, official document titles, standards bodies, source publishers, and the repository owner may be named when required for accurate provenance and citation. Production must not consume synthetic demo data.
 - Keep persistence objects semantically named with at least two words and `snake_case` unless a framework contract requires another convention. Avoid generic named persistence objects such as a standalone `id` table/collection.
 - Hosted persistence/publication must be introduced only behind explicit tenant, authorization, audit, encryption, immutable revision, and supersession contracts.
 - GitHub Actions dependencies stay SHA pinned and checkout credentials must not persist.
