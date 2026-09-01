@@ -23,4 +23,20 @@ describe('policy editing workflow', () => {
     fireEvent.click(container.querySelector<HTMLButtonElement>('.document-warning button')!)
     expect(container.querySelector('.form-panel h1')?.textContent).toBe('3. 처리 목적')
   })
+
+  it('처리 목적을 보완하면 발행 차단을 해제한다', () => {
+    const { container } = render(<App />)
+    const phone = container.querySelectorAll<HTMLInputElement>('.check-label input')[2]
+    fireEvent.click(phone)
+    fireEvent.click(container.querySelector<HTMLButtonElement>('.document-warning button')!)
+
+    const purpose = container.querySelector<HTMLInputElement>('input[name="purpose-phone"]')!
+    fireEvent.change(purpose, { target: { value: '본인 확인 및 알림 발송' } })
+
+    expect(container.querySelector('.review-stat.blocking b')?.textContent).toBe('0건')
+    const publish = container.querySelector<HTMLButtonElement>('.publish')!
+    expect(publish.disabled).toBe(false)
+    fireEvent.click(publish)
+    expect(container.querySelector('output')?.textContent).toContain('백엔드 연결이 필요합니다')
+  })
 })
