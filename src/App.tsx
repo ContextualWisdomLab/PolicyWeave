@@ -86,7 +86,7 @@ function CollectionForm({ items, setItems, setCurrent }: { items: PolicyItem[]; 
         <span>{item.description}</span>
         <label className="select-wrap"><span className="sr-only">{item.label} 수집 구분</span><select value={item.mode} onChange={(event) => update(item.id, { mode: event.target.value as PolicyItem['mode'] })} disabled={!item.enabled}><option>필수</option><option>선택</option></select><ChevronDown size={14} /></label>
       </div>
-      {item.enabled && !item.purpose && <div className="conditional"><label>처리 목적 <input value={item.purpose} onChange={(event) => update(item.id, { purpose: event.target.value })} placeholder="예: 본인 확인, 알림 발송" /></label><label>수집 경로 <input value={item.detail ?? ''} onChange={(event) => update(item.id, { detail: event.target.value })} placeholder="예: 회원가입 화면" /></label></div>}
+      {item.enabled && <div className="conditional"><label>수집 경로 <input value={item.detail ?? ''} onChange={(event) => update(item.id, { detail: event.target.value })} placeholder="예: 회원가입 화면" /></label></div>}
     </div>)}</div>
     <StepActions current={2} setCurrent={setCurrent} />
   </main>
