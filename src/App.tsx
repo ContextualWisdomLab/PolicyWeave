@@ -2,18 +2,75 @@ import { useMemo, useState } from 'react'
 import { AlertTriangle, Check, ChevronDown, ExternalLink, FileText, Link, Save } from 'lucide-react'
 import { getReview, initialItems, PolicyItem, steps } from './policy'
 
+type DraftFacts = {
+  serviceName: string
+  serviceUrl: string
+  retentionPeriod: string
+  thirdPartyRecipient: string
+  thirdPartyPurpose: string
+  internationalCountry: string
+  internationalRecipient: string
+  privacyOfficerName: string
+  privacyOfficerEmail: string
+}
+
+type FactField = {
+  key: keyof DraftFacts
+  label: string
+  placeholder: string
+  type?: 'text' | 'email' | 'url'
+}
+
+const initialFacts: DraftFacts = {
+  serviceName: '',
+  serviceUrl: '',
+  retentionPeriod: '',
+  thirdPartyRecipient: '',
+  thirdPartyPurpose: '',
+  internationalCountry: '',
+  internationalRecipient: '',
+  privacyOfficerName: '',
+  privacyOfficerEmail: '',
+}
+
 function StepRail({ current, setCurrent }: { current: number; setCurrent: (step: number) => void }) {
   return <aside className="rail" aria-label="작성 단계">
-    <div className="progress-copy"><strong>작성 진행률</strong><span>{current}/7 완료</span></div>
+    <div className="progress-copy"><strong>작성 진행률</strong><span>{current}/7 단계</span></div>
     <div className="progress"><i style={{ width: `${current / 7 * 100}%` }} /></div>
     <ol>{steps.map((step, index) => <li key={step} className={index + 1 === current ? 'active' : index + 1 < current ? 'done' : ''}>
       <button onClick={() => setCurrent(index + 1)} aria-current={index + 1 === current ? 'step' : undefined}>
         <span className="step-number">{index + 1 < current ? <Check size={13} /> : index + 1}</span>
-        <span><b>{step}</b><small>{index === 1 ? '수집하는 개인정보 선택' : index + 1 < current ? '입력 완료' : '확인 및 입력'}</small></span>
+        <span><b>{step}</b><small>{index + 1 < current ? '입력 확인됨' : '확인 및 입력'}</small></span>
       </button>
     </li>)}</ol>
-    <button className="outline full"><FileText size={16} /> 미리보기 전체화면</button>
+    <button className="outline full" onClick={() => document.querySelector<HTMLElement>('.preview')?.focus()}><FileText size={16} /> 미리보기로 이동</button>
   </aside>
+}
+
+function StepActions({ current, setCurrent }: { current: number; setCurrent: (step: number) => void }) {
+  return <div className="form-actions">
+    <button className="outline" onClick={() => setCurrent(Math.max(1, current - 1))} disabled={current === 1}>이전</button>
+    <button className="primary" onClick={() => setCurrent(Math.min(7, current + 1))} disabled={current === 7}>다음 단계</button>
+  </div>
+}
+
+function FactStep({ current, title, description, fields, facts, setFacts, setCurrent }: {
+  current: number
+  title: string
+  description: string
+  fields: FactField[]
+  facts: DraftFacts
+  setFacts: (facts: DraftFacts) => void
+  setCurrent: (step: number) => void
+}) {
+  const update = (key: keyof DraftFacts, value: string) => setFacts({ ...facts, [key]: value })
+  return <main className="form-panel">
+    <header className="section-head"><h1>{current}. {title}</h1><p>{description}</p></header>
+    <div className="notice"><strong>사실 기반 입력</strong><span>운영 중인 서비스와 계약·처리 흐름에서 확인한 사실만 입력하세요. 확인되지 않은 내용은 비워 두고 검토 대상으로 남깁니다.</span></div>
+    <h2>확인 정보</h2>
+    <div className="conditional">{fields.map((field) => <label key={field.key}>{field.label}<input name={field.key} type={field.type ?? 'text'} value={facts[field.key]} onChange={(event) => update(field.key, event.target.value)} placeholder={field.placeholder} /></label>)}</div>
+    <StepActions current={current} setCurrent={setCurrent} />
+  </main>
 }
 
 function CollectionForm({ items, setItems, setCurrent }: { items: PolicyItem[]; setItems: (items: PolicyItem[]) => void; setCurrent: (step: number) => void }) {
@@ -25,30 +82,80 @@ function CollectionForm({ items, setItems, setCurrent }: { items: PolicyItem[]; 
     <div className="table-head"><span>수집 항목</span><span>설명</span><span>수집 여부</span></div>
     <div className="item-list">{items.map((item) => <div className={`item ${item.enabled ? 'selected' : ''}`} key={item.id}>
       <div className="item-row">
-        <label className="check-label"><input type="checkbox" checked={item.enabled} onChange={(e) => update(item.id, { enabled: e.target.checked })} /><span className="box"><Check size={13} /></span><b>{item.label}</b></label>
+        <label className="check-label"><input type="checkbox" checked={item.enabled} onChange={(event) => update(item.id, { enabled: event.target.checked })} /><span className="box"><Check size={13} /></span><b>{item.label}</b></label>
         <span>{item.description}</span>
-        <label className="select-wrap"><span className="sr-only">{item.label} 수집 구분</span><select value={item.mode} onChange={(e) => update(item.id, { mode: e.target.value as PolicyItem['mode'] })} disabled={!item.enabled}><option>필수</option><option>선택</option></select><ChevronDown size={14} /></label>
+        <label className="select-wrap"><span className="sr-only">{item.label} 수집 구분</span><select value={item.mode} onChange={(event) => update(item.id, { mode: event.target.value as PolicyItem['mode'] })} disabled={!item.enabled}><option>필수</option><option>선택</option></select><ChevronDown size={14} /></label>
       </div>
-      {item.enabled && !item.purpose && <div className="conditional"><label>처리 목적 <input value={item.purpose} onChange={(e) => update(item.id, { purpose: e.target.value })} placeholder="예: 본인 확인, 알림 발송" /></label><label>수집 경로 <input value={item.detail ?? ''} onChange={(e) => update(item.id, { detail: e.target.value })} placeholder="예: 회원가입 화면" /></label></div>}
+      {item.enabled && !item.purpose && <div className="conditional"><label>처리 목적 <input value={item.purpose} onChange={(event) => update(item.id, { purpose: event.target.value })} placeholder="예: 본인 확인, 알림 발송" /></label><label>수집 경로 <input value={item.detail ?? ''} onChange={(event) => update(item.id, { detail: event.target.value })} placeholder="예: 회원가입 화면" /></label></div>}
     </div>)}</div>
-    <div className="form-actions"><button className="outline" onClick={() => setCurrent(1)}>이전</button><button className="primary" onClick={() => setCurrent(3)}>처리 목적 확인</button></div>
+    <StepActions current={2} setCurrent={setCurrent} />
   </main>
 }
 
-function DocumentPreview({ items }: { items: PolicyItem[] }) {
+function PurposeForm({ items, setItems, setCurrent }: { items: PolicyItem[]; setItems: (items: PolicyItem[]) => void; setCurrent: (step: number) => void }) {
+  const enabled = items.filter((item) => item.enabled)
+  const updatePurpose = (id: string, purpose: string) => setItems(items.map((item) => item.id === id ? { ...item, purpose } : item))
+  return <main className="form-panel">
+    <header className="section-head"><h1>3. 처리 목적</h1><p>선택한 개인정보 항목마다 실제 처리 목적을 연결합니다. 목적이 없는 항목은 공개 검토를 통과할 수 없습니다.</p></header>
+    <div className="notice"><strong>검토 원칙</strong><span>포괄적인 문구를 새로 만들기보다 실제 기능·업무 목적과 연결하세요.</span></div>
+    <h2>항목별 처리 목적</h2>
+    {enabled.length === 0 ? <p>수집 항목 단계에서 실제 수집 항목을 먼저 선택하세요.</p> : <div className="item-list purpose-list">{enabled.map((item) => <div className="item" key={item.id}><div className="conditional"><label>{item.label} 처리 목적<input name={`purpose-${item.id}`} value={item.purpose} onChange={(event) => updatePurpose(item.id, event.target.value)} placeholder={`${item.label}을 처리하는 실제 목적`} /></label><label>수집 경로<input value={item.detail ?? ''} readOnly placeholder="수집 항목 단계에서 입력" /></label></div></div>)}</div>}
+    <StepActions current={3} setCurrent={setCurrent} />
+  </main>
+}
+
+function EditingPanel({ current, items, setItems, facts, setFacts, setCurrent }: {
+  current: number
+  items: PolicyItem[]
+  setItems: (items: PolicyItem[]) => void
+  facts: DraftFacts
+  setFacts: (facts: DraftFacts) => void
+  setCurrent: (step: number) => void
+}) {
+  if (current === 2) return <CollectionForm items={items} setItems={setItems} setCurrent={setCurrent} />
+  if (current === 3) return <PurposeForm items={items} setItems={setItems} setCurrent={setCurrent} />
+
+  const stepConfig: Record<number, { title: string; description: string; fields: FactField[] }> = {
+    1: { title: '서비스 정보', description: '개인정보처리방침이 적용되는 서비스와 공개 위치를 확인합니다.', fields: [
+      { key: 'serviceName', label: '서비스 이름', placeholder: '예: PolicyWeave' },
+      { key: 'serviceUrl', label: '서비스 URL', placeholder: 'https://example.com', type: 'url' },
+    ] },
+    4: { title: '보유 기간', description: '수집한 개인정보를 언제까지 보유하는지 운영 사실과 근거에 맞춰 기록합니다.', fields: [
+      { key: 'retentionPeriod', label: '대표 보유 기간 또는 종료 조건', placeholder: '예: 회원 탈퇴 시까지, 법정 보존 항목은 별도 기간' },
+    ] },
+    5: { title: '제3자 제공', description: '제3자에게 개인정보를 제공하는 경우 제공받는 자와 목적을 확인합니다.', fields: [
+      { key: 'thirdPartyRecipient', label: '제공받는 자', placeholder: '없으면 비워 두고 검토에서 확인' },
+      { key: 'thirdPartyPurpose', label: '제공 목적', placeholder: '실제 제공 목적' },
+    ] },
+    6: { title: '국외 이전', description: '개인정보의 국외 이전이 있는 경우 국가와 수령자를 확인합니다.', fields: [
+      { key: 'internationalCountry', label: '이전 국가', placeholder: '예: 일본' },
+      { key: 'internationalRecipient', label: '국외 수령자', placeholder: '실제 수령 법인 또는 서비스' },
+    ] },
+    7: { title: '개인정보 보호 담당자', description: '개인정보 관련 문의를 받을 책임자와 연락 채널을 기록합니다.', fields: [
+      { key: 'privacyOfficerName', label: '담당자 또는 담당 부서', placeholder: '예: 개인정보보호 담당' },
+      { key: 'privacyOfficerEmail', label: '연락 이메일', placeholder: 'privacy@example.com', type: 'email' },
+    ] },
+  }
+  const config = stepConfig[current] ?? stepConfig[1]
+  return <FactStep current={current} title={config.title} description={config.description} fields={config.fields} facts={facts} setFacts={setFacts} setCurrent={setCurrent} />
+}
+
+function DocumentPreview({ items, facts, setCurrent }: { items: PolicyItem[]; facts: DraftFacts; setCurrent: (step: number) => void }) {
   const review = useMemo(() => getReview(items), [items])
-  return <section className="preview" aria-label="개인정보처리방침 미리보기">
-    <div className="preview-title"><h2>개인정보처리방침 미리보기</h2><button className="outline">새 창에서 보기 <ExternalLink size={14} /></button></div>
+  return <section className="preview" aria-label="개인정보처리방침 미리보기" tabIndex={-1}>
+    <div className="preview-title"><h2>개인정보처리방침 미리보기</h2><button className="outline" onClick={() => window.print()}>인쇄 미리보기 <ExternalLink size={14} /></button></div>
     <div className="meta"><span>근거 법령 <b>개인정보 보호법</b></span><span className={review.blocking.length ? 'warn-tag' : 'ok-tag'}>{review.blocking.length ? `검토 필요 ${review.blocking.length}` : '필수 확인 완료'}</span><span>버전 0.1.0</span></div>
     <article className="paper">
-      <h2>개인정보처리방침 (검토본)</h2>
-      <p>회사는 이용자의 개인정보를 중요하게 여기며, 관련 법령을 준수하기 위해 다음과 같이 개인정보 처리에 관한 사항을 알립니다.</p>
+      <h2>{facts.serviceName || '개인정보처리방침'} (검토본)</h2>
+      <p>{facts.serviceName || '서비스 운영자'}는 이용자의 개인정보를 중요하게 여기며, 확인된 실제 처리 사실을 바탕으로 다음 사항을 검토합니다.</p>
       <h3>제1조 (개인정보의 처리 목적)</h3>
-      <p>회사는 아래 목적을 위해 개인정보를 처리합니다. 목적이 변경되는 경우 필요한 절차를 거쳐 별도로 알립니다.</p>
-      <table><thead><tr><th>수집 항목</th><th>처리 목적</th><th>근거 확인</th></tr></thead><tbody>{review.enabled.map((item) => <tr key={item.id}><td>{item.label}</td><td className={!item.purpose ? 'missing' : ''}>{item.purpose || '처리 목적 입력 필요'}</td><td>제15조 검토</td></tr>)}</tbody></table>
-      {review.blocking.length > 0 && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>{review.blocking.map((item) => item.label).join(', ')}의 처리 목적이 입력되지 않았습니다.</span></div>}
-      <h3>제2조 (처리 및 보유 기간)</h3><p>각 개인정보의 보유 기간은 다음 작성 단계에서 입력한 법정 보존 기간과 이용 목적 달성 시점을 기준으로 정합니다.</p>
-      <h3>제3조 (제3자 제공)</h3><p>제3자 제공 여부와 제공받는 자, 목적, 항목 및 보유 기간은 확인된 운영 사실에 따라 별도 표에 반영합니다.</p>
+      <p>아래 목적은 작성자가 확인한 운영 사실을 기준으로 표시됩니다.</p>
+      <table><thead><tr><th>수집 항목</th><th>처리 목적</th><th>검토 상태</th></tr></thead><tbody>{review.enabled.map((item) => <tr key={item.id}><td>{item.label}</td><td className={!item.purpose ? 'missing' : ''}>{item.purpose || '처리 목적 입력 필요'}</td><td>{item.purpose ? '입력됨' : '확인 필요'}</td></tr>)}</tbody></table>
+      {review.blocking.length > 0 && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>{review.blocking.map((item) => item.label).join(', ')}의 처리 목적이 입력되지 않았습니다.<button className="outline" onClick={() => setCurrent(3)}>처리 목적 확인</button></span></div>}
+      <h3>제2조 (처리 및 보유 기간)</h3><p>{facts.retentionPeriod || '보유 기간 단계에서 확인한 운영 기준을 입력해야 합니다.'}</p>
+      <h3>제3조 (제3자 제공)</h3><p>{facts.thirdPartyRecipient ? `${facts.thirdPartyRecipient}에 ${facts.thirdPartyPurpose || '확인 중인 목적'}으로 제공하는 흐름을 검토 중입니다.` : '제3자 제공 여부를 확인하는 단계가 남아 있습니다.'}</p>
+      <h3>제4조 (국외 이전)</h3><p>{facts.internationalCountry || facts.internationalRecipient ? `${facts.internationalCountry || '국가 확인 필요'} · ${facts.internationalRecipient || '수령자 확인 필요'}` : '국외 이전 여부를 확인하는 단계가 남아 있습니다.'}</p>
+      <h3>개인정보 보호 문의</h3><p>{facts.privacyOfficerName || '담당자 확인 필요'} · {facts.privacyOfficerEmail || '연락처 확인 필요'}</p>
     </article>
     <button className="primary wide" disabled={review.blocking.length > 0}>검토본 생성</button>
     <small className="legal-note">생성된 문서는 법률 자문이 아닙니다. 공개 전 책임자의 검토가 필요합니다.</small>
@@ -57,13 +164,14 @@ function DocumentPreview({ items }: { items: PolicyItem[] }) {
 
 export default function App() {
   const [items, setItems] = useState(initialItems)
+  const [facts, setFacts] = useState(initialFacts)
   const [current, setCurrent] = useState(2)
   const review = useMemo(() => getReview(items), [items])
   const [message, setMessage] = useState('')
   function publish() { setMessage(review.blocking.length ? '필수 확인 항목을 먼저 입력하세요.' : '공개 URL 발행에는 저장소 백엔드 연결이 필요합니다.') }
   return <div className="app-shell">
-    <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><button className="document-name">내 서비스 개인정보처리방침 <ChevronDown size={14} /></button><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><span className="save-state"><Check size={15} /> 자동 저장됨</span><button className="outline"><Save size={15} /> 저장</button></header>
-    <div className="workspace" id="top"><StepRail current={current} setCurrent={setCurrent} /><CollectionForm items={items} setItems={setItems} setCurrent={setCurrent} /><DocumentPreview items={items} /></div>
-    <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 URL을 발행하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{review.blocking.length}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{review.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={review.blocking.length > 0}><Link size={16} /> 공개 URL 발행</button><output aria-live="polite">{message}</output></footer>
+    <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><button className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침 <ChevronDown size={14} /></button><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><span className="save-state"><Check size={15} /> 브라우저 작업 중</span><button className="outline"><Save size={15} /> JSON 내보내기 준비</button></header>
+    <div className="workspace" id="top"><StepRail current={current} setCurrent={setCurrent} /><EditingPanel current={current} items={items} setItems={setItems} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /><DocumentPreview items={items} facts={facts} setCurrent={setCurrent} /></div>
+    <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 URL 발행 준비 상태를 확인하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{review.blocking.length}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{review.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={review.blocking.length > 0}><Link size={16} /> 공개 URL 발행</button><output aria-live="polite">{message}</output></footer>
   </div>
 }
