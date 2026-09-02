@@ -13,6 +13,7 @@ function completeNonCollectionFacts(container: HTMLElement) {
   fireEvent.change(container.querySelector<HTMLInputElement>('input[name="serviceUrl"]')!, { target: { value: 'https://example.test' } })
 
   fireEvent.click(stepButtons[3])
+  fireEvent.change(container.querySelector<HTMLSelectElement>('select[name="retentionStatus"]')!, { target: { value: 'applies' } })
   fireEvent.change(container.querySelector<HTMLInputElement>('input[name="retentionPeriod"]')!, { target: { value: '회원 탈퇴 시까지' } })
 
   fireEvent.click(stepButtons[4])
@@ -164,6 +165,28 @@ describe('policy editing workflow', () => {
     const warningButton = Array.from(container.querySelectorAll<HTMLButtonElement>('.document-warning button')).find((button) => button.textContent?.includes('수집 경로'))!
     fireEvent.click(warningButton)
     expect(container.querySelector('.form-panel h1')?.textContent).toBe('2. 수집 항목')
+  })
+
+  it('보유 여부를 명시적으로 확인하고 없음 전환 시 이전 보유 기간을 폐기한다', () => {
+    const { container } = render(<App />)
+    const buttons = container.querySelectorAll<HTMLButtonElement>('.rail li button')
+    fireEvent.click(buttons[3])
+
+    const status = container.querySelector<HTMLSelectElement>('select[name="retentionStatus"]')!
+    expect(status.value).toBe('')
+    expect(container.querySelector<HTMLInputElement>('input[name="retentionPeriod"]')).toBeNull()
+
+    fireEvent.change(status, { target: { value: 'applies' } })
+    const period = container.querySelector<HTMLInputElement>('input[name="retentionPeriod"]')!
+    fireEvent.change(period, { target: { value: '회원 탈퇴 시까지' } })
+    expect(container.querySelector('.paper')?.textContent).toContain('회원 탈퇴 시까지')
+
+    fireEvent.change(status, { target: { value: 'none' } })
+    expect(container.querySelector<HTMLInputElement>('input[name="retentionPeriod"]')).toBeNull()
+    expect(container.querySelector('.paper')?.textContent).toContain('보유하는 개인정보 없음으로 확인되었습니다.')
+
+    fireEvent.change(status, { target: { value: 'applies' } })
+    expect(container.querySelector<HTMLInputElement>('input[name="retentionPeriod"]')?.value).toBe('')
   })
 
   it('제3자 제공과 국외 이전은 확인 전 상태를 별도로 표현하고 없음 확인 시 종속 사실을 요구하지 않는다', () => {
