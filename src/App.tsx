@@ -33,6 +33,7 @@ const initialFacts: DraftFacts = {
   privacyOfficerEmail: '',
 }
 
+/** Renders the seven-step authoring rail and keyboard-targetable preview shortcut. */
 function StepRail({ current, setCurrent }: { current: number; setCurrent: (step: number) => void }) {
   return <aside className="rail" aria-label="작성 단계">
     <div className="progress-copy"><strong>작성 진행률</strong><span>{current}/7 단계</span></div>
@@ -47,6 +48,7 @@ function StepRail({ current, setCurrent }: { current: number; setCurrent: (step:
   </aside>
 }
 
+/** Renders previous/next navigation for the active authoring step. */
 function StepActions({ current, setCurrent }: { current: number; setCurrent: (step: number) => void }) {
   return <div className="form-actions">
     <button className="outline" onClick={() => setCurrent(Math.max(1, current - 1))} disabled={current === 1}>이전</button>
@@ -54,6 +56,7 @@ function StepActions({ current, setCurrent }: { current: number; setCurrent: (st
   </div>
 }
 
+/** Renders a scalar-fact authoring step backed by the current draft facts. */
 function FactStep({ current, title, description, fields, facts, setFacts, setCurrent }: {
   current: number
   title: string
@@ -73,6 +76,7 @@ function FactStep({ current, title, description, fields, facts, setFacts, setCur
   </main>
 }
 
+/** Captures collection facts only after the operator explicitly selects an item. */
 function CollectionForm({ items, setItems, setCurrent }: { items: PolicyItem[]; setItems: (items: PolicyItem[]) => void; setCurrent: (step: number) => void }) {
   const update = (id: string, patch: Partial<PolicyItem>) => setItems(items.map((item) => item.id === id ? { ...item, ...patch } : item))
   return <main className="form-panel">
@@ -84,10 +88,10 @@ function CollectionForm({ items, setItems, setCurrent }: { items: PolicyItem[]; 
       <div className="item-row">
         <label className="check-label"><input type="checkbox" checked={item.enabled} onChange={(event) => {
           const enabled = event.target.checked
-          update(item.id, enabled ? { enabled } : { enabled, purpose: '', detail: '' })
+          update(item.id, enabled ? { enabled } : { enabled, purpose: '', detail: '', mode: '' })
         }} /><span className="box"><Check size={13} /></span><b>{item.label}</b></label>
         <span>{item.description}</span>
-        <label className="select-wrap"><span className="sr-only">{item.label} 수집 구분</span><select value={item.mode} onChange={(event) => update(item.id, { mode: event.target.value as PolicyItem['mode'] })} disabled={!item.enabled}><option>필수</option><option>선택</option></select><ChevronDown size={14} /></label>
+        <label className="select-wrap"><span className="sr-only">{item.label} 수집 구분</span><select value={item.mode} onChange={(event) => update(item.id, { mode: event.target.value as PolicyItem['mode'] })} disabled={!item.enabled}><option value="">확인 필요</option><option>필수</option><option>선택</option></select><ChevronDown size={14} /></label>
       </div>
       {item.enabled && <div className="conditional"><label>수집 경로 <input value={item.detail ?? ''} onChange={(event) => update(item.id, { detail: event.target.value })} placeholder="예: 회원가입 화면" /></label></div>}
     </div>)}</div>
@@ -95,6 +99,7 @@ function CollectionForm({ items, setItems, setCurrent }: { items: PolicyItem[]; 
   </main>
 }
 
+/** Captures processing purposes for collection items explicitly selected by the operator. */
 function PurposeForm({ items, setItems, setCurrent }: { items: PolicyItem[]; setItems: (items: PolicyItem[]) => void; setCurrent: (step: number) => void }) {
   const enabled = items.filter((item) => item.enabled)
   const updatePurpose = (id: string, purpose: string) => setItems(items.map((item) => item.id === id ? { ...item, purpose } : item))
@@ -107,6 +112,7 @@ function PurposeForm({ items, setItems, setCurrent }: { items: PolicyItem[]; set
   </main>
 }
 
+/** Chooses the editing surface that owns the active authoring step. */
 function EditingPanel({ current, items, setItems, facts, setFacts, setCurrent }: {
   current: number
   items: PolicyItem[]
@@ -143,11 +149,12 @@ function EditingPanel({ current, items, setItems, facts, setFacts, setCurrent }:
   return <FactStep current={current} title={config.title} description={config.description} fields={config.fields} facts={facts} setFacts={setFacts} setCurrent={setCurrent} />
 }
 
+/** Projects verified authoring facts and deterministic readiness findings into the review draft. */
 function DocumentPreview({ items, facts, setCurrent }: { items: PolicyItem[]; facts: DraftFacts; setCurrent: (step: number) => void }) {
   const review = useMemo(() => getReview(items), [items])
   return <section className="preview" aria-label="개인정보처리방침 미리보기" tabIndex={-1}>
     <div className="preview-title"><h2>개인정보처리방침 미리보기</h2><button className="outline" onClick={() => window.print()}>인쇄 미리보기 <ExternalLink size={14} /></button></div>
-    <div className="meta"><span>근거 법령 <b>개인정보 보호법</b></span><span className={review.blocking.length ? 'warn-tag' : 'ok-tag'}>{review.blocking.length ? `검토 필요 ${review.blocking.length}` : '필수 확인 완료'}</span><span>버전 0.1.0</span></div>
+    <div className="meta"><span>근거 법령 <b>개인정보 보호법</b></span><span className={review.blockingCount ? 'warn-tag' : 'ok-tag'}>{review.blockingCount ? `검토 필요 ${review.blockingCount}` : '필수 확인 완료'}</span><span>버전 0.1.0</span></div>
     <article className="paper">
       <h2>{facts.serviceName || '개인정보처리방침'} (검토본)</h2>
       {facts.serviceUrl && <p>적용 서비스: {facts.serviceUrl}</p>}
@@ -158,6 +165,8 @@ function DocumentPreview({ items, facts, setCurrent }: { items: PolicyItem[]; fa
         const hasPurpose = item.purpose.trim().length > 0
         return <tr key={item.id}><td>{item.label}</td><td className={!hasPurpose ? 'missing' : ''}>{hasPurpose ? item.purpose : '처리 목적 입력 필요'}</td><td>{hasPurpose ? '입력됨' : '확인 필요'}</td></tr>
       })}</tbody></table>
+      {review.selectionMissing && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>실제 수집 항목이 아직 확인되지 않았습니다.<button className="outline" onClick={() => setCurrent(2)}>수집 항목 확인</button></span></div>}
+      {review.modeBlocking.length > 0 && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>{review.modeBlocking.map((item) => item.label).join(', ')}의 수집 구분을 확인해야 합니다.<button className="outline" onClick={() => setCurrent(2)}>수집 구분 확인</button></span></div>}
       {review.blocking.length > 0 && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>{review.blocking.map((item) => item.label).join(', ')}의 처리 목적이 입력되지 않았습니다.<button className="outline" onClick={() => setCurrent(3)}>처리 목적 확인</button></span></div>}
       <h3>제2조 (처리 및 보유 기간)</h3><p>{facts.retentionPeriod || '보유 기간 단계에서 확인한 운영 기준을 입력해야 합니다.'}</p>
       <h3>제3조 (제3자 제공)</h3><p>{facts.thirdPartyRecipient ? `${facts.thirdPartyRecipient}에 ${facts.thirdPartyPurpose || '확인 중인 목적'}으로 제공하는 흐름을 검토 중입니다.` : '제3자 제공 여부를 확인하는 단계가 남아 있습니다.'}</p>
@@ -168,16 +177,17 @@ function DocumentPreview({ items, facts, setCurrent }: { items: PolicyItem[]; fa
   </section>
 }
 
+/** Coordinates PolicyWeave browser-only authoring state and readiness feedback. */
 export default function App() {
   const [items, setItems] = useState(initialItems)
   const [facts, setFacts] = useState(initialFacts)
   const [current, setCurrent] = useState(2)
   const review = useMemo(() => getReview(items), [items])
   const [message, setMessage] = useState('')
-  function publish() { setMessage(review.blocking.length ? '필수 확인 항목을 먼저 입력하세요.' : '필수 확인이 완료되었습니다. 현재 검토본을 책임자와 검토하고 필요한 사실을 보완하세요.') }
+  function publish() { setMessage(review.blockingCount ? '필수 확인 항목을 먼저 입력하세요.' : '필수 확인이 완료되었습니다. 현재 검토본을 책임자와 검토하고 필요한 사실을 보완하세요.') }
   return <div className="app-shell">
     <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><span className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침</span><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><span className="save-state"><Check size={15} /> 브라우저 작업 중</span><button className="outline" disabled><Save size={15} /> JSON 내보내기 준비 중</button></header>
     <div className="workspace" id="top"><StepRail current={current} setCurrent={setCurrent} /><EditingPanel current={current} items={items} setItems={setItems} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /><DocumentPreview items={items} facts={facts} setCurrent={setCurrent} /></div>
-    <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 준비 상태를 확인하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{review.blocking.length}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{review.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={review.blocking.length > 0}><Link size={16} /> 공개 준비 확인</button><output aria-live="polite">{message}</output></footer>
+    <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 준비 상태를 확인하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{review.blockingCount}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{review.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={review.blockingCount > 0}><Link size={16} /> 공개 준비 확인</button><output aria-live="polite">{message}</output></footer>
   </div>
 }
