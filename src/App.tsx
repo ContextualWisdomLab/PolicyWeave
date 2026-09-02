@@ -168,7 +168,7 @@ function EditingPanel({ current, items, setItems, noCollectionAttested, setNoCol
 /** Projects verified authoring facts and deterministic readiness findings into the review draft. */
 function DocumentPreview({ items, noCollectionAttested, facts, setCurrent }: { items: PolicyItem[]; noCollectionAttested: boolean; facts: DraftFacts; setCurrent: (step: number) => void }) {
   const review = useMemo(() => getReview(items, noCollectionAttested), [items, noCollectionAttested])
-  const draftFindings = useMemo(() => getDraftReview(facts), [facts])
+  const draftFindings = useMemo(() => getDraftReview(facts, noCollectionAttested), [facts, noCollectionAttested])
   const blockingCount = review.blockingCount + draftFindings.length
   return <section className="preview" aria-label="개인정보처리방침 미리보기" tabIndex={-1}>
     <div className="preview-title"><h2>개인정보처리방침 미리보기</h2><button className="outline" onClick={() => window.print()}>인쇄 미리보기 <ExternalLink size={14} /></button></div>
@@ -189,7 +189,7 @@ function DocumentPreview({ items, noCollectionAttested, facts, setCurrent }: { i
       {review.pathBlocking.length > 0 && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>{review.pathBlocking.map((item) => item.label).join(', ')}의 수집 경로를 확인해야 합니다.<button className="outline" onClick={() => setCurrent(2)}>수집 경로 확인</button></span></div>}
       {review.blocking.length > 0 && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>{review.blocking.map((item) => item.label).join(', ')}의 처리 목적이 입력되지 않았습니다.<button className="outline" onClick={() => setCurrent(3)}>처리 목적 확인</button></span></div>}
       {draftFindings.map((finding) => <div className="document-warning" key={finding.code}><AlertTriangle size={18} /><span><b>공개 전 확인</b>{finding.label} 확인이 필요합니다.<button className="outline" onClick={() => setCurrent(finding.step)}>{steps[finding.step - 1]} 확인</button></span></div>)}
-      <h3>제2조 (처리 및 보유 기간)</h3><p>{facts.retentionPeriod || '보유 기간 단계에서 확인한 운영 기준을 입력해야 합니다.'}</p>
+      <h3>제2조 (처리 및 보유 기간)</h3><p>{noCollectionAttested ? '개인정보를 수집하지 않음으로 확인되어 보유 기간이 적용되지 않습니다.' : facts.retentionPeriod || '보유 기간 단계에서 확인한 운영 기준을 입력해야 합니다.'}</p>
       <h3>제3조 (제3자 제공)</h3><p>{facts.thirdPartyStatus === 'no' ? '제3자 제공 없음으로 확인되었습니다.' : facts.thirdPartyStatus === 'yes' ? `${facts.thirdPartyRecipient || '제공받는 자 확인 필요'}에 ${facts.thirdPartyPurpose || '제공 목적 확인 필요'}으로 제공하는 흐름을 검토 중입니다.` : '제3자 제공 여부를 확인하는 단계가 남아 있습니다.'}</p>
       <h3>제4조 (국외 이전)</h3><p>{facts.internationalStatus === 'no' ? '국외 이전 없음으로 확인되었습니다.' : facts.internationalStatus === 'yes' ? `${facts.internationalCountry || '국가 확인 필요'} · ${facts.internationalRecipient || '수령자 확인 필요'}` : '국외 이전 여부를 확인하는 단계가 남아 있습니다.'}</p>
       <h3>개인정보 보호 문의</h3><p>{facts.privacyOfficerName || '담당자 확인 필요'} · {facts.privacyOfficerEmail || '연락처 확인 필요'}</p>
@@ -205,7 +205,7 @@ export default function App() {
   const [facts, setFacts] = useState(initialFacts)
   const [current, setCurrent] = useState(1)
   const collectionReview = useMemo(() => getReview(items, noCollectionAttested), [items, noCollectionAttested])
-  const draftFindings = useMemo(() => getDraftReview(facts), [facts])
+  const draftFindings = useMemo(() => getDraftReview(facts, noCollectionAttested), [facts, noCollectionAttested])
   const completedSteps = useMemo(() => getCompletedSteps(items, noCollectionAttested, facts), [items, noCollectionAttested, facts])
   const blockingCount = collectionReview.blockingCount + draftFindings.length
   const [message, setMessage] = useState('')
