@@ -6,21 +6,21 @@ This TRD covers the pre-release PolicyWeave browser workspace and the contracts 
 ## Current runtime
 - React + TypeScript + Vite browser application.
 - Structured authoring state is in browser memory; no production database or backend exists.
-- `src/policy.ts` owns deterministic review logic for collection selection/mode/purpose/path and the non-collection authoring-completeness findings for service identity, retention, transfer statuses/details, and privacy contact.
-- `src/App.tsx` provides the seven-step authoring flow, review navigation, conditional transfer editors, and deterministic preview projection.
+- `src/policy.ts` owns deterministic review logic for collection selection/no-collection attestation/mode/purpose/path and the non-collection authoring-completeness findings for service identity, retention, transfer statuses/details, and privacy contact.
+- `src/App.tsx` provides the seven-step authoring flow, review navigation, explicit no-collection and transfer-status capture, stale dependent-fact invalidation, and deterministic preview projection.
 - The current CI contract is lint, Vitest, and TypeScript/Vite build plus live organization-required security/review workflows.
 
 ## Functional contracts
 1. Every PRD step must route to an editable surface; selecting a step cannot change only the rail indicator.
 2. A fresh workspace contains no inferred customer operational facts. Blank authoring values mean unresolved, not `none`.
-3. Until at least one actual collection item is selected, readiness produces a blocking selection-not-established finding that navigates to the collection step.
+3. Collection readiness requires either at least one explicitly selected collection item or an explicit no-collection attestation. The no-collection attestation and selected items are mutually exclusive; contradictory state fails closed. Turning the attestation on clears selected items and their mode/purpose/path evidence, and later turning it off does not revive those stale facts.
 4. Every selected collection item requires an explicit collection mode, nonblank processing purpose, and nonblank collection-path evidence. Each missing responsibility is counted independently and navigates to its owning step.
 5. Service name, service URL, retention period, third-party provision status, international-transfer status, privacy-contact owner, and privacy-contact email are product-defined readiness facts and block readiness while unresolved. Service URL must be an absolute HTTP(S) URL; contact email must satisfy a minimal address-shape check. These syntax checks do not claim endpoint reachability or mailbox ownership.
 6. Third-party provision and international transfer use explicit unresolved/yes/no status. `no` is an operator attestation; `yes` requires its dependent facts. Changing either status away from `yes` clears dependent details to prevent stale evidence revival.
 7. Blank/whitespace authoring facts are normalized as unresolved.
 8. Disabling a collection item invalidates dependent collection-mode, processing-purpose, and collection-path evidence; re-enabling requires renewed confirmation.
 9. Every blocking finding links to the responsible editing step.
-10. Preview text is derived from current structured facts; it does not become an independently editable authority.
+10. Preview text is derived from current structured facts, including the explicit no-collection attestation; it does not become an independently editable authority.
 11. UI copy distinguishes a review draft from legal advice, certification, or a compliance guarantee.
 
 These are authoring-completeness contracts, not claims that the resulting policy is legally sufficient. Legal sufficiency remains a separate versioned-rule responsibility backed by authoritative source evidence.
