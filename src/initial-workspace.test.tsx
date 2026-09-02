@@ -6,22 +6,23 @@ import App from './App'
 afterEach(cleanup)
 
 describe('authoring progress truthfulness', () => {
-  it('starts with the first unresolved authoring responsibility instead of marking it complete', () => {
+  it('starts with the first unresolved authoring responsibility and zero completed responsibilities', () => {
     const { container } = render(<App />)
 
     expect(container.querySelector('.form-panel h1')?.textContent).toBe('1. 서비스 정보')
-    expect(container.querySelector('.progress-copy span')?.textContent).toBe('1/7 단계')
+    expect(container.querySelector('.progress-copy span')?.textContent).toBe('0/7 완료')
     expect(container.querySelectorAll('.rail li.done')).toHaveLength(0)
     expect(container.querySelector('.rail li.active small')?.textContent).toBe('확인 및 입력')
   })
 
-  it('does not mark unresolved responsibilities complete merely because the operator navigates past them', () => {
+  it('does not increase completion merely because the operator navigates past unresolved responsibilities', () => {
     const { container } = render(<App />)
     const railButtons = container.querySelectorAll<HTMLButtonElement>('.rail li button')
 
     fireEvent.click(railButtons[6])
 
     expect(container.querySelector('.form-panel h1')?.textContent).toBe('7. 개인정보 보호 담당자')
+    expect(container.querySelector('.progress-copy span')?.textContent).toBe('0/7 완료')
     expect(container.querySelectorAll('.rail li.done')).toHaveLength(0)
     expect(Array.from(container.querySelectorAll('.rail li small')).every((label) => label.textContent === '확인 및 입력')).toBe(true)
   })
@@ -33,6 +34,7 @@ describe('authoring progress truthfulness', () => {
     fireEvent.click(container.querySelector<HTMLButtonElement>('.form-actions .primary')!)
 
     const firstStep = container.querySelectorAll<HTMLLIElement>('.rail li')[0]
+    expect(container.querySelector('.progress-copy span')?.textContent).toBe('1/7 완료')
     expect(firstStep.classList.contains('done')).toBe(true)
     expect(firstStep.querySelector('small')?.textContent).toBe('입력 확인됨')
   })
