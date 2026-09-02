@@ -13,10 +13,11 @@ This TRD covers the pre-release PolicyWeave browser workspace and the contracts 
 ## Functional contracts
 1. Every PRD step must route to an editable surface; selecting a step cannot change only the rail indicator.
 2. Selected collection items expose their collection mode and processing-purpose contract.
-3. A selected item with blank/whitespace purpose produces a blocking review finding.
-4. A blocking finding links to the responsible editing step.
-5. Preview text is derived from current structured facts; it does not become an independently editable authority.
-6. UI copy distinguishes a review draft from legal advice, certification, or a compliance guarantee.
+3. A selected item with blank/whitespace purpose produces a blocking review finding, and the preview must apply the same blank/whitespace normalization when it renders purpose completeness.
+4. Disabling a collection item invalidates dependent processing-purpose and collection-path evidence; re-enabling the item requires those facts to be captured and reviewed again.
+5. A blocking finding links to the responsible editing step.
+6. Preview text is derived from current structured facts; it does not become an independently editable authority.
+7. UI copy distinguishes a review draft from legal advice, certification, or a compliance guarantee.
 
 ## Quality contracts
 - Touched production behavior requires regression and edge-case tests first.
