@@ -76,7 +76,7 @@ describe('policy editing workflow', () => {
     expect(container.querySelector('.form-panel h1')?.textContent).toBe('3. 처리 목적')
   })
 
-  it('처리 목적을 보완하면 발행 차단을 해제한다', () => {
+  it('처리 목적을 보완하면 구현 내부가 아닌 고객의 다음 검토 행동을 안내한다', () => {
     const { container } = render(<App />)
     const phone = container.querySelectorAll<HTMLInputElement>('.check-label input')[2]
     fireEvent.click(phone)
@@ -88,7 +88,11 @@ describe('policy editing workflow', () => {
     expect(container.querySelector('.review-stat.blocking b')?.textContent).toBe('0건')
     const publish = container.querySelector<HTMLButtonElement>('.publish')!
     expect(publish.disabled).toBe(false)
+    expect(publish.textContent).toContain('공개 준비 확인')
     fireEvent.click(publish)
-    expect(container.querySelector('output')?.textContent).toContain('백엔드 연결이 필요합니다')
+    const message = container.querySelector('output')?.textContent ?? ''
+    expect(message).toContain('책임자와 검토')
+    expect(message).not.toContain('백엔드')
+    expect(message).not.toContain('저장소')
   })
 })
