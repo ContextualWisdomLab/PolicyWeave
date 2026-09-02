@@ -1,5 +1,6 @@
 export type CollectionMode = '' | '필수' | '선택'
 export type DisclosureStatus = '' | 'yes' | 'no'
+export type RetentionStatus = '' | 'applies' | 'none'
 
 export type PolicyItem = {
   id: string
@@ -14,6 +15,7 @@ export type PolicyItem = {
 export type DraftFacts = {
   serviceName: string
   serviceUrl: string
+  retentionStatus: RetentionStatus
   retentionPeriod: string
   thirdPartyStatus: DisclosureStatus
   thirdPartyRecipient: string
@@ -46,6 +48,7 @@ export const initialItems: PolicyItem[] = [
 export const initialFacts: DraftFacts = {
   serviceName: '',
   serviceUrl: '',
+  retentionStatus: '',
   retentionPeriod: '',
   thirdPartyStatus: '',
   thirdPartyRecipient: '',
@@ -87,8 +90,8 @@ export function getReview(items: PolicyItem[], noCollectionAttested = false) {
   return { enabled, blocking, modeBlocking, pathBlocking, selectionMissing, collectionContradiction, noCollectionAttested, blockingCount, recommended }
 }
 
-/** Derives non-collection authoring findings, treating retention as inapplicable only after an explicit no-collection attestation. */
-export function getDraftReview(facts: DraftFacts, noCollectionAttested = false): DraftFinding[] {
+/** Derives non-collection authoring findings without inferring retention state from collection state. */
+export function getDraftReview(facts: DraftFacts, _noCollectionAttested = false): DraftFinding[] {
   const findings: DraftFinding[] = []
   const addWhenBlank = (value: string, code: string, step: number, label: string) => {
     if (!value.trim()) findings.push({ code, step, label })
@@ -99,7 +102,11 @@ export function getDraftReview(facts: DraftFacts, noCollectionAttested = false):
   if (!serviceUrl) findings.push({ code: 'service_url', step: 1, label: '서비스 URL' })
   else if (!isWebServiceUrl(serviceUrl)) findings.push({ code: 'service_url_format', step: 1, label: '서비스 URL 형식' })
 
-  if (!noCollectionAttested) addWhenBlank(facts.retentionPeriod, 'retention_period', 4, '보유 기간')
+  if (!facts.retentionStatus) {
+    findings.push({ code: 'retention_status', step: 4, label: '개인정보 보유 여부' })
+  } else if (facts.retentionStatus === 'applies') {
+    addWhenBlank(facts.retentionPeriod, 'retention_period', 4, '보유 기간')
+  }
 
   if (!facts.thirdPartyStatus) {
     findings.push({ code: 'third_party_status', step: 5, label: '제3자 제공 여부' })
