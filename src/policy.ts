@@ -79,10 +79,11 @@ export function getReview(items: PolicyItem[]) {
   const enabled = items.filter((item) => item.enabled)
   const blocking = enabled.filter((item) => !item.purpose.trim())
   const modeBlocking = enabled.filter((item) => !item.mode)
+  const pathBlocking = enabled.filter((item) => !item.detail?.trim())
   const selectionMissing = enabled.length === 0
-  const blockingCount = blocking.length + modeBlocking.length + (selectionMissing ? 1 : 0)
+  const blockingCount = blocking.length + modeBlocking.length + pathBlocking.length + (selectionMissing ? 1 : 0)
   const recommended = enabled.filter((item) => item.mode === '선택' && item.id !== 'usage')
-  return { enabled, blocking, modeBlocking, selectionMissing, blockingCount, recommended }
+  return { enabled, blocking, modeBlocking, pathBlocking, selectionMissing, blockingCount, recommended }
 }
 
 /** Derives authoring-completeness findings for the non-collection responsibilities in the seven-step workflow. */
