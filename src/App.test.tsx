@@ -54,6 +54,20 @@ describe('policy editing workflow', () => {
     expect(container.querySelector<HTMLInputElement>('input[name="purpose-phone"]')?.value).toBe('')
   })
 
+  it('공백뿐인 처리 목적은 미리보기에서도 미입력으로 표시한다', () => {
+    const { container } = render(<App />)
+    fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[2])
+
+    const purpose = container.querySelector<HTMLInputElement>('input[name="purpose-name"]')!
+    fireEvent.change(purpose, { target: { value: '   ' } })
+
+    expect(container.querySelector('.review-stat.blocking b')?.textContent).toBe('1건')
+    const nameRow = Array.from(container.querySelectorAll<HTMLTableRowElement>('.paper tbody tr')).find((row) => row.cells[0]?.textContent === '이름')!
+    expect(nameRow.cells[1]?.textContent).toBe('처리 목적 입력 필요')
+    expect(nameRow.cells[1]?.classList.contains('missing')).toBe(true)
+    expect(nameRow.cells[2]?.textContent).toBe('확인 필요')
+  })
+
   it('미리보기 경고에서 처리 목적 단계로 이동한다', () => {
     const { container } = render(<App />)
     const phone = container.querySelectorAll<HTMLInputElement>('.check-label input')[2]
