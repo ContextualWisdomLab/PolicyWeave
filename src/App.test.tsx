@@ -25,9 +25,12 @@ describe('policy editing workflow', () => {
 
   it('아직 제공하지 않는 내보내기와 생성 기능을 클릭 가능한 동작처럼 노출하지 않는다', () => {
     const { container } = render(<App />)
-    const exportButton = Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent?.includes('JSON 내보내기'))
+    const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>('button'))
+    const exportButton = buttons.find((button) => button.textContent?.includes('JSON 내보내기'))
     expect(exportButton?.disabled).toBe(true)
     expect(exportButton?.textContent).toContain('준비 중')
+    expect(buttons.find((button) => button.textContent?.includes('개인정보처리방침'))).toBeUndefined()
+    expect(container.querySelector('.document-name')?.tagName).toBe('SPAN')
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.preview button')).some((button) => button.textContent?.includes('검토본 생성'))).toBe(false)
     expect(container.querySelector('.preview')?.textContent).toContain('입력 내용은 검토본에 즉시 반영됩니다')
   })
