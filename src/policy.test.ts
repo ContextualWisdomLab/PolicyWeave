@@ -54,7 +54,7 @@ describe('seven-step draft readiness', () => {
     expect(getDraftReview(initialFacts).map((finding) => finding.code)).toEqual([
       'service_name',
       'service_url',
-      'retention_period',
+      'retention_status',
       'third_party_status',
       'international_status',
       'privacy_contact_name',
@@ -62,11 +62,45 @@ describe('seven-step draft readiness', () => {
     ])
   })
 
+  it('does not infer retention applicability from no-collection', () => {
+    expect(getDraftReview(initialFacts, true).map((finding) => finding.code)).toContain('retention_status')
+  })
+
+  it('accepts an explicit no-retention fact without inventing a retention period', () => {
+    const facts = {
+      ...initialFacts,
+      serviceName: '예시 서비스',
+      serviceUrl: 'https://example.test',
+      retentionStatus: 'none' as const,
+      thirdPartyStatus: 'no' as const,
+      internationalStatus: 'no' as const,
+      privacyOfficerName: '개인정보보호 담당',
+      privacyOfficerEmail: 'privacy@example.test',
+    }
+    expect(getDraftReview(facts, true)).toEqual([])
+  })
+
+  it('requires a retention period only after the operator confirms retained personal data exists', () => {
+    const facts = {
+      ...initialFacts,
+      serviceName: '예시 서비스',
+      serviceUrl: 'https://example.test',
+      retentionStatus: 'applies' as const,
+      thirdPartyStatus: 'no' as const,
+      internationalStatus: 'no' as const,
+      privacyOfficerName: '개인정보보호 담당',
+      privacyOfficerEmail: 'privacy@example.test',
+    }
+    expect(getDraftReview(facts).map((finding) => finding.code)).toEqual(['retention_period'])
+    expect(getDraftReview({ ...facts, retentionPeriod: '회원 탈퇴 시까지' })).toEqual([])
+  })
+
   it('treats explicit no-transfer attestations as complete without inventing recipients', () => {
     const facts = {
       ...initialFacts,
       serviceName: '예시 서비스',
       serviceUrl: 'https://example.test',
+      retentionStatus: 'applies' as const,
       retentionPeriod: '회원 탈퇴 시까지',
       thirdPartyStatus: 'no' as const,
       internationalStatus: 'no' as const,
@@ -81,6 +115,7 @@ describe('seven-step draft readiness', () => {
       ...initialFacts,
       serviceName: '예시 서비스',
       serviceUrl: 'https://example.test',
+      retentionStatus: 'applies' as const,
       retentionPeriod: '회원 탈퇴 시까지',
       thirdPartyStatus: 'yes' as const,
       internationalStatus: 'yes' as const,
@@ -100,6 +135,7 @@ describe('seven-step draft readiness', () => {
       ...initialFacts,
       serviceName: '   ',
       serviceUrl: '\t',
+      retentionStatus: 'applies' as const,
       retentionPeriod: '\n',
       thirdPartyStatus: 'no' as const,
       internationalStatus: 'no' as const,
@@ -119,6 +155,7 @@ describe('seven-step draft readiness', () => {
     const base = {
       ...initialFacts,
       serviceName: '예시 서비스',
+      retentionStatus: 'applies' as const,
       retentionPeriod: '회원 탈퇴 시까지',
       thirdPartyStatus: 'no' as const,
       internationalStatus: 'no' as const,
@@ -135,6 +172,7 @@ describe('seven-step draft readiness', () => {
       ...initialFacts,
       serviceName: '예시 서비스',
       serviceUrl: 'https://example.test',
+      retentionStatus: 'applies' as const,
       retentionPeriod: '회원 탈퇴 시까지',
       thirdPartyStatus: 'no' as const,
       internationalStatus: 'no' as const,
