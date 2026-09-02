@@ -14,7 +14,9 @@ PolicyWeave treats legal and regulatory material as versioned evidence, not as i
 
 ## Accessibility standards traceability
 
-W3C's WCAG 2.2 guidance states that authored visual focus indicators are subject to the Level AA non-text contrast requirement, and its Focus Visible guidance explicitly points focus indication to Success Criterion 1.4.11. The previous PolicyWeave focus color `#8eb59e` was approximately 2.27:1 against white, so it did not provide the 3:1 contrast expected for an authored focus indicator. Test-first commit `e5b77f1897ab13dd4f27ccd8b7fa724ba3e74bb0` required the high-contrast product token; production commit `e9e7dcc5c4160a70a9c483574fb651125589392d` moved generic and custom-checkbox focus outlines to `--green` (`#174f35`, approximately 9.52:1 against white); regression commit `ee73bc24e80b32851dcc6f519a457ca9d5efed56` computes the token contrast and enforces a minimum 3:1 ratio rather than relying only on literal CSS text. This is CSS-level evidence only; browser keyboard traversal, focus-not-obscured behavior, zoom, screen-reader behavior, and responsive screenshots remain open.
+W3C's WCAG 2.2 guidance states that authored visual focus indicators are subject to the Level AA non-text contrast requirement, and its Focus Visible guidance explicitly points focus indication to Success Criterion 1.4.11. The previous PolicyWeave focus color `#8eb59e` was approximately 2.27:1 against white, so it did not provide the 3:1 contrast expected for an authored focus indicator. Test-first commit `e5b77f1897ab13dd4f27ccd8b7fa724ba3e74bb0` required the high-contrast product token; production commit `e9e7dcc5c4160a70a9c483574fb651125589392d` moved generic and custom-checkbox focus outlines to `--green` (`#174f35`, approximately 9.52:1 against white); regression commit `ee73bc24e80b32851dcc6f519a457ca9d5efed56` computes the token contrast and enforces a minimum 3:1 ratio rather than relying only on literal CSS text.
+
+WCAG 2.2 Success Criterion 2.4.3 requires sequential focus navigation to preserve meaning and operability; W3C's understanding guidance also recognizes programmatically moving focus to non-interactive content when that content provides the logical next context. PolicyWeave changed the visible authoring surface after step-rail, previous/next, and review-warning activation while leaving focus on the triggering control. Test-first commit `e9ff9cd49532560b28d970236d4f64fa03f21d25` specifies that the newly active step heading receives programmatic focus. Production commits `960432e7557c55d13ab83106970f1e9bc93b415f` and `2ec1e10d44a04332d223e1be42a3fde9c28c7f40` implement and activate that bounded transition while excluding ordinary editing controls and the dedicated preview shortcut. These jsdom regressions establish logical focus-transition behavior only; real-browser keyboard traversal, Success Criterion 2.4.11 focus-not-obscured evidence, zoom, screen-reader behavior, and responsive screenshots remain open, so PolicyWeave does not claim full WCAG conformance from these repairs.
 
 ## APA 7 references
 
@@ -28,6 +30,8 @@ Republic of Korea. (2026). *개인정보 보호법 시행령* [Enforcement Decre
 
 World Wide Web Consortium. (2025). *Understanding Success Criterion 1.4.11: Non-text contrast*. Web Accessibility Initiative. https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html
 
+World Wide Web Consortium. (2025). *Understanding Success Criterion 2.4.3: Focus order*. Web Accessibility Initiative. https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html
+
 World Wide Web Consortium. (2025). *Understanding Success Criterion 2.4.7: Focus visible*. Web Accessibility Initiative. https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html
 
 ## Traceability rules
@@ -38,4 +42,4 @@ World Wide Web Consortium. (2025). *Understanding Success Criterion 2.4.7: Focus
 5. LLM output, if later used to explain or propose wording, is never an authoritative legal source and cannot change review/publication state.
 
 ## Current gap
-The seven-step workspace now captures the product's intended fact categories, but retention, third-party provision, international transfer, contact/controller information, and legal-basis review still need requirement-level mappings to the authoritative register, deterministic validation, and regression fixtures before PolicyWeave can claim those steps are legally complete. CSS-level focus contrast now has an executable regression contract, but browser-level accessibility evidence remains required before claiming WCAG conformance.
+The seven-step workspace now captures the product's intended fact categories, but retention, third-party provision, international transfer, contact/controller information, and legal-basis review still need requirement-level mappings to the authoritative register, deterministic validation, and regression fixtures before PolicyWeave can claim those steps are legally complete. CSS-level focus contrast and deterministic step-focus transfer now have executable regression contracts, but real-browser accessibility evidence remains required before claiming WCAG conformance.
