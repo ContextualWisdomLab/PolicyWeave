@@ -74,16 +74,17 @@ function isContactEmail(value: string) {
   return /^[^\s@]+@[^\s@]+$/.test(value)
 }
 
-/** Derives deterministic readiness findings from operator-confirmed collection facts. */
-export function getReview(items: PolicyItem[]) {
+/** Derives deterministic readiness findings from operator-confirmed collection facts and an explicit no-collection attestation. */
+export function getReview(items: PolicyItem[], noCollectionAttested = false) {
   const enabled = items.filter((item) => item.enabled)
   const blocking = enabled.filter((item) => !item.purpose.trim())
   const modeBlocking = enabled.filter((item) => !item.mode)
   const pathBlocking = enabled.filter((item) => !item.detail?.trim())
-  const selectionMissing = enabled.length === 0
-  const blockingCount = blocking.length + modeBlocking.length + pathBlocking.length + (selectionMissing ? 1 : 0)
+  const selectionMissing = enabled.length === 0 && !noCollectionAttested
+  const collectionContradiction = noCollectionAttested && enabled.length > 0
+  const blockingCount = blocking.length + modeBlocking.length + pathBlocking.length + (selectionMissing ? 1 : 0) + (collectionContradiction ? 1 : 0)
   const recommended = enabled.filter((item) => item.mode === '선택' && item.id !== 'usage')
-  return { enabled, blocking, modeBlocking, pathBlocking, selectionMissing, blockingCount, recommended }
+  return { enabled, blocking, modeBlocking, pathBlocking, selectionMissing, collectionContradiction, noCollectionAttested, blockingCount, recommended }
 }
 
 /** Derives authoring-completeness findings for the non-collection responsibilities in the seven-step workflow. */

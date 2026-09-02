@@ -67,53 +67,67 @@ function FactStep({ current, title, description, fields, facts, setFacts, setCur
   </main>
 }
 
-/** Captures collection facts only after the operator explicitly selects an item. */
-function CollectionForm({ items, setItems, setCurrent }: { items: PolicyItem[]; setItems: (items: PolicyItem[]) => void; setCurrent: (step: number) => void }) {
+/** Captures collection facts only after the operator explicitly selects an item or attests that none are collected. */
+function CollectionForm({ items, setItems, noCollectionAttested, setNoCollectionAttested, setCurrent }: {
+  items: PolicyItem[]
+  setItems: (items: PolicyItem[]) => void
+  noCollectionAttested: boolean
+  setNoCollectionAttested: (attested: boolean) => void
+  setCurrent: (step: number) => void
+}) {
   const update = (id: string, patch: Partial<PolicyItem>) => setItems(items.map((item) => item.id === id ? { ...item, ...patch } : item))
+  const setNoCollection = (attested: boolean) => {
+    if (attested) setItems(items.map((item) => ({ ...item, enabled: false, purpose: '', detail: '', mode: '' })))
+    setNoCollectionAttested(attested)
+  }
   return <main className="form-panel">
     <header className="section-head"><h1>2. 수집 항목</h1><p>서비스에서 실제로 수집하는 개인정보만 선택하세요. 선택한 항목에 따라 다음 단계가 달라집니다.</p></header>
     <div className="notice"><strong>입력 원칙</strong><span>서비스 코드와 운영 절차에서 확인한 항목만 반영하세요. 추정으로 선택하지 않습니다.</span></div>
+    <h2>수집 여부</h2>
+    <label className="attestation-label"><input name="noCollectionAttested" type="checkbox" checked={noCollectionAttested} onChange={(event) => setNoCollection(event.target.checked)} /> 개인정보를 수집하지 않음으로 확인</label>
     <h2>기본 정보</h2>
     <div className="table-head"><span>수집 항목</span><span>설명</span><span>수집 여부</span></div>
     <div className="item-list">{items.map((item) => <div className={`item ${item.enabled ? 'selected' : ''}`} key={item.id}>
       <div className="item-row">
-        <label className="check-label"><input type="checkbox" checked={item.enabled} onChange={(event) => {
+        <label className="check-label"><input type="checkbox" checked={item.enabled} disabled={noCollectionAttested} onChange={(event) => {
           const enabled = event.target.checked
           update(item.id, enabled ? { enabled } : { enabled, purpose: '', detail: '', mode: '' })
         }} /><span className="box"><Check size={13} /></span><b>{item.label}</b></label>
         <span>{item.description}</span>
-        <label className="select-wrap"><span className="sr-only">{item.label} 수집 구분</span><select value={item.mode} onChange={(event) => update(item.id, { mode: event.target.value as PolicyItem['mode'] })} disabled={!item.enabled}><option value="">확인 필요</option><option>필수</option><option>선택</option></select><ChevronDown size={14} /></label>
+        <label className="select-wrap"><span className="sr-only">{item.label} 수집 구분</span><select value={item.mode} onChange={(event) => update(item.id, { mode: event.target.value as PolicyItem['mode'] })} disabled={!item.enabled || noCollectionAttested}><option value="">확인 필요</option><option>필수</option><option>선택</option></select><ChevronDown size={14} /></label>
       </div>
-      {item.enabled && <div className="conditional"><label>수집 경로 <input value={item.detail ?? ''} onChange={(event) => update(item.id, { detail: event.target.value })} placeholder="예: 회원가입 화면" /></label></div>}
+      {item.enabled && !noCollectionAttested && <div className="conditional"><label>수집 경로 <input value={item.detail ?? ''} onChange={(event) => update(item.id, { detail: event.target.value })} placeholder="예: 회원가입 화면" /></label></div>}
     </div>)}</div>
     <StepActions current={2} setCurrent={setCurrent} />
   </main>
 }
 
 /** Captures processing purposes for collection items explicitly selected by the operator. */
-function PurposeForm({ items, setItems, setCurrent }: { items: PolicyItem[]; setItems: (items: PolicyItem[]) => void; setCurrent: (step: number) => void }) {
+function PurposeForm({ items, setItems, noCollectionAttested, setCurrent }: { items: PolicyItem[]; setItems: (items: PolicyItem[]) => void; noCollectionAttested: boolean; setCurrent: (step: number) => void }) {
   const enabled = items.filter((item) => item.enabled)
   const updatePurpose = (id: string, purpose: string) => setItems(items.map((item) => item.id === id ? { ...item, purpose } : item))
   return <main className="form-panel">
     <header className="section-head"><h1>3. 처리 목적</h1><p>선택한 개인정보 항목마다 실제 처리 목적을 연결합니다. 목적이 없는 항목은 공개 검토를 통과할 수 없습니다.</p></header>
     <div className="notice"><strong>검토 원칙</strong><span>포괄적인 문구를 새로 만들기보다 실제 기능·업무 목적과 연결하세요.</span></div>
     <h2>항목별 처리 목적</h2>
-    {enabled.length === 0 ? <p>수집 항목 단계에서 실제 수집 항목을 먼저 선택하세요.</p> : <div className="item-list purpose-list">{enabled.map((item) => <div className="item" key={item.id}><div className="conditional"><label>{item.label} 처리 목적<input name={`purpose-${item.id}`} value={item.purpose} onChange={(event) => updatePurpose(item.id, event.target.value)} placeholder={`${item.label}을 처리하는 실제 목적`} /></label><label>수집 경로<input value={item.detail ?? ''} readOnly placeholder="수집 항목 단계에서 입력" /></label></div></div>)}</div>}
+    {noCollectionAttested ? <p>개인정보를 수집하지 않음으로 확인되었습니다. 수집 항목을 추가하려면 수집 항목 단계에서 이 확인을 해제하세요.</p> : enabled.length === 0 ? <p>수집 항목 단계에서 실제 수집 항목을 먼저 선택하세요.</p> : <div className="item-list purpose-list">{enabled.map((item) => <div className="item" key={item.id}><div className="conditional"><label>{item.label} 처리 목적<input name={`purpose-${item.id}`} value={item.purpose} onChange={(event) => updatePurpose(item.id, event.target.value)} placeholder={`${item.label}을 처리하는 실제 목적`} /></label><label>수집 경로<input value={item.detail ?? ''} readOnly placeholder="수집 항목 단계에서 입력" /></label></div></div>)}</div>}
     <StepActions current={3} setCurrent={setCurrent} />
   </main>
 }
 
 /** Chooses the editing surface that owns the active authoring step. */
-function EditingPanel({ current, items, setItems, facts, setFacts, setCurrent }: {
+function EditingPanel({ current, items, setItems, noCollectionAttested, setNoCollectionAttested, facts, setFacts, setCurrent }: {
   current: number
   items: PolicyItem[]
   setItems: (items: PolicyItem[]) => void
+  noCollectionAttested: boolean
+  setNoCollectionAttested: (attested: boolean) => void
   facts: DraftFacts
   setFacts: (facts: DraftFacts) => void
   setCurrent: (step: number) => void
 }) {
-  if (current === 2) return <CollectionForm items={items} setItems={setItems} setCurrent={setCurrent} />
-  if (current === 3) return <PurposeForm items={items} setItems={setItems} setCurrent={setCurrent} />
+  if (current === 2) return <CollectionForm items={items} setItems={setItems} noCollectionAttested={noCollectionAttested} setNoCollectionAttested={setNoCollectionAttested} setCurrent={setCurrent} />
+  if (current === 3) return <PurposeForm items={items} setItems={setItems} noCollectionAttested={noCollectionAttested} setCurrent={setCurrent} />
 
   const yesNoOptions = [
     { value: '', label: '확인 필요' },
@@ -148,8 +162,8 @@ function EditingPanel({ current, items, setItems, facts, setFacts, setCurrent }:
 }
 
 /** Projects verified authoring facts and deterministic readiness findings into the review draft. */
-function DocumentPreview({ items, facts, setCurrent }: { items: PolicyItem[]; facts: DraftFacts; setCurrent: (step: number) => void }) {
-  const review = useMemo(() => getReview(items), [items])
+function DocumentPreview({ items, noCollectionAttested, facts, setCurrent }: { items: PolicyItem[]; noCollectionAttested: boolean; facts: DraftFacts; setCurrent: (step: number) => void }) {
+  const review = useMemo(() => getReview(items, noCollectionAttested), [items, noCollectionAttested])
   const draftFindings = useMemo(() => getDraftReview(facts), [facts])
   const blockingCount = review.blockingCount + draftFindings.length
   return <section className="preview" aria-label="개인정보처리방침 미리보기" tabIndex={-1}>
@@ -160,12 +174,13 @@ function DocumentPreview({ items, facts, setCurrent }: { items: PolicyItem[]; fa
       {facts.serviceUrl && <p>적용 서비스: {facts.serviceUrl}</p>}
       <p>{facts.serviceName || '서비스 운영자'}는 이용자의 개인정보를 중요하게 여기며, 확인된 실제 처리 사실을 바탕으로 다음 사항을 검토합니다.</p>
       <h3>제1조 (개인정보의 처리 목적)</h3>
-      <p>아래 목적은 작성자가 확인한 운영 사실을 기준으로 표시됩니다.</p>
+      {noCollectionAttested ? <p>운영자는 현재 서비스에서 개인정보를 수집하지 않음으로 확인했습니다.</p> : <p>아래 목적은 작성자가 확인한 운영 사실을 기준으로 표시됩니다.</p>}
       <table><thead><tr><th>수집 항목</th><th>처리 목적</th><th>검토 상태</th></tr></thead><tbody>{review.enabled.map((item) => {
         const hasPurpose = item.purpose.trim().length > 0
         return <tr key={item.id}><td>{item.label}</td><td className={!hasPurpose ? 'missing' : ''}>{hasPurpose ? item.purpose : '처리 목적 입력 필요'}</td><td>{hasPurpose ? '입력됨' : '확인 필요'}</td></tr>
       })}</tbody></table>
-      {review.selectionMissing && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>실제 수집 항목이 아직 확인되지 않았습니다.<button className="outline" onClick={() => setCurrent(2)}>수집 항목 확인</button></span></div>}
+      {review.selectionMissing && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>실제 수집 항목 또는 개인정보를 수집하지 않는다는 운영 사실이 아직 확인되지 않았습니다.<button className="outline" onClick={() => setCurrent(2)}>수집 항목 확인</button></span></div>}
+      {review.collectionContradiction && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>수집하지 않음 확인과 선택된 수집 항목이 동시에 존재합니다.<button className="outline" onClick={() => setCurrent(2)}>수집 여부 확인</button></span></div>}
       {review.modeBlocking.length > 0 && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>{review.modeBlocking.map((item) => item.label).join(', ')}의 수집 구분을 확인해야 합니다.<button className="outline" onClick={() => setCurrent(2)}>수집 구분 확인</button></span></div>}
       {review.pathBlocking.length > 0 && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>{review.pathBlocking.map((item) => item.label).join(', ')}의 수집 경로를 확인해야 합니다.<button className="outline" onClick={() => setCurrent(2)}>수집 경로 확인</button></span></div>}
       {review.blocking.length > 0 && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>{review.blocking.map((item) => item.label).join(', ')}의 처리 목적이 입력되지 않았습니다.<button className="outline" onClick={() => setCurrent(3)}>처리 목적 확인</button></span></div>}
@@ -182,16 +197,17 @@ function DocumentPreview({ items, facts, setCurrent }: { items: PolicyItem[]; fa
 /** Coordinates PolicyWeave browser-only authoring state and readiness feedback. */
 export default function App() {
   const [items, setItems] = useState(initialItems)
+  const [noCollectionAttested, setNoCollectionAttested] = useState(false)
   const [facts, setFacts] = useState(initialFacts)
   const [current, setCurrent] = useState(2)
-  const collectionReview = useMemo(() => getReview(items), [items])
+  const collectionReview = useMemo(() => getReview(items, noCollectionAttested), [items, noCollectionAttested])
   const draftFindings = useMemo(() => getDraftReview(facts), [facts])
   const blockingCount = collectionReview.blockingCount + draftFindings.length
   const [message, setMessage] = useState('')
   function publish() { setMessage(blockingCount ? '필수 확인 항목을 먼저 입력하세요.' : '필수 확인이 완료되었습니다. 현재 검토본을 책임자와 검토하고 필요한 사실을 보완하세요.') }
   return <div className="app-shell">
     <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><span className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침</span><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><span className="save-state"><Check size={15} /> 브라우저 작업 중</span><button className="outline" disabled><Save size={15} /> JSON 내보내기 준비 중</button></header>
-    <div className="workspace" id="top"><StepRail current={current} setCurrent={setCurrent} /><EditingPanel current={current} items={items} setItems={setItems} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /><DocumentPreview items={items} facts={facts} setCurrent={setCurrent} /></div>
+    <div className="workspace" id="top"><StepRail current={current} setCurrent={setCurrent} /><EditingPanel current={current} items={items} setItems={setItems} noCollectionAttested={noCollectionAttested} setNoCollectionAttested={setNoCollectionAttested} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /><DocumentPreview items={items} noCollectionAttested={noCollectionAttested} facts={facts} setCurrent={setCurrent} /></div>
     <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 준비 상태를 확인하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{blockingCount}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{collectionReview.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={blockingCount > 0}><Link size={16} /> 공개 준비 확인</button><output aria-live="polite">{message}</output></footer>
   </div>
 }
