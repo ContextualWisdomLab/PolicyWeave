@@ -16,6 +16,15 @@ describe('policy editing workflow', () => {
     }
   })
 
+  it('새 작업공간은 운영 사실을 임의 선택하지 않고 수집 여부 확인 전 공개 준비를 차단한다', () => {
+    const { container } = render(<App />)
+    const selected = Array.from(container.querySelectorAll<HTMLInputElement>('.check-label input')).filter((input) => input.checked)
+    expect(selected).toHaveLength(0)
+    expect(container.querySelector('.review-stat.blocking b')?.textContent).toBe('1건')
+    expect(container.querySelector<HTMLButtonElement>('.publish')?.disabled).toBe(true)
+    expect(container.querySelector('.document-warning')?.textContent).toContain('수집 항목')
+  })
+
   it('서비스 URL을 입력하면 검토본의 적용 서비스 정보에 반영한다', () => {
     const { container } = render(<App />)
     fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[0])
@@ -35,26 +44,30 @@ describe('policy editing workflow', () => {
     expect(container.querySelector('.preview')?.textContent).toContain('입력 내용은 검토본에 즉시 반영됩니다')
   })
 
-  it('수집 단계에서는 선택 항목의 수집 경로를 항상 편집하고 처리 목적은 다음 단계에서 편집한다', () => {
+  it('수집 단계에서는 선택 항목의 수집 경로와 수집 구분을 명시적으로 확인하고 처리 목적은 다음 단계에서 편집한다', () => {
     const { container } = render(<App />)
-    expect(container.querySelectorAll<HTMLInputElement>('input[placeholder="예: 회원가입 화면"]')).toHaveLength(3)
-    expect(container.querySelector<HTMLInputElement>('input[placeholder="예: 본인 확인, 알림 발송"]')).toBeNull()
+    expect(container.querySelectorAll<HTMLInputElement>('input[placeholder="예: 회원가입 화면"]')).toHaveLength(0)
 
     const phone = container.querySelectorAll<HTMLInputElement>('.check-label input')[2]
     fireEvent.click(phone)
-    expect(container.querySelectorAll<HTMLInputElement>('input[placeholder="예: 회원가입 화면"]')).toHaveLength(4)
-    expect(container.querySelector<HTMLInputElement>('input[placeholder="예: 본인 확인, 알림 발송"]')).toBeNull()
+    const phoneItem = container.querySelectorAll<HTMLElement>('.item-list .item')[2]
+    expect(phoneItem.querySelector<HTMLSelectElement>('select')?.value).toBe('')
+    expect(container.querySelectorAll<HTMLInputElement>('input[placeholder="예: 회원가입 화면"]')).toHaveLength(1)
+
+    fireEvent.change(phoneItem.querySelector<HTMLSelectElement>('select')!, { target: { value: '필수' } })
+    expect(phoneItem.querySelector<HTMLSelectElement>('select')?.value).toBe('필수')
 
     fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[2])
     expect(container.querySelector<HTMLInputElement>('input[name="purpose-phone"]')).not.toBeNull()
   })
 
-  it('수집 항목을 해제하면 이전 처리 목적과 수집 경로를 폐기해 재활성화 시 재검토한다', () => {
+  it('수집 항목을 해제하면 이전 처리 목적, 수집 경로, 수집 구분을 폐기해 재활성화 시 재검토한다', () => {
     const { container } = render(<App />)
     const phoneCheckbox = () => container.querySelectorAll<HTMLInputElement>('.check-label input')[2]
 
     fireEvent.click(phoneCheckbox())
     const phoneItem = container.querySelectorAll<HTMLElement>('.item-list .item')[2]
+    fireEvent.change(phoneItem.querySelector<HTMLSelectElement>('select')!, { target: { value: '필수' } })
     fireEvent.change(phoneItem.querySelector<HTMLInputElement>('input[placeholder="예: 회원가입 화면"]')!, { target: { value: 'SMS 인증 화면' } })
 
     fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[2])
@@ -67,7 +80,8 @@ describe('policy editing workflow', () => {
 
     const reenabledPhone = container.querySelectorAll<HTMLElement>('.item-list .item')[2]
     expect(reenabledPhone.querySelector<HTMLInputElement>('input[placeholder="예: 회원가입 화면"]')?.value).toBe('')
-    expect(container.querySelector('.review-stat.blocking b')?.textContent).toBe('1건')
+    expect(reenabledPhone.querySelector<HTMLSelectElement>('select')?.value).toBe('')
+    expect(container.querySelector('.review-stat.blocking b')?.textContent).toBe('2건')
 
     fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[2])
     expect(container.querySelector<HTMLInputElement>('input[name="purpose-phone"]')?.value).toBe('')
@@ -75,6 +89,10 @@ describe('policy editing workflow', () => {
 
   it('공백뿐인 처리 목적은 미리보기에서도 미입력으로 표시한다', () => {
     const { container } = render(<App />)
+    const nameCheckbox = container.querySelectorAll<HTMLInputElement>('.check-label input')[0]
+    fireEvent.click(nameCheckbox)
+    const nameItem = container.querySelectorAll<HTMLElement>('.item-list .item')[0]
+    fireEvent.change(nameItem.querySelector<HTMLSelectElement>('select')!, { target: { value: '필수' } })
     fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[2])
 
     const purpose = container.querySelector<HTMLInputElement>('input[name="purpose-name"]')!
@@ -87,19 +105,40 @@ describe('policy editing workflow', () => {
     expect(nameRow.cells[2]?.textContent).toBe('확인 필요')
   })
 
-  it('미리보기 경고에서 처리 목적 단계로 이동한다', () => {
+  it('미리보기 처리 목적 경고에서 처리 목적 단계로 이동한다', () => {
     const { container } = render(<App />)
     const phone = container.querySelectorAll<HTMLInputElement>('.check-label input')[2]
     fireEvent.click(phone)
-    fireEvent.click(container.querySelector<HTMLButtonElement>('.document-warning button')!)
+    const warningButton = Array.from(container.querySelectorAll<HTMLButtonElement>('.document-warning button')).find((button) => button.textContent?.includes('처리 목적'))!
+    fireEvent.click(warningButton)
     expect(container.querySelector('.form-panel h1')?.textContent).toBe('3. 처리 목적')
   })
 
-  it('처리 목적을 보완하면 구현 내부가 아닌 고객의 다음 검토 행동을 안내한다', () => {
+  it('수집 여부 미확인 경고에서 수집 항목 단계로 이동한다', () => {
+    const { container } = render(<App />)
+    fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[0])
+    const warningButton = Array.from(container.querySelectorAll<HTMLButtonElement>('.document-warning button')).find((button) => button.textContent?.includes('수집 항목'))!
+    fireEvent.click(warningButton)
+    expect(container.querySelector('.form-panel h1')?.textContent).toBe('2. 수집 항목')
+  })
+
+  it('수집 구분 미확인 경고에서 수집 항목 단계로 이동한다', () => {
+    const { container } = render(<App />)
+    fireEvent.click(container.querySelectorAll<HTMLInputElement>('.check-label input')[2])
+    fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[0])
+    const warningButton = Array.from(container.querySelectorAll<HTMLButtonElement>('.document-warning button')).find((button) => button.textContent?.includes('수집 구분'))!
+    fireEvent.click(warningButton)
+    expect(container.querySelector('.form-panel h1')?.textContent).toBe('2. 수집 항목')
+  })
+
+  it('처리 목적과 수집 구분을 보완하면 구현 내부가 아닌 고객의 다음 검토 행동을 안내한다', () => {
     const { container } = render(<App />)
     const phone = container.querySelectorAll<HTMLInputElement>('.check-label input')[2]
     fireEvent.click(phone)
-    fireEvent.click(container.querySelector<HTMLButtonElement>('.document-warning button')!)
+    const phoneItem = container.querySelectorAll<HTMLElement>('.item-list .item')[2]
+    fireEvent.change(phoneItem.querySelector<HTMLSelectElement>('select')!, { target: { value: '필수' } })
+    const warningButton = Array.from(container.querySelectorAll<HTMLButtonElement>('.document-warning button')).find((button) => button.textContent?.includes('처리 목적'))!
+    fireEvent.click(warningButton)
 
     const purpose = container.querySelector<HTMLInputElement>('input[name="purpose-phone"]')!
     fireEvent.change(purpose, { target: { value: '본인 확인 및 알림 발송' } })
