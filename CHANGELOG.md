@@ -9,7 +9,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 - Explicit `개인정보를 수집하지 않음` operator attestation so a genuine no-collection service can complete authoring without treating an empty item list as `none`.
 - Warning-to-source navigation for missing collection selection/no-collection confirmation, collection mode, collection-path evidence, processing purposes, service identity, retention, transfer statuses/details, and privacy contact.
 - Explicit unresolved/yes/no states for third-party provision and international transfer, with dependent detail capture only for confirmed `yes` cases.
-- Regression coverage for all seven step routes, zero-inferred startup facts, explicit no-collection state and stale-item invalidation, collection-mode/path confirmation, seven-step readiness, explicit no-transfer attestations, transfer-dependent fact invalidation, whitespace normalization, service URL projection, warning navigation, collection-path/purpose separation, stale collection evidence invalidation, buyer-facing publication guidance, non-deceptive handling of unshipped affordances, and authored focus-indicator contrast.
+- Regression coverage for all seven step routes, zero-inferred startup facts, explicit no-collection state and stale-item invalidation, collection-mode/path confirmation, seven-step readiness, explicit no-transfer attestations, transfer-dependent fact invalidation, whitespace normalization, service URL projection, warning navigation, collection-path/purpose separation, stale collection evidence invalidation, buyer-facing publication guidance, non-deceptive handling of unshipped affordances, authored focus-indicator contrast, and authoring-step focus transfer.
 - Product/technical gap ledger, architecture, technical requirements, security baseline, and legal-source/accessibility traceability.
 
 ### Changed
@@ -25,6 +25,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 - Service URL entered in the service-information step is projected into the review draft.
 - Collection-path editing remains in the collection step while processing-purpose editing stays in its dedicated purpose step.
 - Review preview applies the same whitespace-normalized purpose-completeness contract as the blocking review rule.
+- Step-rail, previous/next, and review-warning navigation now transfers programmatic focus to the newly active step heading; ordinary form controls and the dedicated preview shortcut are excluded from that transfer.
 - The publication-area CTA describes a readiness check and directs the operator to responsible review rather than exposing internal implementation boundaries.
 - Unshipped JSON export is visibly disabled as `준비 중`, the redundant no-op `검토본 생성` control was removed, and the document title is non-interactive status text.
 - Authored generic and custom-checkbox keyboard focus outlines now use the high-contrast `--green` token; a CSS regression test computes and enforces at least 3:1 contrast against white instead of relying on a low-contrast focus color.
@@ -34,7 +35,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 
 ### Not yet shipped
 - Authoritative legal-rule snapshots that can determine legal sufficiency beyond product-defined fact completeness.
-- Browser-matrix/accessibility evidence and screenshot verification beyond the CSS-level focus-contrast contract.
+- Full browser-matrix/accessibility evidence and screenshot verification beyond CSS focus contrast and deterministic step-focus transition tests.
 - Durable versioned policy persistence and audit history.
 - Authenticated immutable publication revisions and public URL lifecycle.
 - Hosted tenant/security/operability evidence and endpoint load testing.
