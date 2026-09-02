@@ -59,6 +59,21 @@ export const initialFacts: DraftFacts = {
 
 export const steps = ['서비스 정보', '수집 항목', '처리 목적', '보유 기간', '제3자 제공', '국외 이전', '개인정보 보호 담당자']
 
+/** Returns whether a service URL is an absolute HTTP(S) web location suitable for a buyer-facing policy target. */
+function isWebServiceUrl(value: string) {
+  try {
+    const url = new URL(value)
+    return (url.protocol === 'https:' || url.protocol === 'http:') && Boolean(url.hostname)
+  } catch {
+    return false
+  }
+}
+
+/** Applies the minimal address-shape contract needed for a usable contact channel without claiming mailbox existence. */
+function isContactEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+$/.test(value)
+}
+
 /** Derives deterministic readiness findings from operator-confirmed collection facts. */
 export function getReview(items: PolicyItem[]) {
   const enabled = items.filter((item) => item.enabled)
@@ -78,7 +93,10 @@ export function getDraftReview(facts: DraftFacts): DraftFinding[] {
   }
 
   addWhenBlank(facts.serviceName, 'service_name', 1, '서비스 이름')
-  addWhenBlank(facts.serviceUrl, 'service_url', 1, '서비스 URL')
+  const serviceUrl = facts.serviceUrl.trim()
+  if (!serviceUrl) findings.push({ code: 'service_url', step: 1, label: '서비스 URL' })
+  else if (!isWebServiceUrl(serviceUrl)) findings.push({ code: 'service_url_format', step: 1, label: '서비스 URL 형식' })
+
   addWhenBlank(facts.retentionPeriod, 'retention_period', 4, '보유 기간')
 
   if (!facts.thirdPartyStatus) {
@@ -96,7 +114,9 @@ export function getDraftReview(facts: DraftFacts): DraftFinding[] {
   }
 
   addWhenBlank(facts.privacyOfficerName, 'privacy_contact_name', 7, '개인정보 보호 담당자')
-  addWhenBlank(facts.privacyOfficerEmail, 'privacy_contact_email', 7, '개인정보 보호 연락 이메일')
+  const privacyOfficerEmail = facts.privacyOfficerEmail.trim()
+  if (!privacyOfficerEmail) findings.push({ code: 'privacy_contact_email', step: 7, label: '개인정보 보호 연락 이메일' })
+  else if (!isContactEmail(privacyOfficerEmail)) findings.push({ code: 'privacy_contact_email_format', step: 7, label: '개인정보 보호 연락 이메일 형식' })
 
   return findings
 }
