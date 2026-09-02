@@ -82,7 +82,10 @@ function CollectionForm({ items, setItems, setCurrent }: { items: PolicyItem[]; 
     <div className="table-head"><span>수집 항목</span><span>설명</span><span>수집 여부</span></div>
     <div className="item-list">{items.map((item) => <div className={`item ${item.enabled ? 'selected' : ''}`} key={item.id}>
       <div className="item-row">
-        <label className="check-label"><input type="checkbox" checked={item.enabled} onChange={(event) => update(item.id, { enabled: event.target.checked })} /><span className="box"><Check size={13} /></span><b>{item.label}</b></label>
+        <label className="check-label"><input type="checkbox" checked={item.enabled} onChange={(event) => {
+          const enabled = event.target.checked
+          update(item.id, enabled ? { enabled } : { enabled, purpose: '', detail: '' })
+        }} /><span className="box"><Check size={13} /></span><b>{item.label}</b></label>
         <span>{item.description}</span>
         <label className="select-wrap"><span className="sr-only">{item.label} 수집 구분</span><select value={item.mode} onChange={(event) => update(item.id, { mode: event.target.value as PolicyItem['mode'] })} disabled={!item.enabled}><option>필수</option><option>선택</option></select><ChevronDown size={14} /></label>
       </div>
@@ -150,7 +153,10 @@ function DocumentPreview({ items, facts, setCurrent }: { items: PolicyItem[]; fa
       <p>{facts.serviceName || '서비스 운영자'}는 이용자의 개인정보를 중요하게 여기며, 확인된 실제 처리 사실을 바탕으로 다음 사항을 검토합니다.</p>
       <h3>제1조 (개인정보의 처리 목적)</h3>
       <p>아래 목적은 작성자가 확인한 운영 사실을 기준으로 표시됩니다.</p>
-      <table><thead><tr><th>수집 항목</th><th>처리 목적</th><th>검토 상태</th></tr></thead><tbody>{review.enabled.map((item) => <tr key={item.id}><td>{item.label}</td><td className={!item.purpose ? 'missing' : ''}>{item.purpose || '처리 목적 입력 필요'}</td><td>{item.purpose ? '입력됨' : '확인 필요'}</td></tr>)}</tbody></table>
+      <table><thead><tr><th>수집 항목</th><th>처리 목적</th><th>검토 상태</th></tr></thead><tbody>{review.enabled.map((item) => {
+        const hasPurpose = item.purpose.trim().length > 0
+        return <tr key={item.id}><td>{item.label}</td><td className={!hasPurpose ? 'missing' : ''}>{hasPurpose ? item.purpose : '처리 목적 입력 필요'}</td><td>{hasPurpose ? '입력됨' : '확인 필요'}</td></tr>
+      })}</tbody></table>
       {review.blocking.length > 0 && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>{review.blocking.map((item) => item.label).join(', ')}의 처리 목적이 입력되지 않았습니다.<button className="outline" onClick={() => setCurrent(3)}>처리 목적 확인</button></span></div>}
       <h3>제2조 (처리 및 보유 기간)</h3><p>{facts.retentionPeriod || '보유 기간 단계에서 확인한 운영 기준을 입력해야 합니다.'}</p>
       <h3>제3조 (제3자 제공)</h3><p>{facts.thirdPartyRecipient ? `${facts.thirdPartyRecipient}에 ${facts.thirdPartyPurpose || '확인 중인 목적'}으로 제공하는 흐름을 검토 중입니다.` : '제3자 제공 여부를 확인하는 단계가 남아 있습니다.'}</p>
