@@ -23,6 +23,15 @@ describe('policy editing workflow', () => {
     expect(container.querySelector('.paper')?.textContent).toContain('https://privacy.example.test')
   })
 
+  it('아직 제공하지 않는 내보내기와 생성 기능을 클릭 가능한 동작처럼 노출하지 않는다', () => {
+    const { container } = render(<App />)
+    const exportButton = Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent?.includes('JSON 내보내기'))
+    expect(exportButton?.disabled).toBe(true)
+    expect(exportButton?.textContent).toContain('준비 중')
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.preview button')).some((button) => button.textContent?.includes('검토본 생성'))).toBe(false)
+    expect(container.querySelector('.preview')?.textContent).toContain('입력 내용은 검토본에 즉시 반영됩니다')
+  })
+
   it('수집 단계에서는 선택 항목의 수집 경로를 항상 편집하고 처리 목적은 다음 단계에서 편집한다', () => {
     const { container } = render(<App />)
     expect(container.querySelectorAll<HTMLInputElement>('input[placeholder="예: 회원가입 화면"]')).toHaveLength(3)
