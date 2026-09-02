@@ -122,3 +122,22 @@ export function getDraftReview(facts: DraftFacts): DraftFinding[] {
 
   return findings
 }
+
+/** Derives completed authoring responsibilities from the same fail-closed facts used by readiness review. */
+export function getCompletedSteps(items: PolicyItem[], noCollectionAttested: boolean, facts: DraftFacts) {
+  const collectionReview = getReview(items, noCollectionAttested)
+  const draftBlockedSteps = new Set(getDraftReview(facts).map((finding) => finding.step))
+  const completed = new Set<number>()
+
+  if (!draftBlockedSteps.has(1)) completed.add(1)
+
+  const collectionEstablished = !collectionReview.selectionMissing && !collectionReview.collectionContradiction
+  if (collectionEstablished && collectionReview.modeBlocking.length === 0 && collectionReview.pathBlocking.length === 0) completed.add(2)
+  if (collectionEstablished && collectionReview.blocking.length === 0) completed.add(3)
+
+  for (const step of [4, 5, 6, 7]) {
+    if (!draftBlockedSteps.has(step)) completed.add(step)
+  }
+
+  return completed
+}
