@@ -25,4 +25,15 @@ describe('authoring progress truthfulness', () => {
     expect(container.querySelectorAll('.rail li.done')).toHaveLength(0)
     expect(Array.from(container.querySelectorAll('.rail li small')).every((label) => label.textContent === '확인 및 입력')).toBe(true)
   })
+
+  it('marks a responsibility complete only after its blocking facts are actually satisfied', () => {
+    const { container } = render(<App />)
+    fireEvent.change(container.querySelector<HTMLInputElement>('input[name="serviceName"]')!, { target: { value: 'Example Service' } })
+    fireEvent.change(container.querySelector<HTMLInputElement>('input[name="serviceUrl"]')!, { target: { value: 'https://example.com' } })
+    fireEvent.click(container.querySelector<HTMLButtonElement>('.form-actions .primary')!)
+
+    const firstStep = container.querySelectorAll<HTMLLIElement>('.rail li')[0]
+    expect(firstStep.classList.contains('done')).toBe(true)
+    expect(firstStep.querySelector('small')?.textContent).toBe('입력 확인됨')
+  })
 })
