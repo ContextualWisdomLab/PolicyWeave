@@ -19,10 +19,11 @@ A future `policy_revision` is the minimal aggregate root and transaction boundar
 
 Core invariants:
 1. A selected collection item cannot pass review without a non-empty processing purpose.
-2. Review findings navigate to the fact that caused them.
-3. Publication must never upgrade an unreviewed or incomplete draft to a reviewed/authoritative state.
-4. A published revision remains reproducible from its policy facts plus rule/template/source versions.
-5. External legal-source updates produce explicit re-evaluation, not silent rewriting.
+2. Disabling a collection item invalidates its dependent processing-purpose and collection-path evidence; re-enabling it requires those facts to be captured and reviewed again rather than silently reviving stale evidence.
+3. Review findings navigate to the fact that caused them.
+4. Publication must never upgrade an unreviewed or incomplete draft to a reviewed/authoritative state.
+5. A published revision remains reproducible from its policy facts plus rule/template/source versions.
+6. External legal-source updates produce explicit re-evaluation, not silent rewriting.
 
 ## Current implementation
 The active MVP is a React/Vite browser workspace. State is in memory and there is no production persistence or publication backend. The seven PRD steps are routed to distinct editing surfaces. `src/policy.ts` owns the current collection-item review rule; `src/App.tsx` owns browser orchestration and deterministic preview rendering.
