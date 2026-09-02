@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { getReview, initialItems } from './policy'
+import { getDraftReview, getReview, initialFacts, initialItems } from './policy'
 
-describe('policy review', () => {
+describe('collection policy review', () => {
   it('starts without invented operational selections, collection modes, or processing purposes', () => {
     expect(initialItems.filter((item) => item.enabled)).toEqual([])
     expect(initialItems.every((item) => item.mode === '')).toBe(true)
@@ -34,5 +34,72 @@ describe('policy review', () => {
     expect(review.blocking.map((item) => item.id)).not.toContain('phone')
     expect(review.modeBlocking.map((item) => item.id)).not.toContain('phone')
     expect(review.blockingCount).toBe(0)
+  })
+})
+
+describe('seven-step draft readiness', () => {
+  it('starts with every unresolved non-collection authoring responsibility blocked', () => {
+    expect(getDraftReview(initialFacts).map((finding) => finding.code)).toEqual([
+      'service_name',
+      'service_url',
+      'retention_period',
+      'third_party_status',
+      'international_status',
+      'privacy_contact_name',
+      'privacy_contact_email',
+    ])
+  })
+
+  it('treats explicit no-transfer attestations as complete without inventing recipients', () => {
+    const facts = {
+      ...initialFacts,
+      serviceName: '예시 서비스',
+      serviceUrl: 'https://example.test',
+      retentionPeriod: '회원 탈퇴 시까지',
+      thirdPartyStatus: 'no' as const,
+      internationalStatus: 'no' as const,
+      privacyOfficerName: '개인정보보호 담당',
+      privacyOfficerEmail: 'privacy@example.test',
+    }
+    expect(getDraftReview(facts)).toEqual([])
+  })
+
+  it('requires dependent transfer facts only when the operator confirms a transfer exists', () => {
+    const facts = {
+      ...initialFacts,
+      serviceName: '예시 서비스',
+      serviceUrl: 'https://example.test',
+      retentionPeriod: '회원 탈퇴 시까지',
+      thirdPartyStatus: 'yes' as const,
+      internationalStatus: 'yes' as const,
+      privacyOfficerName: '개인정보보호 담당',
+      privacyOfficerEmail: 'privacy@example.test',
+    }
+    expect(getDraftReview(facts).map((finding) => finding.code)).toEqual([
+      'third_party_recipient',
+      'third_party_purpose',
+      'international_country',
+      'international_recipient',
+    ])
+  })
+
+  it('normalizes whitespace-only authoring facts as unresolved', () => {
+    const facts = {
+      ...initialFacts,
+      serviceName: '   ',
+      serviceUrl: '\t',
+      retentionPeriod: '\n',
+      thirdPartyStatus: 'no' as const,
+      internationalStatus: 'no' as const,
+      privacyOfficerName: '  ',
+      privacyOfficerEmail: ' ',
+    }
+    expect(getDraftReview(facts).map((finding) => finding.code)).toEqual([
+      'service_name',
+      'service_url',
+      'retention_period',
+      'privacy_contact_name',
+      'privacy_contact_email',
+    ])
   })
 })
