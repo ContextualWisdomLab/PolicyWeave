@@ -102,4 +102,33 @@ describe('seven-step draft readiness', () => {
       'privacy_contact_email',
     ])
   })
+
+  it('blocks malformed or non-web service URLs after presence is established', () => {
+    const base = {
+      ...initialFacts,
+      serviceName: '예시 서비스',
+      retentionPeriod: '회원 탈퇴 시까지',
+      thirdPartyStatus: 'no' as const,
+      internationalStatus: 'no' as const,
+      privacyOfficerName: '개인정보보호 담당',
+      privacyOfficerEmail: 'privacy@example.test',
+    }
+    expect(getDraftReview({ ...base, serviceUrl: 'not a url' }).map((finding) => finding.code)).toEqual(['service_url_format'])
+    expect(getDraftReview({ ...base, serviceUrl: 'javascript:alert(1)' }).map((finding) => finding.code)).toEqual(['service_url_format'])
+    expect(getDraftReview({ ...base, serviceUrl: 'https://example.test/path' })).toEqual([])
+  })
+
+  it('blocks malformed privacy contact email after presence is established', () => {
+    const base = {
+      ...initialFacts,
+      serviceName: '예시 서비스',
+      serviceUrl: 'https://example.test',
+      retentionPeriod: '회원 탈퇴 시까지',
+      thirdPartyStatus: 'no' as const,
+      internationalStatus: 'no' as const,
+      privacyOfficerName: '개인정보보호 담당',
+    }
+    expect(getDraftReview({ ...base, privacyOfficerEmail: 'not-an-email' }).map((finding) => finding.code)).toEqual(['privacy_contact_email_format'])
+    expect(getDraftReview({ ...base, privacyOfficerEmail: 'privacy@example.test' })).toEqual([])
+  })
 })
