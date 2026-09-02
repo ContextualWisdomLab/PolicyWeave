@@ -18,15 +18,16 @@ The core subdomain is **Policy Fact Authoring**. Supporting subdomains are **Rev
 A future `policy_revision` is the minimal aggregate root and transaction boundary. `collection_item`, `processing_purpose`, `retention_rule`, `third_party_transfer`, `international_transfer`, and `privacy_contact` are revision-owned facts/value objects unless later evidence requires independent lifecycles. `review_finding` is derived evidence. `publication_revision` is an immutable release receipt, not a mutable policy row. Rendered prose is a projection and never the source of truth.
 
 Core invariants:
-1. A selected collection item cannot pass review without a non-empty processing purpose.
-2. Disabling a collection item invalidates its dependent processing-purpose and collection-path evidence; re-enabling it requires those facts to be captured and reviewed again rather than silently reviving stale evidence.
-3. Review findings navigate to the fact that caused them.
-4. Publication must never upgrade an unreviewed or incomplete draft to a reviewed/authoritative state.
-5. A published revision remains reproducible from its policy facts plus rule/template/source versions.
-6. External legal-source updates produce explicit re-evaluation, not silent rewriting.
+1. A fresh workspace contains no inferred customer operational facts: collection selection, collection mode, and processing purpose remain unresolved until the operator establishes them.
+2. Selecting a collection item without confirming its collection mode or processing purpose creates blocking review findings.
+3. Disabling a collection item invalidates its dependent collection-mode, processing-purpose, and collection-path evidence; re-enabling it requires those facts to be captured and reviewed again rather than silently reviving stale evidence.
+4. Review findings navigate to the fact that caused them.
+5. Publication must never upgrade an unreviewed or incomplete draft to a reviewed/authoritative state.
+6. A published revision remains reproducible from its policy facts plus rule/template/source versions.
+7. External legal-source updates produce explicit re-evaluation, not silent rewriting.
 
 ## Current implementation
-The active MVP is a React/Vite browser workspace. State is in memory and there is no production persistence or publication backend. The seven PRD steps are routed to distinct editing surfaces. `src/policy.ts` owns the current collection-item review rule; `src/App.tsx` owns browser orchestration and deterministic preview rendering.
+The active MVP is a React/Vite browser workspace. State is in memory and there is no production persistence or publication backend. The seven PRD steps are routed to distinct editing surfaces. The collection taxonomy is metadata only: every item begins unselected, with no inferred collection mode or processing purpose. `src/policy.ts` owns deterministic selection-established, collection-mode, and processing-purpose readiness rules; `src/App.tsx` owns browser orchestration, warning-to-source navigation, and deterministic preview rendering.
 
 ## Persistence boundary (planned, not implemented)
 Use relational 3NF by default. Named database/schema/persistence objects use at least two semantic words and `snake_case`, for example `policy_revision`, `collection_item`, `processing_purpose`, `review_finding`, `publication_revision`, and `legal_source_revision`. Item-level UPSERTs must declare their natural/idempotency key and conflict behavior. Publication is append-only/immutable with explicit supersession; writes across unrelated aggregates must not share a transaction merely for convenience.

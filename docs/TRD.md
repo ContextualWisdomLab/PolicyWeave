@@ -6,21 +6,24 @@ This TRD covers the pre-release PolicyWeave browser workspace and the contracts 
 ## Current runtime
 - React + TypeScript + Vite browser application.
 - Structured authoring state is in browser memory; no production database or backend exists.
-- `src/policy.ts` contains deterministic review logic for selected collection items and missing processing purposes.
+- `src/policy.ts` contains deterministic review logic for whether collection selection has been established, whether selected items have an explicit collection mode, and whether selected items have a processing purpose.
 - `src/App.tsx` provides the seven-step authoring flow, review navigation, and deterministic preview projection.
 - The current CI contract is lint, Vitest, and TypeScript/Vite build plus live organization-required security/review workflows.
 
 ## Functional contracts
 1. Every PRD step must route to an editable surface; selecting a step cannot change only the rail indicator.
-2. Selected collection items expose their collection mode and processing-purpose contract.
-3. A selected item with blank/whitespace purpose produces a blocking review finding, and the preview must apply the same blank/whitespace normalization when it renders purpose completeness.
-4. Disabling a collection item invalidates dependent processing-purpose and collection-path evidence; re-enabling the item requires those facts to be captured and reviewed again.
-5. A blocking finding links to the responsible editing step.
-6. Preview text is derived from current structured facts; it does not become an independently editable authority.
-7. UI copy distinguishes a review draft from legal advice, certification, or a compliance guarantee.
+2. A fresh workspace contains no inferred customer operational facts: collection selection, collection mode, and processing purpose start unresolved.
+3. Until at least one actual collection item is selected, readiness produces a blocking selection-not-established finding that navigates to the collection step.
+4. Every selected collection item requires an explicit collection mode; a missing mode is blocking and navigates to the collection step.
+5. A selected item with blank/whitespace purpose produces a blocking review finding, and the preview must apply the same blank/whitespace normalization when it renders purpose completeness.
+6. Disabling a collection item invalidates dependent collection-mode, processing-purpose, and collection-path evidence; re-enabling the item requires those facts to be captured and reviewed again.
+7. Every blocking finding links to the responsible editing step.
+8. Preview text is derived from current structured facts; it does not become an independently editable authority.
+9. UI copy distinguishes a review draft from legal advice, certification, or a compliance guarantee.
 
 ## Quality contracts
 - Touched production behavior requires regression and edge-case tests first.
+- Touched production functions carry descriptive JSDoc rather than relying on implicit behavior.
 - Do not suppress deprecation warnings to pass CI.
 - Browser/accessibility validation must eventually include keyboard/focus order, WCAG 2.2 automated checks, responsive desktop/tablet/mobile interactions, and screenshot evidence.
 - Hosted web endpoints, when introduced, use non-blocking/asynchronous handling and require realistic k6 tests before a p95 <=20 ms page/API claim is recorded.
