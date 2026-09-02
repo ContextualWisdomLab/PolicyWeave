@@ -16,6 +16,13 @@ describe('policy editing workflow', () => {
     }
   })
 
+  it('서비스 URL을 입력하면 검토본의 적용 서비스 정보에 반영한다', () => {
+    const { container } = render(<App />)
+    fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[0])
+    fireEvent.change(container.querySelector<HTMLInputElement>('input[name="serviceUrl"]')!, { target: { value: 'https://privacy.example.test' } })
+    expect(container.querySelector('.paper')?.textContent).toContain('https://privacy.example.test')
+  })
+
   it('수집 단계에서는 선택 항목의 수집 경로를 항상 편집하고 처리 목적은 다음 단계에서 편집한다', () => {
     const { container } = render(<App />)
     expect(container.querySelectorAll<HTMLInputElement>('input[placeholder="예: 회원가입 화면"]')).toHaveLength(3)
