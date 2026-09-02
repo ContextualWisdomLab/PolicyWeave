@@ -13,7 +13,7 @@ This TRD covers the pre-release PolicyWeave browser workspace and the contracts 
 
 ## Functional contracts
 1. Every PRD step must route to an editable surface; selecting a step cannot change only the rail indicator.
-2. A fresh workspace contains no inferred customer operational facts. Blank authoring values mean unresolved, not `none`.
+2. A fresh workspace contains no inferred customer operational facts. Blank authoring values mean unresolved, not `none`. It starts at the first unresolved responsibility (`서비스 정보`) and must not mark an untouched earlier responsibility as completed merely because a later editor was shown.
 3. Collection readiness requires either at least one explicitly selected collection item or an explicit no-collection attestation. The no-collection attestation and selected items are mutually exclusive; contradictory state fails closed. Turning the attestation on clears selected items and their mode/purpose/path evidence, and later turning it off does not revive those stale facts.
 4. Every selected collection item requires an explicit collection mode, nonblank processing purpose, and nonblank collection-path evidence. Each missing responsibility is counted independently and navigates to its owning step.
 5. Service name, service URL, retention period, third-party provision status, international-transfer status, privacy-contact owner, and privacy-contact email are product-defined readiness facts and block readiness while unresolved. Service URL must be an absolute HTTP(S) URL; contact email must satisfy a minimal address-shape check. These syntax checks do not claim endpoint reachability or mailbox ownership.
