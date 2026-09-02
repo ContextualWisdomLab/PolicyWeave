@@ -50,6 +50,7 @@ function FactStep({ current, title, description, fields, facts, setFacts, setCur
 }) {
   const update = (key: keyof DraftFacts, value: string) => {
     const next = { ...facts, [key]: value } as DraftFacts
+    if (key === 'retentionStatus' && value !== 'applies') next.retentionPeriod = ''
     if (key === 'thirdPartyStatus' && value !== 'yes') {
       next.thirdPartyRecipient = ''
       next.thirdPartyPurpose = ''
@@ -138,13 +139,19 @@ function EditingPanel({ current, items, setItems, noCollectionAttested, setNoCol
     { value: 'yes', label: '있음' },
     { value: 'no', label: '없음' },
   ]
+  const retentionOptions = [
+    { value: '', label: '확인 필요' },
+    { value: 'applies', label: '보유함' },
+    { value: 'none', label: '보유하지 않음' },
+  ]
   const stepConfig: Record<number, { title: string; description: string; fields: FactField[] }> = {
     1: { title: '서비스 정보', description: '개인정보처리방침이 적용되는 서비스와 공개 위치를 확인합니다.', fields: [
       { key: 'serviceName', label: '서비스 이름', placeholder: '예: 서비스 이름' },
       { key: 'serviceUrl', label: '서비스 URL', placeholder: 'https://example.com', type: 'url' },
     ] },
-    4: { title: '보유 기간', description: '수집한 개인정보를 언제까지 보유하는지 운영 사실과 근거에 맞춰 기록합니다.', fields: [
-      { key: 'retentionPeriod', label: '대표 보유 기간 또는 종료 조건', placeholder: '예: 회원 탈퇴 시까지, 별도 보존 근거가 있는 항목은 해당 기간' },
+    4: { title: '보유 기간', description: '개인정보 보유 여부를 먼저 확인하고, 실제 보유가 있는 경우 기간 또는 종료 조건을 기록합니다.', fields: [
+      { key: 'retentionStatus', label: '개인정보 보유 여부', type: 'select', options: retentionOptions },
+      { key: 'retentionPeriod', label: '대표 보유 기간 또는 종료 조건', placeholder: '예: 회원 탈퇴 시까지, 별도 보존 근거가 있는 항목은 해당 기간', visibleWhen: { key: 'retentionStatus', equals: 'applies' } },
     ] },
     5: { title: '제3자 제공', description: '제3자 제공 여부를 먼저 확인하고, 실제 제공이 있는 경우 제공받는 자와 목적을 기록합니다.', fields: [
       { key: 'thirdPartyStatus', label: '제3자 제공 여부', type: 'select', options: yesNoOptions },
@@ -189,7 +196,7 @@ function DocumentPreview({ items, noCollectionAttested, facts, setCurrent }: { i
       {review.pathBlocking.length > 0 && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>{review.pathBlocking.map((item) => item.label).join(', ')}의 수집 경로를 확인해야 합니다.<button className="outline" onClick={() => setCurrent(2)}>수집 경로 확인</button></span></div>}
       {review.blocking.length > 0 && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>{review.blocking.map((item) => item.label).join(', ')}의 처리 목적이 입력되지 않았습니다.<button className="outline" onClick={() => setCurrent(3)}>처리 목적 확인</button></span></div>}
       {draftFindings.map((finding) => <div className="document-warning" key={finding.code}><AlertTriangle size={18} /><span><b>공개 전 확인</b>{finding.label} 확인이 필요합니다.<button className="outline" onClick={() => setCurrent(finding.step)}>{steps[finding.step - 1]} 확인</button></span></div>)}
-      <h3>제2조 (처리 및 보유 기간)</h3><p>{noCollectionAttested ? '개인정보를 수집하지 않음으로 확인되어 보유 기간이 적용되지 않습니다.' : facts.retentionPeriod || '보유 기간 단계에서 확인한 운영 기준을 입력해야 합니다.'}</p>
+      <h3>제2조 (처리 및 보유 기간)</h3><p>{facts.retentionStatus === 'none' ? '보유하는 개인정보 없음으로 확인되었습니다.' : facts.retentionStatus === 'applies' ? facts.retentionPeriod || '보유 기간을 확인해야 합니다.' : '보유 여부 및 기간을 확인해야 합니다.'}</p>
       <h3>제3조 (제3자 제공)</h3><p>{facts.thirdPartyStatus === 'no' ? '제3자 제공 없음으로 확인되었습니다.' : facts.thirdPartyStatus === 'yes' ? `${facts.thirdPartyRecipient || '제공받는 자 확인 필요'}에 ${facts.thirdPartyPurpose || '제공 목적 확인 필요'}으로 제공하는 흐름을 검토 중입니다.` : '제3자 제공 여부를 확인하는 단계가 남아 있습니다.'}</p>
       <h3>제4조 (국외 이전)</h3><p>{facts.internationalStatus === 'no' ? '국외 이전 없음으로 확인되었습니다.' : facts.internationalStatus === 'yes' ? `${facts.internationalCountry || '국가 확인 필요'} · ${facts.internationalRecipient || '수령자 확인 필요'}` : '국외 이전 여부를 확인하는 단계가 남아 있습니다.'}</p>
       <h3>개인정보 보호 문의</h3><p>{facts.privacyOfficerName || '담당자 확인 필요'} · {facts.privacyOfficerEmail || '연락처 확인 필요'}</p>
