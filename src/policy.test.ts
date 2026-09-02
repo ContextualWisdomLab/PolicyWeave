@@ -11,28 +11,40 @@ describe('collection policy review', () => {
     expect(review.blockingCount).toBe(1)
   })
 
-  it('blocks readiness when a selected item still lacks collection mode and processing purpose', () => {
+  it('blocks readiness when a selected item still lacks collection mode, processing purpose, and collection path evidence', () => {
     const items = initialItems.map((item) => item.id === 'phone' ? { ...item, enabled: true } : item)
     const review = getReview(items)
     expect(review.selectionMissing).toBe(false)
     expect(review.modeBlocking.map((item) => item.id)).toEqual(['phone'])
     expect(review.blocking.map((item) => item.id)).toEqual(['phone'])
-    expect(review.blockingCount).toBe(2)
+    expect(review.pathBlocking.map((item) => item.id)).toEqual(['phone'])
+    expect(review.blockingCount).toBe(3)
   })
 
-  it('treats a whitespace-only purpose as missing after collection mode is confirmed', () => {
-    const items = initialItems.map((item) => item.id === 'phone' ? { ...item, enabled: true, mode: '필수' as const, purpose: '   \t  ' } : item)
+  it('treats a whitespace-only collection path as missing evidence', () => {
+    const items = initialItems.map((item) => item.id === 'phone' ? { ...item, enabled: true, mode: '필수' as const, purpose: '본인 확인', detail: '  \t  ' } : item)
     const review = getReview(items)
     expect(review.modeBlocking).toEqual([])
+    expect(review.blocking).toEqual([])
+    expect(review.pathBlocking.map((item) => item.id)).toEqual(['phone'])
+    expect(review.blockingCount).toBe(1)
+  })
+
+  it('treats a whitespace-only purpose as missing after collection mode and path are confirmed', () => {
+    const items = initialItems.map((item) => item.id === 'phone' ? { ...item, enabled: true, mode: '필수' as const, purpose: '   \t  ', detail: '회원가입 화면' } : item)
+    const review = getReview(items)
+    expect(review.modeBlocking).toEqual([])
+    expect(review.pathBlocking).toEqual([])
     expect(review.blocking.map((item) => item.id)).toEqual(['phone'])
     expect(review.blockingCount).toBe(1)
   })
 
-  it('clears readiness findings once both collection mode and purpose are explicit', () => {
-    const items = initialItems.map((item) => item.id === 'phone' ? { ...item, enabled: true, mode: '필수' as const, purpose: '  본인 확인  ' } : item)
+  it('clears readiness findings once collection mode, purpose, and path evidence are explicit', () => {
+    const items = initialItems.map((item) => item.id === 'phone' ? { ...item, enabled: true, mode: '필수' as const, purpose: '  본인 확인  ', detail: '  회원가입 화면  ' } : item)
     const review = getReview(items)
     expect(review.blocking.map((item) => item.id)).not.toContain('phone')
     expect(review.modeBlocking.map((item) => item.id)).not.toContain('phone')
+    expect(review.pathBlocking.map((item) => item.id)).not.toContain('phone')
     expect(review.blockingCount).toBe(0)
   })
 })
