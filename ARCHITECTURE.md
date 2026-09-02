@@ -19,8 +19,8 @@ A future `policy_revision` is the minimal aggregate root and transaction boundar
 
 Core invariants:
 1. A fresh workspace contains no inferred customer operational facts; blank means unresolved rather than `none`.
-2. Selecting a collection item without confirming its collection mode or processing purpose creates blocking review findings.
-3. Service identity, retention, third-party provision status, international-transfer status, and privacy contact remain blocking authoring responsibilities until explicitly established.
+2. Selecting a collection item without confirming its collection mode, processing purpose, or collection-path evidence creates independent blocking review findings.
+3. Service identity, retention, third-party provision status, international-transfer status, and privacy contact remain blocking authoring responsibilities until explicitly established; service URL and contact-email syntax checks prove only usable field shape, not endpoint/mailbox ownership.
 4. Third-party provision and international transfer distinguish unresolved, yes, and no. A `yes` status requires dependent facts; a transition away from yes invalidates dependent details so stale facts cannot revive silently.
 5. Disabling a collection item invalidates its dependent collection-mode, processing-purpose, and collection-path evidence; re-enabling requires renewed confirmation.
 6. Review findings navigate to the fact that caused them.
@@ -29,7 +29,7 @@ Core invariants:
 9. External legal-source updates produce explicit re-evaluation, not silent rewriting.
 
 ## Current implementation
-The active MVP is a React/Vite browser workspace. State is in memory and there is no production persistence or publication backend. The seven PRD steps are routed to distinct editing surfaces. The collection taxonomy is metadata only. `src/policy.ts` owns deterministic selection/mode/purpose and non-collection authoring-completeness findings; `src/App.tsx` owns browser orchestration, explicit transfer-status capture, warning-to-source navigation, stale dependent-fact invalidation, and deterministic preview rendering.
+The active MVP is a React/Vite browser workspace. State is in memory and there is no production persistence or publication backend. The seven PRD steps are routed to distinct editing surfaces. The collection taxonomy is metadata only. `src/policy.ts` owns deterministic selection/mode/purpose/path and non-collection authoring-completeness findings; `src/App.tsx` owns browser orchestration, explicit transfer-status capture, warning-to-source navigation, stale dependent-fact invalidation, and deterministic preview rendering.
 
 Authoring completeness is deliberately separate from legal sufficiency. Current readiness rules prove that product-defined fact responsibilities were explicitly addressed; they do not assert that a policy complies with law. Source/effective-date-bound legal validation belongs to the Legal Source Registry -> Review & Publication boundary.
 
