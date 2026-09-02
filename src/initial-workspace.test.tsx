@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import App from './App'
 
 afterEach(cleanup)
 
-describe('fresh workspace position', () => {
+describe('authoring progress truthfulness', () => {
   it('starts with the first unresolved authoring responsibility instead of marking it complete', () => {
     const { container } = render(<App />)
 
@@ -13,5 +13,16 @@ describe('fresh workspace position', () => {
     expect(container.querySelector('.progress-copy span')?.textContent).toBe('1/7 단계')
     expect(container.querySelectorAll('.rail li.done')).toHaveLength(0)
     expect(container.querySelector('.rail li.active small')?.textContent).toBe('확인 및 입력')
+  })
+
+  it('does not mark unresolved responsibilities complete merely because the operator navigates past them', () => {
+    const { container } = render(<App />)
+    const railButtons = container.querySelectorAll<HTMLButtonElement>('.rail li button')
+
+    fireEvent.click(railButtons[6])
+
+    expect(container.querySelector('.form-panel h1')?.textContent).toBe('7. 개인정보 보호 담당자')
+    expect(container.querySelectorAll('.rail li.done')).toHaveLength(0)
+    expect(Array.from(container.querySelectorAll('.rail li small')).every((label) => label.textContent === '확인 및 입력')).toBe(true)
   })
 })
