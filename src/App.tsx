@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { AlertTriangle, Check, ChevronDown, ExternalLink, FileText, Link, Save } from 'lucide-react'
-import { DraftFacts, getDraftReview, getReview, initialFacts, initialItems, PolicyItem, steps } from './policy'
+import { DraftFacts, getCompletedSteps, getDraftReview, getReview, initialFacts, initialItems, PolicyItem, steps } from './policy'
 
 type FactField = {
   key: keyof DraftFacts
@@ -11,17 +11,21 @@ type FactField = {
   visibleWhen?: { key: keyof DraftFacts; equals: string }
 }
 
-/** Renders the seven-step authoring rail and keyboard-targetable preview shortcut. */
-function StepRail({ current, setCurrent }: { current: number; setCurrent: (step: number) => void }) {
+/** Renders the seven-step authoring rail and completion progress derived from verified facts. */
+function StepRail({ current, completedSteps, setCurrent }: { current: number; completedSteps: Set<number>; setCurrent: (step: number) => void }) {
   return <aside className="rail" aria-label="작성 단계">
-    <div className="progress-copy"><strong>작성 진행률</strong><span>{current}/7 단계</span></div>
-    <div className="progress"><i style={{ width: `${current / 7 * 100}%` }} /></div>
-    <ol>{steps.map((step, index) => <li key={step} className={index + 1 === current ? 'active' : index + 1 < current ? 'done' : ''}>
-      <button onClick={() => setCurrent(index + 1)} aria-current={index + 1 === current ? 'step' : undefined}>
-        <span className="step-number">{index + 1 < current ? <Check size={13} /> : index + 1}</span>
-        <span><b>{step}</b><small>{index + 1 < current ? '입력 확인됨' : '확인 및 입력'}</small></span>
-      </button>
-    </li>)}</ol>
+    <div className="progress-copy"><strong>작성 진행률</strong><span>{completedSteps.size}/7 완료</span></div>
+    <div className="progress"><i style={{ width: `${completedSteps.size / 7 * 100}%` }} /></div>
+    <ol>{steps.map((step, index) => {
+      const stepNumber = index + 1
+      const completed = completedSteps.has(stepNumber)
+      return <li key={step} className={stepNumber === current ? 'active' : completed ? 'done' : ''}>
+        <button onClick={() => setCurrent(stepNumber)} aria-current={stepNumber === current ? 'step' : undefined}>
+          <span className="step-number">{completed ? <Check size={13} /> : stepNumber}</span>
+          <span><b>{step}</b><small>{completed ? '입력 확인됨' : '확인 및 입력'}</small></span>
+        </button>
+      </li>
+    })}</ol>
     <button className="outline full" onClick={() => document.querySelector<HTMLElement>('.preview')?.focus()}><FileText size={16} /> 미리보기로 이동</button>
   </aside>
 }
@@ -202,12 +206,13 @@ export default function App() {
   const [current, setCurrent] = useState(1)
   const collectionReview = useMemo(() => getReview(items, noCollectionAttested), [items, noCollectionAttested])
   const draftFindings = useMemo(() => getDraftReview(facts), [facts])
+  const completedSteps = useMemo(() => getCompletedSteps(items, noCollectionAttested, facts), [items, noCollectionAttested, facts])
   const blockingCount = collectionReview.blockingCount + draftFindings.length
   const [message, setMessage] = useState('')
   function publish() { setMessage(blockingCount ? '필수 확인 항목을 먼저 입력하세요.' : '필수 확인이 완료되었습니다. 현재 검토본을 책임자와 검토하고 필요한 사실을 보완하세요.') }
   return <div className="app-shell">
     <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><span className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침</span><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><span className="save-state"><Check size={15} /> 브라우저 작업 중</span><button className="outline" disabled><Save size={15} /> JSON 내보내기 준비 중</button></header>
-    <div className="workspace" id="top"><StepRail current={current} setCurrent={setCurrent} /><EditingPanel current={current} items={items} setItems={setItems} noCollectionAttested={noCollectionAttested} setNoCollectionAttested={setNoCollectionAttested} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /><DocumentPreview items={items} noCollectionAttested={noCollectionAttested} facts={facts} setCurrent={setCurrent} /></div>
+    <div className="workspace" id="top"><StepRail current={current} completedSteps={completedSteps} setCurrent={setCurrent} /><EditingPanel current={current} items={items} setItems={setItems} noCollectionAttested={noCollectionAttested} setNoCollectionAttested={setNoCollectionAttested} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /><DocumentPreview items={items} noCollectionAttested={noCollectionAttested} facts={facts} setCurrent={setCurrent} /></div>
     <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 준비 상태를 확인하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{blockingCount}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{collectionReview.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={blockingCount > 0}><Link size={16} /> 공개 준비 확인</button><output aria-live="polite">{message}</output></footer>
   </div>
 }
