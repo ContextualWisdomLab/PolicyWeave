@@ -14,6 +14,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 - Collection-path editing now remains available for every selected item in the collection step, while processing-purpose editing stays in its dedicated purpose step.
 - Review preview now reflects verified authoring facts instead of presenting the collection step as the entire workflow.
 - Responsive review behavior and mobile publication feedback were repaired during PR review.
+- Responsive CSS contract tests now use only literal media-query regular expressions, removing the Semgrep dynamic-RegExp SAST finding without suppressing or weakening the scanner gate.
 - GitHub Actions checkout dependencies are SHA pinned and credentials are not persisted in the working tree.
 
 ### Not yet shipped
