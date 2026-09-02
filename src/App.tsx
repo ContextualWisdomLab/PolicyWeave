@@ -164,8 +164,7 @@ function DocumentPreview({ items, facts, setCurrent }: { items: PolicyItem[]; fa
       <h3>제4조 (국외 이전)</h3><p>{facts.internationalCountry || facts.internationalRecipient ? `${facts.internationalCountry || '국가 확인 필요'} · ${facts.internationalRecipient || '수령자 확인 필요'}` : '국외 이전 여부를 확인하는 단계가 남아 있습니다.'}</p>
       <h3>개인정보 보호 문의</h3><p>{facts.privacyOfficerName || '담당자 확인 필요'} · {facts.privacyOfficerEmail || '연락처 확인 필요'}</p>
     </article>
-    <button className="primary wide" disabled={review.blocking.length > 0}>검토본 생성</button>
-    <small className="legal-note">생성된 문서는 법률 자문이 아닙니다. 공개 전 책임자의 검토가 필요합니다.</small>
+    <small className="legal-note">입력 내용은 검토본에 즉시 반영됩니다. 생성된 문서는 법률 자문이 아닙니다. 공개 전 책임자의 검토가 필요합니다.</small>
   </section>
 }
 
@@ -177,7 +176,7 @@ export default function App() {
   const [message, setMessage] = useState('')
   function publish() { setMessage(review.blocking.length ? '필수 확인 항목을 먼저 입력하세요.' : '필수 확인이 완료되었습니다. 현재 검토본을 책임자와 검토하고 필요한 사실을 보완하세요.') }
   return <div className="app-shell">
-    <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><button className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침 <ChevronDown size={14} /></button><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><span className="save-state"><Check size={15} /> 브라우저 작업 중</span><button className="outline"><Save size={15} /> JSON 내보내기 준비</button></header>
+    <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><button className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침 <ChevronDown size={14} /></button><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><span className="save-state"><Check size={15} /> 브라우저 작업 중</span><button className="outline" disabled><Save size={15} /> JSON 내보내기 준비 중</button></header>
     <div className="workspace" id="top"><StepRail current={current} setCurrent={setCurrent} /><EditingPanel current={current} items={items} setItems={setItems} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /><DocumentPreview items={items} facts={facts} setCurrent={setCurrent} /></div>
     <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 준비 상태를 확인하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{review.blocking.length}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{review.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={review.blocking.length > 0}><Link size={16} /> 공개 준비 확인</button><output aria-live="polite">{message}</output></footer>
   </div>
