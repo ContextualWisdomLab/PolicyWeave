@@ -199,7 +199,7 @@ export default function App() {
   const [items, setItems] = useState(initialItems)
   const [noCollectionAttested, setNoCollectionAttested] = useState(false)
   const [facts, setFacts] = useState(initialFacts)
-  const [current, setCurrent] = useState(2)
+  const [current, setCurrent] = useState(1)
   const collectionReview = useMemo(() => getReview(items, noCollectionAttested), [items, noCollectionAttested])
   const draftFindings = useMemo(() => getDraftReview(facts), [facts])
   const blockingCount = collectionReview.blockingCount + draftFindings.length
