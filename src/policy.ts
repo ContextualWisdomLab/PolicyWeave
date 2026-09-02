@@ -87,8 +87,8 @@ export function getReview(items: PolicyItem[], noCollectionAttested = false) {
   return { enabled, blocking, modeBlocking, pathBlocking, selectionMissing, collectionContradiction, noCollectionAttested, blockingCount, recommended }
 }
 
-/** Derives authoring-completeness findings for the non-collection responsibilities in the seven-step workflow. */
-export function getDraftReview(facts: DraftFacts): DraftFinding[] {
+/** Derives non-collection authoring findings, treating retention as inapplicable only after an explicit no-collection attestation. */
+export function getDraftReview(facts: DraftFacts, noCollectionAttested = false): DraftFinding[] {
   const findings: DraftFinding[] = []
   const addWhenBlank = (value: string, code: string, step: number, label: string) => {
     if (!value.trim()) findings.push({ code, step, label })
@@ -99,7 +99,7 @@ export function getDraftReview(facts: DraftFacts): DraftFinding[] {
   if (!serviceUrl) findings.push({ code: 'service_url', step: 1, label: '서비스 URL' })
   else if (!isWebServiceUrl(serviceUrl)) findings.push({ code: 'service_url_format', step: 1, label: '서비스 URL 형식' })
 
-  addWhenBlank(facts.retentionPeriod, 'retention_period', 4, '보유 기간')
+  if (!noCollectionAttested) addWhenBlank(facts.retentionPeriod, 'retention_period', 4, '보유 기간')
 
   if (!facts.thirdPartyStatus) {
     findings.push({ code: 'third_party_status', step: 5, label: '제3자 제공 여부' })
@@ -126,7 +126,7 @@ export function getDraftReview(facts: DraftFacts): DraftFinding[] {
 /** Derives completed authoring responsibilities from the same fail-closed facts used by readiness review. */
 export function getCompletedSteps(items: PolicyItem[], noCollectionAttested: boolean, facts: DraftFacts) {
   const collectionReview = getReview(items, noCollectionAttested)
-  const draftBlockedSteps = new Set(getDraftReview(facts).map((finding) => finding.step))
+  const draftBlockedSteps = new Set(getDraftReview(facts, noCollectionAttested).map((finding) => finding.step))
   const completed = new Set<number>()
 
   if (!draftBlockedSteps.has(1)) completed.add(1)
