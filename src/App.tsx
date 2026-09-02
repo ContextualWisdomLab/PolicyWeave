@@ -174,10 +174,10 @@ export default function App() {
   const [current, setCurrent] = useState(2)
   const review = useMemo(() => getReview(items), [items])
   const [message, setMessage] = useState('')
-  function publish() { setMessage(review.blocking.length ? '필수 확인 항목을 먼저 입력하세요.' : '공개 URL 발행에는 저장소 백엔드 연결이 필요합니다.') }
+  function publish() { setMessage(review.blocking.length ? '필수 확인 항목을 먼저 입력하세요.' : '필수 확인이 완료되었습니다. 현재 검토본을 책임자와 검토하고 필요한 사실을 보완하세요.') }
   return <div className="app-shell">
     <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><button className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침 <ChevronDown size={14} /></button><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><span className="save-state"><Check size={15} /> 브라우저 작업 중</span><button className="outline"><Save size={15} /> JSON 내보내기 준비</button></header>
     <div className="workspace" id="top"><StepRail current={current} setCurrent={setCurrent} /><EditingPanel current={current} items={items} setItems={setItems} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /><DocumentPreview items={items} facts={facts} setCurrent={setCurrent} /></div>
-    <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 URL 발행 준비 상태를 확인하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{review.blocking.length}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{review.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={review.blocking.length > 0}><Link size={16} /> 공개 URL 발행</button><output aria-live="polite">{message}</output></footer>
+    <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 준비 상태를 확인하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{review.blocking.length}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{review.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={review.blocking.length > 0}><Link size={16} /> 공개 준비 확인</button><output aria-live="polite">{message}</output></footer>
   </div>
 }
