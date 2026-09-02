@@ -7,10 +7,11 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 ### Added
 - Seven-step authoring workflow with distinct editing surfaces for service information, collection items, processing purposes, retention, third-party transfer, international transfer, and privacy contact.
 - Warning-to-source navigation for missing processing purposes.
-- Regression coverage for all seven step routes, warning navigation, clearing the publication blocker after a missing purpose is supplied, whitespace-only purposes, collection-path/purpose step separation, disable/re-enable stale-evidence invalidation, preview/review whitespace consistency, and buyer-facing publication guidance that does not expose implementation boundaries.
+- Regression coverage for all seven step routes, service URL projection into the review draft, warning navigation, clearing the publication blocker after a missing purpose is supplied, whitespace-only purposes, collection-path/purpose step separation, disable/re-enable stale-evidence invalidation, preview/review whitespace consistency, and buyer-facing publication guidance that does not expose implementation boundaries.
 - Product/technical gap ledger, architecture, technical requirements, security baseline, and legal-source traceability.
 
 ### Changed
+- Service URL entered in the service-information step is now projected into the review draft instead of being silently omitted.
 - Collection-path editing now remains available for every selected item in the collection step, while processing-purpose editing stays in its dedicated purpose step.
 - Disabling a collection item now clears its dependent processing-purpose and collection-path evidence so re-enabling it cannot silently revive stale policy facts.
 - Review preview now applies the same whitespace-normalized purpose-completeness contract as the blocking review rule.
