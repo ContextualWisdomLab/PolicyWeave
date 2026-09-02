@@ -24,4 +24,9 @@ describe('responsive review workspace CSS contract', () => {
     const mobile = mediaBlock(720)
     expect(mobile).toContain('.review-bar output { position: static; grid-column: 1 / -1;')
   })
+
+  it('uses the high-contrast product token for keyboard focus indicators', () => {
+    expect(css).toContain(':focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }')
+    expect(css).toContain('.check-label input:focus-visible + .box { outline: 3px solid var(--green); outline-offset: 2px; }')
+  })
 })
