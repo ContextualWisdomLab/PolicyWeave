@@ -150,6 +150,7 @@ function DocumentPreview({ items, facts, setCurrent }: { items: PolicyItem[]; fa
     <div className="meta"><span>근거 법령 <b>개인정보 보호법</b></span><span className={review.blocking.length ? 'warn-tag' : 'ok-tag'}>{review.blocking.length ? `검토 필요 ${review.blocking.length}` : '필수 확인 완료'}</span><span>버전 0.1.0</span></div>
     <article className="paper">
       <h2>{facts.serviceName || '개인정보처리방침'} (검토본)</h2>
+      {facts.serviceUrl && <p>적용 서비스: {facts.serviceUrl}</p>}
       <p>{facts.serviceName || '서비스 운영자'}는 이용자의 개인정보를 중요하게 여기며, 확인된 실제 처리 사실을 바탕으로 다음 사항을 검토합니다.</p>
       <h3>제1조 (개인정보의 처리 목적)</h3>
       <p>아래 목적은 작성자가 확인한 운영 사실을 기준으로 표시됩니다.</p>
