@@ -1,0 +1,44 @@
+# Architecture
+
+## Product boundary
+PolicyWeave owns the authoring and review of structured privacy-processing facts and the deterministic generation of a review draft. It does not own legal advice, identity-provider data, payment processing, or a customer's source systems. Hosted publication and durable storage are future supporting capabilities, not authority to invent or reinterpret processing facts.
+
+## Domain-driven design
+The core subdomain is **Policy Fact Authoring**. Supporting subdomains are **Review & Publication** and **Legal Source Registry**. Browser/storage frameworks, authentication infrastructure, observability, and deployment are generic subdomains.
+
+### Bounded contexts
+- **Policy Fact Authoring**: captures `service_profile`, collection presence/no-collection attestation, `collection_item`, `processing_purpose`, `retention_rule`, `third_party_transfer`, `international_transfer`, and `privacy_contact` facts.
+- **Review & Publication**: derives `review_finding`, controls `policy_revision` review state, and will create immutable `publication_revision` artifacts only after explicit authorization.
+- **Legal Source Registry**: versions authoritative sources, effective dates, rule/template revisions, and citations. It is an anti-corruption layer between changing external law/guidance and already-published revisions.
+
+### Context map
+`Policy Fact Authoring -> Review & Publication` is a customer/supplier relationship through a versioned policy-fact contract. `Legal Source Registry -> Review & Publication` supplies versioned rule evidence; source updates cannot silently mutate historical policy revisions. External customer systems remain behind adapters and must not be queried or mutated through hidden coupling.
+
+## Ubiquitous language and model
+A future `policy_revision` is the minimal aggregate root and transaction boundary. `service_profile`, collection presence/no-collection attestation, `collection_item`, `processing_purpose`, `retention_rule`, `third_party_transfer`, `international_transfer`, and `privacy_contact` are revision-owned facts/value objects unless later evidence requires independent lifecycles. `review_finding` is derived evidence. `publication_revision` is an immutable release receipt, not a mutable policy row. Rendered prose is a projection and never the source of truth.
+
+Core invariants:
+1. A fresh workspace contains no inferred customer operational facts; blank means unresolved rather than `none`.
+2. Collection presence is established by either at least one selected collection item or an explicit no-collection attestation. Empty selection alone remains unresolved. The no-collection attestation and selected items are mutually exclusive; contradictory state fails closed.
+3. Turning on the no-collection attestation invalidates all selected-item collection mode, processing purpose, and collection-path evidence. Turning the attestation off cannot revive those stale facts.
+4. Selecting a collection item without confirming its collection mode, processing purpose, or collection-path evidence creates independent blocking review findings.
+5. Service identity, retention, third-party provision status, international-transfer status, and privacy contact remain blocking authoring responsibilities until explicitly established; service URL and contact-email syntax checks prove only usable field shape, not endpoint/mailbox ownership.
+6. Third-party provision and international transfer distinguish unresolved, yes, and no. A `yes` status requires dependent facts; a transition away from yes invalidates dependent details so stale facts cannot revive silently.
+7. Disabling a collection item invalidates its dependent collection-mode, processing-purpose, and collection-path evidence; re-enabling requires renewed confirmation.
+8. Review findings navigate to the fact that caused them.
+9. Publication must never upgrade an unreviewed or incomplete draft to a reviewed/authoritative state.
+10. A published revision remains reproducible from its policy facts plus rule/template/source versions.
+11. External legal-source updates produce explicit re-evaluation, not silent rewriting.
+
+## Current implementation
+The active MVP is a React/Vite browser workspace. State is in memory and there is no production persistence or publication backend. The seven PRD steps are routed to distinct editing surfaces. The collection taxonomy is metadata only. `src/policy.ts` owns deterministic collection-selection/no-collection/mode/purpose/path and non-collection authoring-completeness findings; `src/App.tsx` owns browser orchestration, explicit no-collection and transfer-status capture, warning-to-source navigation, stale dependent-fact invalidation, and deterministic preview rendering. `src/AuthoringFocusController.tsx` is a browser interaction adapter: after explicit rail, previous/next, or review-warning navigation changes the active editing surface, it moves programmatic focus to that surface's heading without changing domain state, intercepting ordinary field interaction, or overriding the separate preview-focus shortcut.
+
+Authoring completeness is deliberately separate from legal sufficiency. Current readiness rules prove that product-defined fact responsibilities were explicitly addressed; they do not assert that a policy complies with law. Source/effective-date-bound legal validation belongs to the Legal Source Registry -> Review & Publication boundary.
+
+## Persistence boundary (planned, not implemented)
+Use relational 3NF by default. Named database/schema/persistence objects use at least two semantic words and `snake_case`, for example `policy_revision`, `collection_item`, `processing_purpose`, `review_finding`, `publication_revision`, and `legal_source_revision`. The explicit no-collection state belongs to `policy_revision`/its owned service-processing facts rather than being represented by a fake `collection_item`. Item-level UPSERTs must declare their natural/idempotency key and conflict behavior. Publication is append-only/immutable with explicit supersession; writes across unrelated aggregates must not share a transaction merely for convenience.
+
+Separate write-side draft commands from read-side rendered/review projections once hosted traffic justifies it. Account for revision hot spots and optimistic/constrained writes before adding collaborative editing. Keep source/customer integrations behind ACLs; do not form a shared kernel with unrelated ContextualWisdomLab products without demonstrated reuse.
+
+## Deployment and operability direction
+The browser-only MVP needs no service mesh. A hosted backend should be compose-deployable across Docker/Podman/Colima before Kubernetes migration, expose asynchronous/non-blocking request handling, and add realistic k6 evidence for network surfaces before latency claims. No code may depend on an optional `close_connection` instance attribute existing unless the adapter contract guarantees it.
