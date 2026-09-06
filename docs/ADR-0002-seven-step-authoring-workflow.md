@@ -1,6 +1,6 @@
 # ADR-0002: Seven-step authoring is an explicit domain workflow
 
-Status: Accepted
+Status: Proposed
 Date: 2026-09-01
 
 ## Context
@@ -19,7 +19,7 @@ The collection catalog is metadata, not an assertion about a customer's service.
 
 When collection items are present, each selected item requires the operator to establish collection mode, processing purpose, and collection-path evidence before readiness can clear. Disabling an item invalidates those dependent facts so re-enabling cannot silently restore stale evidence.
 
-Readiness also requires the product-defined facts owned by the other authoring stages: service name and URL, retention period, third-party provision status, international-transfer status, and privacy-contact owner/email. Third-party provision and international transfer use explicit unresolved/yes/no states. `no` is an operator attestation, not an inference from a blank field. `yes` requires its dependent recipient/purpose or country/recipient facts. A transition away from `yes` clears those dependent values so stale operational facts do not silently revive.
+Readiness also requires the product-defined facts owned by the other authoring stages: service name and URL, explicit retention status, third-party provision status, international-transfer status, and privacy-contact owner/email. When retention applies, a nonblank retention period or end condition is required; explicit `none` requires no period. Third-party provision and international transfer use explicit unresolved/yes/no states. `no` is an operator attestation, not an inference from a blank field. `yes` requires its dependent recipient/purpose or country/recipient facts. A transition away from `yes` clears those dependent values so stale operational facts do not silently revive.
 
 These readiness rules are authoring-completeness rules, not a legal state machine. Completion of a UI step or zero product-defined blockers does not mean legal sufficiency. Legal/rule completeness is determined separately by deterministic rules bound to versioned authoritative source evidence.
 

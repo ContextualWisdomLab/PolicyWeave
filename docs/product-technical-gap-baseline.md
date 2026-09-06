@@ -30,6 +30,8 @@ A concurrent writer then repaired completion/progress semantics so navigation ca
 
 The 2026-09-07 exact-head CI run exposed nine regressions after the truthful step-1 startup repair. Eight tests still queried step-2 collection controls before navigating there; they now enter the collection responsibility explicitly. The remaining RED showed that the active class replaced the completed class, so a completed current responsibility lost its `done` state. `StepRail` now composes `active` and `done` independently, preserving both current-position and verified-completion semantics without changing readiness rules. Full verification then exposed a separate TypeScript build failure because the stylesheet contract test imported `node:fs` without Node type authority; the existing file-based test remains intact and now has an explicit Node type dependency.
 
+The next exact-head review found that ADR-0002 still described a retention period as universally required even though the executable contract and TRD correctly allow explicit `retention_status = none` without one. A documentation regression now binds ADR-0002 to explicit conditional retention semantics. ADR-0001 and ADR-0002 also remain Proposed while their defining PR is unmerged; protected-branch adoption, not implementation on an open branch, is the acceptance boundary.
+
 ## Current baseline
 
 | Area | Evidence | Status | Commercialization gap | Owner/action | Next verification |

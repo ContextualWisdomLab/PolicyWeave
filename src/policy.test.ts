@@ -1,5 +1,9 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { getDraftReview, getReview, initialFacts, initialItems } from './policy'
+
+const workflowDecision = readFileSync('docs/ADR-0002-seven-step-authoring-workflow.md', 'utf8')
+const policyDataDecision = readFileSync('docs/ADR-0001-policy-as-data.md', 'utf8')
 
 describe('collection policy review', () => {
   it('starts without invented operational selections, collection modes, or processing purposes', () => {
@@ -50,6 +54,16 @@ describe('collection policy review', () => {
 })
 
 describe('seven-step draft readiness', () => {
+  it('documents retention readiness as an explicit conditional fact', () => {
+    expect(workflowDecision).toContain('explicit retention status')
+    expect(workflowDecision).toContain("When retention applies, a nonblank retention period or end condition is required; explicit `none` requires no period")
+  })
+
+  it('keeps unmerged architecture decisions proposed', () => {
+    expect(policyDataDecision).toContain('Proposed')
+    expect(workflowDecision).toContain('Status: Proposed')
+  })
+
   it('starts with every unresolved non-collection authoring responsibility blocked', () => {
     expect(getDraftReview(initialFacts).map((finding) => finding.code)).toEqual([
       'service_name',
