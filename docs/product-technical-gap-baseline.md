@@ -1,6 +1,6 @@
 # Product and technical gap baseline
 
-Last reconciled: 2026-09-02
+Last reconciled: 2026-09-07
 
 This ledger records PolicyWeave's commercialization gap from PRD/ADR/TRD/architecture, implementation, authoritative legal-source evidence, review findings, and live GitHub state. Live Check conclusions are not committed because they change outside the repository; merge decisions must re-fetch the exact current PR head and live ruleset.
 
@@ -27,6 +27,8 @@ The focus-order pass found that explicit step navigation replaced the visible ed
 A subsequent buyer-flow pass found that a fresh workspace still initialized `current` to step 2. That displayed `수집 항목` before the first service-identity responsibility had been addressed and, more seriously, rendered step 1 as `입력 확인됨` even though its facts were blank. Test-first commit `91ba89706bcaf040c9c1ef6b8e9a38c81bb77ea1` requires the first editor, `1/7 단계`, zero `done` rail entries, and unresolved copy on initial render. Production commit `a892bbd659bc26657a031b6e6e5eccf51fc08d1c` changes only the initial step from 2 to 1; its GitHub commit patch confirms the only semantic production change is `useState(2)` to `useState(1)`. PRD, TRD, and CHANGELOG were reconciled through `e98cfd03b032baf19203af16849d5d0e37aaad38`. This removes a false completion signal without inventing or modifying any customer fact.
 
 A concurrent writer then repaired completion/progress semantics so navigation cannot make untouched responsibilities appear complete. The branch advanced without rewriting predecessor history; completion is now derived from the same verified-fact contract used by readiness rather than from the currently visited step. This evidence is preserved on the canonical `develop` writer branch and must remain part of final exact-head verification.
+
+The 2026-09-07 exact-head CI run exposed nine regressions after the truthful step-1 startup repair. Eight tests still queried step-2 collection controls before navigating there; they now enter the collection responsibility explicitly. The remaining RED showed that the active class replaced the completed class, so a completed current responsibility lost its `done` state. `StepRail` now composes `active` and `done` independently, preserving both current-position and verified-completion semantics without changing readiness rules. Full verification then exposed a separate TypeScript build failure because the stylesheet contract test imported `node:fs` without Node type authority; the existing file-based test remains intact and now has an explicit Node type dependency.
 
 ## Current baseline
 

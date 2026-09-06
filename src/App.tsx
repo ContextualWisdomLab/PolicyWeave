@@ -19,7 +19,7 @@ function StepRail({ current, completedSteps, setCurrent }: { current: number; co
     <ol>{steps.map((step, index) => {
       const stepNumber = index + 1
       const completed = completedSteps.has(stepNumber)
-      return <li key={step} className={stepNumber === current ? 'active' : completed ? 'done' : ''}>
+      return <li key={step} className={[stepNumber === current && 'active', completed && 'done'].filter(Boolean).join(' ')}>
         <button onClick={() => setCurrent(stepNumber)} aria-current={stepNumber === current ? 'step' : undefined}>
           <span className="step-number">{completed ? <Check size={13} /> : stepNumber}</span>
           <span><b>{step}</b><small>{completed ? '입력 확인됨' : '확인 및 입력'}</small></span>

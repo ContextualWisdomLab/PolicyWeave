@@ -16,6 +16,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 ### Changed
 - Fresh workspaces no longer preselect collection items or prefill collection modes/processing purposes; readiness fails closed until the operator establishes actual collection facts or explicitly attests that the service collects no personal data.
 - Fresh workspaces now open at step 1, service information, rather than displaying step 2 while falsely rendering the untouched first responsibility as completed.
+- Completed responsibilities retain their `done` state while active, and collection-flow tests now enter step 2 explicitly instead of depending on the retired step-2 startup state.
 - Empty collection selection remains unresolved rather than being interpreted as `none`; no-collection and selected-item states are mutually exclusive and contradictory state fails closed.
 - Turning on no-collection confirmation clears selected-item mode, purpose, and path evidence; later removing the confirmation does not silently restore stale customer facts.
 - Collection and retention are now independent authority states. An intermediate no-collection→no-retention inference was removed after authoritative PIPC terminology showed that collection, storage, and retention are distinct included forms of personal-information processing.
@@ -35,6 +36,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 - Authored generic and custom-checkbox keyboard focus outlines now use the high-contrast `--green` token; a CSS regression test computes and enforces at least 3:1 contrast against white instead of relying on a low-contrast focus color.
 - Responsive review behavior and mobile publication feedback were repaired during PR review.
 - Responsive CSS contract tests use literal media-query regular expressions, removing the Semgrep dynamic-RegExp finding without suppressing or weakening the scanner gate.
+- Node types are declared for the stylesheet contract test's `node:fs` boundary so the production TypeScript build type-checks the executable test source.
 - GitHub Actions checkout dependencies are SHA pinned and credentials are not persisted in the working tree.
 
 ### Not yet shipped

@@ -41,6 +41,7 @@ describe('explicit no-collection attestation', () => {
 
   it('invalidates stale item facts when the operator attests no collection and does not revive them when the attestation is removed', () => {
     const { container } = render(<App />)
+    fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[1])
     const phone = container.querySelectorAll<HTMLInputElement>('.check-label input')[2]
     fireEvent.click(phone)
     const phoneItem = container.querySelectorAll<HTMLElement>('.item-list .item')[2]

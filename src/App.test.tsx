@@ -5,6 +5,10 @@ import App from './App'
 
 afterEach(cleanup)
 
+function openCollectionStep(container: HTMLElement) {
+  fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[1])
+}
+
 function completeNonCollectionFacts(container: HTMLElement) {
   const stepButtons = container.querySelectorAll<HTMLButtonElement>('.rail li button')
 
@@ -68,6 +72,7 @@ describe('policy editing workflow', () => {
 
   it('수집 단계에서는 선택 항목의 수집 경로와 수집 구분을 명시적으로 확인하고 처리 목적은 다음 단계에서 편집한다', () => {
     const { container } = render(<App />)
+    openCollectionStep(container)
     expect(container.querySelectorAll<HTMLInputElement>('input[placeholder="예: 회원가입 화면"]')).toHaveLength(0)
 
     const phone = container.querySelectorAll<HTMLInputElement>('.check-label input')[2]
@@ -85,6 +90,7 @@ describe('policy editing workflow', () => {
 
   it('수집 항목을 해제하면 이전 처리 목적, 수집 경로, 수집 구분을 폐기해 재활성화 시 재검토한다', () => {
     const { container } = render(<App />)
+    openCollectionStep(container)
     const phoneCheckbox = () => container.querySelectorAll<HTMLInputElement>('.check-label input')[2]
 
     fireEvent.click(phoneCheckbox())
@@ -111,6 +117,7 @@ describe('policy editing workflow', () => {
 
   it('공백뿐인 처리 목적은 미리보기에서도 미입력으로 표시한다', () => {
     const { container } = render(<App />)
+    openCollectionStep(container)
     const nameCheckbox = container.querySelectorAll<HTMLInputElement>('.check-label input')[0]
     fireEvent.click(nameCheckbox)
     const nameItem = container.querySelectorAll<HTMLElement>('.item-list .item')[0]
@@ -130,6 +137,7 @@ describe('policy editing workflow', () => {
 
   it('미리보기 처리 목적 경고에서 처리 목적 단계로 이동한다', () => {
     const { container } = render(<App />)
+    openCollectionStep(container)
     const phone = container.querySelectorAll<HTMLInputElement>('.check-label input')[2]
     fireEvent.click(phone)
     const warningButton = Array.from(container.querySelectorAll<HTMLButtonElement>('.document-warning button')).find((button) => button.textContent?.includes('처리 목적'))!
@@ -147,6 +155,7 @@ describe('policy editing workflow', () => {
 
   it('수집 구분 미확인 경고에서 수집 항목 단계로 이동한다', () => {
     const { container } = render(<App />)
+    openCollectionStep(container)
     fireEvent.click(container.querySelectorAll<HTMLInputElement>('.check-label input')[2])
     fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[0])
     const warningButton = Array.from(container.querySelectorAll<HTMLButtonElement>('.document-warning button')).find((button) => button.textContent?.includes('수집 구분'))!
@@ -156,6 +165,7 @@ describe('policy editing workflow', () => {
 
   it('수집 경로 미확인 경고에서 수집 항목 단계로 이동한다', () => {
     const { container } = render(<App />)
+    openCollectionStep(container)
     fireEvent.click(container.querySelectorAll<HTMLInputElement>('.check-label input')[2])
     const phoneItem = container.querySelectorAll<HTMLElement>('.item-list .item')[2]
     fireEvent.change(phoneItem.querySelector<HTMLSelectElement>('select')!, { target: { value: '필수' } })
@@ -223,6 +233,7 @@ describe('policy editing workflow', () => {
 
   it('모든 제품 정의 필수 사실을 확인한 뒤에만 공개 준비 확인을 허용한다', () => {
     const { container } = render(<App />)
+    openCollectionStep(container)
     const phone = container.querySelectorAll<HTMLInputElement>('.check-label input')[2]
     fireEvent.click(phone)
     const phoneItem = container.querySelectorAll<HTMLElement>('.item-list .item')[2]
