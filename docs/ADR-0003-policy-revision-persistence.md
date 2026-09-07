@@ -24,7 +24,7 @@ Introduce a PostgreSQL migration contract with `policy_revision` as aggregate ro
 
 Use `(tenant_account_id, revision_number)` as revision version identity and `(policy_revision_id, collection_item_key)` as collection-item identity. `upsert_collection_item` uses PostgreSQL `ON CONFLICT` on that item key, so an identical retry addresses the same item rather than duplicating it or rewriting the aggregate wholesale.
 
-Deferred constraint triggers lock the owning revision row and evaluate the final transaction state. They reject a no-collection revision with collection items, an `applies` retention state without a rule, and a rule attached to any other retention state. This permits a command to change a status and its dependent row in either statement order within one transaction, serializes competing fact checks on that revision, and still fails closed at commit.
+Deferred constraint triggers take a `FOR NO KEY UPDATE` lock on the owning revision row and evaluate the final transaction state. This mode serializes competing fact checks without conflicting with the `FOR KEY SHARE` lock used by foreign-key child writes. The triggers reject fact reparenting, a no-collection revision with collection items, an `applies` retention state without a rule, and a rule attached to any other retention state. A command may change a status and its dependent row in either statement order within one transaction while still failing closed at commit.
 
 ## Alternatives
 
@@ -47,7 +47,7 @@ Rejected. No released owner contract currently supplies PolicyWeave's product-do
 ## Risks and effects
 
 - The migration is not a production backend and grants no network access.
-- Source-shape tests require the parent-row lock but cannot prove PostgreSQL execution, lock scheduling, restart safety, tenant authorization, or backup/restore.
+- Source-shape tests require the parent-row lock mode and owner-key immutability but cannot prove PostgreSQL execution, lock scheduling, restart safety, tenant authorization, or backup/restore.
 - The `tenant_account_id` is deliberately not linked to an identity table until a released Keyverse contract and PolicyWeave authorization design exist.
 - Draft facts may remain nullable while unresolved; database constraints protect contradictions, while completeness remains the deterministic review responsibility.
 - The collection mode enum uses locale-neutral values. UI labels are translated at the application boundary rather than stored as database truth.
@@ -57,6 +57,7 @@ Rejected. No released owner contract currently supplies PolicyWeave's product-do
 - A client repeats the same collection-item command after losing a response: the natural-key UPSERT addresses one row.
 - A client tries to add an item to a revision confirmed as no-collection: commit fails with a constraint violation.
 - A client changes retention from `applies` to `none` but forgets to remove the old rule: commit fails, so stale retention evidence cannot survive.
+- A client attempts to move a retention rule between revisions: commit fails instead of leaving the original `applies` revision without its required rule.
 - Two clients claim the same tenant revision number: the unique constraint rejects one rather than creating ambiguous versions.
 
 ## Follow-up
