@@ -23,7 +23,7 @@ export function AuthoringFocusController() {
         const heading = document.querySelector<HTMLElement>('.form-panel .section-head h1')
         if (!heading) return
         heading.tabIndex = -1
-        heading.focus({ preventScroll: true })
+        heading.focus()
       }, 0)
       pendingFocusTransfers.add(timer)
     }

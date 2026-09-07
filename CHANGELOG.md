@@ -35,6 +35,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 - Collection-path editing remains in the collection step while processing-purpose editing stays in its dedicated purpose step.
 - Review preview applies the same whitespace-normalized purpose-completeness contract as the blocking review rule.
 - Step-rail, previous/next, and review-warning navigation now transfers programmatic focus to the newly active step heading; ordinary form controls and the dedicated preview shortcut are excluded from that transfer.
+- Review-warning navigation now lets the browser scroll the focused owner heading into view; the previous `preventScroll` option could leave that heading hundreds of pixels above the desktop or mobile viewport.
 - The publication-area CTA describes a readiness check and directs the operator to responsible review rather than exposing internal implementation boundaries.
 - Unshipped JSON export is visibly disabled as `준비 중`, the redundant no-op `검토본 생성` control was removed, and the document title is non-interactive status text.
 - Authored generic and custom-checkbox keyboard focus outlines now use the high-contrast `--green` token; a CSS regression test computes and enforces at least 3:1 contrast against white instead of relying on a low-contrast focus color.
@@ -45,7 +46,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 
 ### Not yet shipped
 - Authoritative legal-rule snapshots that can determine legal sufficiency beyond product-defined fact completeness.
-- Full browser-matrix/accessibility evidence and screenshot verification beyond CSS focus contrast and deterministic step-focus transition tests.
+- Manual zoom and screen-reader evidence beyond the automated desktop/tablet/mobile Chromium accessibility and focus checks.
 - Durable versioned policy persistence and audit history.
 - Authenticated immutable publication revisions and public URL lifecycle.
 - Hosted tenant/security/operability evidence and endpoint load testing.

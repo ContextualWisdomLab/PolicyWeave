@@ -8,7 +8,7 @@ This TRD covers the pre-release PolicyWeave browser workspace and the contracts 
 - Structured authoring state is in browser memory; no production database or backend exists.
 - `src/policy.ts` owns deterministic review logic for collection selection/no-collection attestation/mode/purpose/path and the non-collection authoring-completeness findings for service identity, explicit retention status/period, transfer statuses/details, and privacy contact.
 - `src/App.tsx` provides the seven-step authoring flow, review navigation, explicit collection/retention/transfer-status capture, stale dependent-fact invalidation, and deterministic preview projection.
-- `src/AuthoringFocusController.tsx` keeps explicit step navigation and review-warning jumps aligned with the newly active step by moving programmatic focus to its heading after the React update; ordinary form controls and the dedicated preview shortcut are outside this behavior.
+- `src/AuthoringFocusController.tsx` keeps explicit step navigation and review-warning jumps aligned with the newly active step by moving programmatic focus to its heading after the React update and allowing the browser to reveal that target; ordinary form controls and the dedicated preview shortcut are outside this behavior.
 - The current CI contract is lint, Vitest, TypeScript/Vite build, and Playwright Chromium browser evidence plus live organization-required security/review workflows. Browser cases cover desktop/tablet/mobile rendering, keyboard-triggered focus transfer, the explicit no-collection path, horizontal overflow, serious/critical axe findings, and per-project screenshots retained as an exact-head artifact.
 - Muted small text uses one authored color token whose contrast is regression-tested against every current surface background at a minimum 4.5:1 ratio; browser axe remains the integration authority for rendered combinations.
 
@@ -23,7 +23,7 @@ This TRD covers the pre-release PolicyWeave browser workspace and the contracts 
 8. Blank/whitespace authoring facts are normalized as unresolved where that fact is required by the explicit governing status.
 9. Disabling a collection item invalidates dependent collection-mode, processing-purpose, and collection-path evidence; re-enabling requires renewed confirmation.
 10. Every blocking finding links to the responsible editing step.
-11. Explicit step navigation through the rail, previous/next controls, or a blocking-finding action transfers focus to the newly active step heading after that surface renders. This logical focus-order contract must not steal focus from ordinary editing controls or the dedicated preview shortcut.
+11. Explicit step navigation through the rail, previous/next controls, or a blocking-finding action transfers focus to the newly active step heading after that surface renders. The focused heading must remain fully inside the current viewport; navigation must not suppress the browser scroll needed to reveal it. This contract must not steal focus from ordinary editing controls or the dedicated preview shortcut.
 12. Preview text is derived from current structured facts, including independent collection and retention statuses; it does not become an independently editable authority.
 13. UI copy distinguishes a review draft from legal advice, certification, or a compliance guarantee.
 
@@ -33,7 +33,7 @@ The separation between collection and retention follows the PIPC Standard Person
 - Touched production behavior requires regression and edge-case tests first.
 - Touched production functions carry descriptive JSDoc rather than relying on implicit behavior.
 - Do not suppress deprecation warnings to pass CI.
-- Browser/accessibility validation must include keyboard/focus order, WCAG 2.2 automated checks, responsive desktop/tablet/mobile interactions, and screenshot evidence before a buyer-facing accessibility claim. Deterministic jsdom focus-transition coverage is supporting evidence only and does not substitute for real-browser focus-not-obscured, zoom, screen-reader, or responsive verification.
+- Browser/accessibility validation must include keyboard/focus order, focus-target viewport visibility, WCAG 2.2 automated checks, responsive desktop/tablet/mobile interactions, and screenshot evidence before a buyer-facing accessibility claim. Deterministic jsdom focus-transition coverage is supporting evidence only and does not substitute for real-browser, zoom, screen-reader, or responsive verification.
 - Hosted web endpoints, when introduced, use non-blocking/asynchronous handling and require realistic k6 tests before a p95 <=20 ms page/API claim is recorded.
 - Production does not depend on synthetic demo data.
 
