@@ -9,7 +9,7 @@ This TRD covers the pre-release PolicyWeave browser workspace and the contracts 
 - `src/policy.ts` owns deterministic review logic for collection selection/no-collection attestation/mode/purpose/path and the non-collection authoring-completeness findings for service identity, explicit retention status/period, transfer statuses/details, and privacy contact.
 - `src/App.tsx` provides the seven-step authoring flow, review navigation, explicit collection/retention/transfer-status capture, stale dependent-fact invalidation, and deterministic preview projection.
 - `src/AuthoringFocusController.tsx` keeps explicit step navigation and review-warning jumps aligned with the newly active step by moving programmatic focus to its heading after the React update; ordinary form controls and the dedicated preview shortcut are outside this behavior.
-- The current CI contract is lint, Vitest, and TypeScript/Vite build plus live organization-required security/review workflows.
+- The current CI contract is lint, Vitest, TypeScript/Vite build, and Playwright Chromium browser evidence plus live organization-required security/review workflows. Browser cases cover desktop/tablet/mobile rendering, keyboard-triggered focus transfer, the explicit no-collection path, horizontal overflow, serious/critical axe findings, and per-project screenshots retained as an exact-head artifact.
 
 ## Functional contracts
 1. Every PRD step must route to an editable surface; selecting a step cannot change only the rail indicator.

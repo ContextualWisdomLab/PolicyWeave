@@ -12,6 +12,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 - Explicit unresolved/yes/no states for third-party provision and international transfer, with dependent detail capture only for confirmed `yes` cases.
 - Regression coverage for all seven step routes, zero-inferred startup facts, first-responsibility startup state, explicit no-collection state and stale-item invalidation, independent retention authority and stale-period invalidation, collection-mode/path confirmation, seven-step readiness, explicit no-transfer attestations, transfer-dependent fact invalidation, whitespace normalization, service URL projection, warning navigation, collection-path/purpose separation, stale collection evidence invalidation, buyer-facing publication guidance, non-deceptive handling of unshipped affordances, authored focus-indicator contrast, and authoring-step focus transfer.
 - Product/technical gap ledger, architecture, technical requirements, security baseline, and legal-source/accessibility traceability.
+- Playwright/axe browser evidence harness covering desktop, tablet, and mobile rendering; horizontal overflow; keyboard activation and focus transfer; explicit no-collection progression; serious/critical automated accessibility findings; and exact-head screenshot artifacts.
 
 ### Changed
 - ADR readiness language now matches the executable retention contract: status is explicit, a period/end condition is required only for `applies`, and `none` needs no period; unmerged ADRs remain Proposed until protected-branch adoption.

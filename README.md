@@ -46,6 +46,8 @@ npm run dev
 npm run lint
 npm test
 npm run build
+npx playwright install chromium
+npm run test:e2e
 ```
 
 `npm ci`는 체크인된 `package-lock.json`을 사용합니다. 이 저장소는 `private: true` 패키지이므로 npm 배포물을 제품 릴리스로 간주하지 않습니다.
