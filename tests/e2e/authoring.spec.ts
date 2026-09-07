@@ -89,11 +89,13 @@ test('invalidates stale retention evidence through responsive browser transition
   await expect(page.locator('.paper').getByText('보유 기간을 확인해야 합니다.', { exact: true })).toBeVisible()
 })
 
-test('keeps the core authoring flow usable at 200% rendered scale', async ({ page }) => {
+test('reflows the core authoring flow at an effective 200% browser zoom', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'Browser zoom reflow is measured from the desktop viewport.')
+
+  const viewport = page.viewportSize()
+  expect(viewport).not.toBeNull()
+  await page.setViewportSize({ width: Math.floor(viewport!.width / 2), height: Math.floor(viewport!.height / 2) })
   await page.goto('/')
-  await page.evaluate(() => {
-    document.documentElement.style.zoom = '2'
-  })
 
   const viewportOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
