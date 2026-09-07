@@ -88,3 +88,22 @@ test('invalidates stale retention evidence through responsive browser transition
   await expect(retentionRailItem).not.toHaveClass(/done/)
   await expect(page.locator('.paper').getByText('보유 기간을 확인해야 합니다.', { exact: true })).toBeVisible()
 })
+
+test('keeps the core authoring flow usable at 200% rendered scale', async ({ page }) => {
+  await page.goto('/')
+  await page.evaluate(() => {
+    document.documentElement.style.zoom = '2'
+  })
+
+  const viewportOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  )
+  expect(viewportOverflow).toBeLessThanOrEqual(0)
+
+  await expect(page.getByRole('heading', { level: 1, name: '1. 서비스 정보' })).toBeVisible()
+  const nextStep = page.getByRole('button', { name: '다음 단계' })
+  await nextStep.scrollIntoViewIfNeeded()
+  await nextStep.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { level: 1, name: '2. 수집 항목' })).toBeFocused()
+})
