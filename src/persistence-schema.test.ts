@@ -23,10 +23,19 @@ describe('PostgreSQL policy revision schema', () => {
 
   it('fails closed on contradictory collection and retention state at commit', () => {
     expect(migrationSql).toMatch(/create constraint trigger policy_revision_fact_contract/i)
+    expect(migrationSql).toMatch(/create constraint trigger collection_item_fact_contract[\s\S]*on collection_item/i)
+    expect(migrationSql).toMatch(/create constraint trigger retention_rule_fact_contract[\s\S]*on retention_rule/i)
     expect(migrationSql).toMatch(/deferrable initially deferred/i)
-    expect(migrationSql).toMatch(/from policy_revision as revision[\s\S]*for update;/i)
     expect(migrationSql).toMatch(/no_collection_confirmed[\s\S]*exists\s*\([\s\S]*from collection_item/i)
     expect(migrationSql).toMatch(/retention_status = 'applies'[\s\S]*from retention_rule/i)
+  })
+
+  it('serializes fact checks without conflicting with foreign-key key-share locks', () => {
+    expect(migrationSql).toMatch(/from policy_revision as revision[\s\S]*for no key update;/i)
+  })
+
+  it('rejects moving a fact to another policy revision', () => {
+    expect(migrationSql).toMatch(/old\.policy_revision_id is distinct from new\.policy_revision_id/i)
   })
 
   it('declares item-level UPSERT idempotency on the revision natural key', () => {
