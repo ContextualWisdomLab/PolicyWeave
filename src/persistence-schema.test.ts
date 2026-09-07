@@ -24,6 +24,7 @@ describe('PostgreSQL policy revision schema', () => {
   it('fails closed on contradictory collection and retention state at commit', () => {
     expect(migrationSql).toMatch(/create constraint trigger policy_revision_fact_contract/i)
     expect(migrationSql).toMatch(/deferrable initially deferred/i)
+    expect(migrationSql).toMatch(/from policy_revision as revision[\s\S]*for update;/i)
     expect(migrationSql).toMatch(/no_collection_confirmed[\s\S]*exists\s*\([\s\S]*from collection_item/i)
     expect(migrationSql).toMatch(/retention_status = 'applies'[\s\S]*from retention_rule/i)
   })
