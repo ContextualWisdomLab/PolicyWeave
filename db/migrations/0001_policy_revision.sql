@@ -99,8 +99,18 @@ after insert or update on policy_revision
 deferrable initially deferred
 for each row execute function enforce_policy_revision_facts();
 
+create constraint trigger service_profile_fact_contract
+after insert or update or delete on service_profile
+deferrable initially deferred
+for each row execute function enforce_policy_revision_facts();
+
 create constraint trigger collection_item_fact_contract
 after insert or update or delete on collection_item
+deferrable initially deferred
+for each row execute function enforce_policy_revision_facts();
+
+create constraint trigger processing_purpose_fact_contract
+after insert or update or delete on processing_purpose
 deferrable initially deferred
 for each row execute function enforce_policy_revision_facts();
 
