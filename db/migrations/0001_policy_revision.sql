@@ -55,7 +55,8 @@ begin
   select revision.no_collection_confirmed, revision.retention_status
     into no_collection_confirmed, retention_status
     from policy_revision as revision
-   where revision.policy_revision_id = target_revision_id;
+   where revision.policy_revision_id = target_revision_id
+     for update;
 
   if not found then
     return null;
