@@ -63,7 +63,7 @@ test('keeps the owning step heading visible after keyboard navigation from a rev
 test('invalidates stale retention evidence through responsive browser transitions', async ({ page }) => {
   await page.goto('/')
 
-  const retentionStep = page.getByRole('button', { name: /보유 기간/ })
+  const retentionStep = page.locator('.rail').getByRole('button', { name: /보유 기간/ })
   await retentionStep.focus()
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { level: 1, name: '4. 보유 기간' })).toBeFocused()
