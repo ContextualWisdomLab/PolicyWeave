@@ -1,0 +1,64 @@
+# ADR-0003: PostgreSQL policy revision persistence foundation
+
+Status: Proposed
+Date: 2026-09-07
+
+## Problem
+
+The browser workspace holds an operator's draft only in memory. A hosted product needs durable version identity and item-level retry behavior without collapsing unresolved facts into negative facts, coupling PolicyWeave to another product's database, or treating an open PR as a released persistence service.
+
+## Constraints
+
+- `policy_revision` remains the smallest transaction aggregate.
+- Tenant identity and revision number must form a unique version identity.
+- Explicit no-collection confirmation and retention status remain independent facts.
+- A no-collection revision cannot own collection items.
+- `retention_status = applies` requires exactly one current `retention_rule`; other statuses cannot retain one.
+- Organization-owned persistence identifiers use two or more semantic words and `snake_case`.
+- Retries update one collection item through its declared natural key; they do not replace an entire revision.
+- Hosted authorization, audit, encryption, publication, backup/restore, and runtime migration evidence remain mandatory before production use.
+
+## Decision
+
+Introduce a PostgreSQL migration contract with `policy_revision` as aggregate root. `service_profile`, `collection_item`, `processing_purpose`, and `retention_rule` are revision-owned normalized tables. The explicit no-collection boolean and the independent `retention_fact_status` live on the revision; absence of rows does not manufacture either fact.
+
+Use `(tenant_account_id, revision_number)` as revision version identity and `(policy_revision_id, collection_item_key)` as collection-item identity. `upsert_collection_item` uses PostgreSQL `ON CONFLICT` on that item key, so an identical retry addresses the same item rather than duplicating it or rewriting the aggregate wholesale.
+
+Deferred constraint triggers lock the owning revision row and evaluate the final transaction state. They reject a no-collection revision with collection items, an `applies` retention state without a rule, and a rule attached to any other retention state. This permits a command to change a status and its dependent row in either statement order within one transaction, serializes competing fact checks on that revision, and still fails closed at commit.
+
+## Alternatives
+
+### Store one JSON document per revision
+
+Rejected for the hosted write model. It makes item-level conflict behavior and relational integrity implicit, encourages whole-document overwrites, and weakens 3NF evidence. JSON remains suitable for versioned export or event payloads after those contracts exist.
+
+### Persist browser prose or component state
+
+Rejected. Rendered prose is a projection, and component state is not the Policy Fact Authoring ubiquitous language. Either choice would make a presentation format authoritative over operator-established facts.
+
+### Reuse another ContextualWisdomLab database or source branch
+
+Rejected. No released owner contract currently supplies PolicyWeave's product-domain persistence. Cross-service SQL, source copying, and temporary-branch dependencies would violate the product ownership boundary.
+
+## Evidence
+
+`src/persistence-schema.test.ts` fixes the stable schema markers for revision identity, normalized ownership, deferred fact consistency, and natural-key UPSERT. The test-only PR head fails because the migration is absent; the following implementation makes those four contracts pass. This evidence validates source shape only until PostgreSQL migration execution is available.
+
+## Risks and effects
+
+- The migration is not a production backend and grants no network access.
+- Source-shape tests require the parent-row lock but cannot prove PostgreSQL execution, lock scheduling, restart safety, tenant authorization, or backup/restore.
+- The `tenant_account_id` is deliberately not linked to an identity table until a released Keyverse contract and PolicyWeave authorization design exist.
+- Draft facts may remain nullable while unresolved; database constraints protect contradictions, while completeness remains the deterministic review responsibility.
+- The collection mode enum uses locale-neutral values. UI labels are translated at the application boundary rather than stored as database truth.
+
+## Operational and failure scenes
+
+- A client repeats the same collection-item command after losing a response: the natural-key UPSERT addresses one row.
+- A client tries to add an item to a revision confirmed as no-collection: commit fails with a constraint violation.
+- A client changes retention from `applies` to `none` but forgets to remove the old rule: commit fails, so stale retention evidence cannot survive.
+- Two clients claim the same tenant revision number: the unique constraint rejects one rather than creating ambiguous versions.
+
+## Follow-up
+
+Run the migration and rollback/restore path against the supported PostgreSQL version, add tenant-purpose authorization and immutable audit events, measure concurrent UPSERT/lock behavior, and only then connect a hosted asynchronous API. Immutable publication and supersession remain a separate Review & Publication decision.
