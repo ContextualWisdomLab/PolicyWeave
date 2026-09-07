@@ -44,7 +44,10 @@ test('preserves keyboard context through the explicit no-collection path', async
 test('keeps the owning step heading visible after keyboard navigation from a review warning', async ({ page }) => {
   await page.goto('/')
 
-  const serviceWarning = page.getByRole('button', { name: '서비스 정보 확인' })
+  const serviceWarning = page
+    .locator('.document-warning')
+    .filter({ hasText: '서비스 이름 확인이 필요합니다.' })
+    .getByRole('button', { name: '서비스 정보 확인', exact: true })
   await serviceWarning.scrollIntoViewIfNeeded()
   await serviceWarning.focus()
   await page.keyboard.press('Enter')
