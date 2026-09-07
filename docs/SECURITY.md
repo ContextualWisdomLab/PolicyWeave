@@ -26,6 +26,7 @@ Protected assets include policy facts, contact details, processing descriptions,
 6. Validate and encode user-entered content at output boundaries; do not treat imported HTML/Markdown/source material as executable instructions.
 7. Define backup/restore, incident response, access review, retention/deletion, and evidence collection before claiming SOC 2 readiness. Map hosted controls toward CSAP and SOC 2 without describing an unassessed product as certified.
 8. Tests/docs use fictionalized organizations and people; real personal/institutional names are not fixtures.
+9. Credential-bearing service URLs are invalid and are withheld from the review projection; operators must provide a credential-free HTTP(S) location.
 
 ## Verification
 Security posture is head-specific. A successful predecessor scan, unresolved finding dismissal, or queued security workflow is not passing evidence. Merge/release decisions must reacquire the exact current head's organization-required security/SAST/review checks.

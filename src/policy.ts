@@ -63,10 +63,10 @@ export const initialFacts: DraftFacts = {
 export const steps = ['서비스 정보', '수집 항목', '처리 목적', '보유 기간', '제3자 제공', '국외 이전', '개인정보 보호 담당자']
 
 /** Returns whether a service URL is an absolute HTTP(S) web location suitable for a buyer-facing policy target. */
-function isWebServiceUrl(value: string) {
+export function isWebServiceUrl(value: string) {
   try {
     const url = new URL(value)
-    return (url.protocol === 'https:' || url.protocol === 'http:') && Boolean(url.hostname)
+    return (url.protocol === 'https:' || url.protocol === 'http:') && Boolean(url.hostname) && !url.username && !url.password
   } catch {
     return false
   }

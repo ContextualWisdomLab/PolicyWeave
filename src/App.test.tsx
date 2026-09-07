@@ -58,6 +58,15 @@ describe('policy editing workflow', () => {
     expect(container.querySelector('.paper')?.textContent).toContain('https://privacy.example.test')
   })
 
+  it('자격정보가 포함된 서비스 URL은 검토본에 노출하지 않고 수정 대상으로 남긴다', () => {
+    const { container } = render(<App />)
+    fireEvent.change(container.querySelector<HTMLInputElement>('input[name="serviceUrl"]')!, { target: { value: 'https://operator:secret@example.test' } })
+
+    const reviewDraft = container.querySelector('.paper')?.textContent ?? ''
+    expect(reviewDraft).not.toContain('operator:secret')
+    expect(reviewDraft).toContain('서비스 URL 형식')
+  })
+
   it('아직 제공하지 않는 내보내기와 생성 기능을 클릭 가능한 동작처럼 노출하지 않는다', () => {
     const { container } = render(<App />)
     const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>('button'))

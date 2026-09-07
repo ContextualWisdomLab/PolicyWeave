@@ -178,6 +178,7 @@ describe('seven-step draft readiness', () => {
     }
     expect(getDraftReview({ ...base, serviceUrl: 'not a url' }).map((finding) => finding.code)).toEqual(['service_url_format'])
     expect(getDraftReview({ ...base, serviceUrl: 'javascript:alert(1)' }).map((finding) => finding.code)).toEqual(['service_url_format'])
+    expect(getDraftReview({ ...base, serviceUrl: 'https://operator:secret@example.test' }).map((finding) => finding.code)).toEqual(['service_url_format'])
     expect(getDraftReview({ ...base, serviceUrl: 'https://example.test/path' })).toEqual([])
   })
 

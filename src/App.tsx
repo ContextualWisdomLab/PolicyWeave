@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { AlertTriangle, Check, ChevronDown, ExternalLink, FileText, Link, Save } from 'lucide-react'
-import { DraftFacts, getCompletedSteps, getDraftReview, getReview, initialFacts, initialItems, PolicyItem, steps } from './policy'
+import { DraftFacts, getCompletedSteps, getDraftReview, getReview, initialFacts, initialItems, isWebServiceUrl, PolicyItem, steps } from './policy'
 
 type FactField = {
   key: keyof DraftFacts
@@ -182,7 +182,7 @@ function DocumentPreview({ items, noCollectionAttested, facts, setCurrent }: { i
     <div className="meta"><span>근거 법령 <b>개인정보 보호법</b></span><span className={blockingCount ? 'warn-tag' : 'ok-tag'}>{blockingCount ? `검토 필요 ${blockingCount}` : '필수 확인 완료'}</span><span>버전 0.1.0</span></div>
     <article className="paper">
       <h2>{facts.serviceName || '개인정보처리방침'} (검토본)</h2>
-      {facts.serviceUrl && <p>적용 서비스: {facts.serviceUrl}</p>}
+      {isWebServiceUrl(facts.serviceUrl.trim()) && <p>적용 서비스: {facts.serviceUrl.trim()}</p>}
       <p>{facts.serviceName || '서비스 운영자'}는 이용자의 개인정보를 중요하게 여기며, 확인된 실제 처리 사실을 바탕으로 다음 사항을 검토합니다.</p>
       <h3>제1조 (개인정보의 처리 목적)</h3>
       {noCollectionAttested ? <p>운영자는 현재 서비스에서 개인정보를 수집하지 않음으로 확인했습니다.</p> : <p>아래 목적은 작성자가 확인한 운영 사실을 기준으로 표시됩니다.</p>}

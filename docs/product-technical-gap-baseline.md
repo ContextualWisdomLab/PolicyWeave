@@ -32,6 +32,8 @@ The 2026-09-07 exact-head CI run exposed nine regressions after the truthful ste
 
 The next exact-head review found that ADR-0002 still described a retention period as universally required even though the executable contract and TRD correctly allow explicit `retention_status = none` without one. A documentation regression now binds ADR-0002 to explicit conditional retention semantics. ADR-0001 and ADR-0002 also remain Proposed while their defining PR is unmerged; protected-branch adoption, not implementation on an open branch, is the acceptance boundary.
 
+The following buyer-security pass found that the service URL validator accepted HTTP(S) authority credentials and the review projection rendered the raw value. Realistic RED coverage now proves both the readiness and projection leaks. The shared URL contract rejects nonempty username/password components, and the preview renders only a validated, trimmed web URL. This prevents embedded credentials from entering the generated draft without claiming endpoint ownership or reachability.
+
 ## Current baseline
 
 | Area | Evidence | Status | Commercialization gap | Owner/action | Next verification |

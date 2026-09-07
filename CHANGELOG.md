@@ -25,6 +25,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 - Every selected collection item requires explicit collection mode, processing purpose, and nonblank collection-path evidence before readiness can pass; collection-path findings navigate back to the collection step.
 - Public-readiness includes product-defined service name/URL, explicit retention status and any required period, transfer-status/detail, and privacy-contact completeness.
 - Service URL and privacy-contact email are shape-validated as usability contracts without claiming endpoint reachability or mailbox ownership.
+- Credential-bearing service URLs are rejected and withheld from the review projection so embedded usernames or passwords cannot leak into a generated draft.
 - Blank transfer state is no longer treated as an implicit `none`; explicit `없음` confirmation is required, while `있음` requires dependent recipient/purpose or country/recipient facts.
 - Changing a transfer status away from `있음` clears its dependent details so stale customer facts cannot silently revive.
 - Disabling a collection item clears its collection mode, processing purpose, and collection-path evidence so re-enabling cannot silently revive stale customer facts.
