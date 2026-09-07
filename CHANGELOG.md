@@ -16,6 +16,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 
 ### Changed
 - ADR readiness language now matches the executable retention contract: status is explicit, a period/end condition is required only for `applies`, and `none` needs no period; unmerged ADRs remain Proposed until protected-branch adoption.
+- Browser-discovered muted text now uses a darker authored token, with a regression contract requiring at least 4.5:1 contrast on every current white, rail, conditional-field, and metadata surface.
 - Fresh workspaces no longer preselect collection items or prefill collection modes/processing purposes; readiness fails closed until the operator establishes actual collection facts or explicitly attests that the service collects no personal data.
 - Fresh workspaces now open at step 1, service information, rather than displaying step 2 while falsely rendering the untouched first responsibility as completed.
 - Completed responsibilities retain their `done` state while active, and collection-flow tests now enter step 2 explicitly instead of depending on the retired step-2 startup state.

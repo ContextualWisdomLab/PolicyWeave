@@ -44,4 +44,12 @@ describe('responsive review workspace CSS contract', () => {
     expect(css).toContain(':focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }')
     expect(css).toContain('.check-label input:focus-visible + .box { outline: 3px solid var(--green); outline-offset: 2px; }')
   })
+
+  it('keeps muted small text above 4.5:1 on every authored surface', () => {
+    const muted = css.match(/--muted:\s*(#[0-9a-fA-F]{6});/)?.[1]
+    expect(muted).toBeDefined()
+    for (const background of ['#ffffff', '#f4f7f4', '#f7f8f7', '#eef1ee']) {
+      expect(contrastRatio(muted!, background)).toBeGreaterThanOrEqual(4.5)
+    }
+  })
 })
