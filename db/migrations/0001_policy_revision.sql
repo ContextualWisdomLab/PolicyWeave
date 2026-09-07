@@ -50,13 +50,19 @@ declare
   no_collection_confirmed boolean;
   retention_status retention_fact_status;
 begin
+  if tg_op = 'UPDATE' and old.policy_revision_id is distinct from new.policy_revision_id then
+    raise exception using
+      errcode = '23514',
+      message = 'revision-owned facts cannot move between policy revisions';
+  end if;
+
   target_revision_id := case when tg_op = 'DELETE' then old.policy_revision_id else new.policy_revision_id end;
 
   select revision.no_collection_confirmed, revision.retention_status
     into no_collection_confirmed, retention_status
     from policy_revision as revision
    where revision.policy_revision_id = target_revision_id
-     for update;
+     for no key update;
 
   if not found then
     return null;
