@@ -22,7 +22,7 @@ describe('PostgreSQL concurrent writer evidence contract', () => {
     expect(concurrencyTest).toContain('no-collection confirmation conflicts with collection items')
     expect(concurrencyTest).toMatch(/count\(\*\)[\s\S]*Concurrent contact email/)
     expect(concurrencyTest).toMatch(
-      /stored_mode[\s\S]*stored_path[\s\S]*if[\s\S]*stored_mode <> 'optional'[\s\S]*stored_path <> 'Account profile form'/,
+      /stored_mode[\s\S]*stored_path[\s\S]*if[\s\S]*stored_mode is distinct from 'optional'[\s\S]*stored_path is distinct from 'Account profile form'/i,
     )
     expect(workflowSource).toContain('run: sh db/tests/policy_revision_concurrency.sh')
   })
