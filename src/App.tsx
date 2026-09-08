@@ -218,17 +218,21 @@ export default function App() {
   const [message, setMessage] = useState('')
   function publish() { setMessage(blockingCount ? '필수 확인 항목을 먼저 입력하세요.' : '필수 확인이 완료되었습니다. 현재 검토본을 책임자와 검토하고 필요한 사실을 보완하세요.') }
   function exportDraft() {
-    const fileUrl = URL.createObjectURL(new Blob([`${JSON.stringify(createPolicyExport(items, noCollectionAttested, facts), null, 2)}\n`], { type: 'application/json' }))
-    const downloadLink = document.createElement('a')
-    downloadLink.href = fileUrl
-    downloadLink.download = 'policyweave-draft.json'
+    let fileUrl: string | null = null
     try {
+      fileUrl = URL.createObjectURL(new Blob([`${JSON.stringify(createPolicyExport(items, noCollectionAttested, facts), null, 2)}\n`], { type: 'application/json' }))
+      const downloadLink = document.createElement('a')
+      downloadLink.href = fileUrl
+      downloadLink.download = 'policyweave-draft.json'
       downloadLink.click()
       setMessage('')
     } catch {
       setMessage('JSON 파일을 내보내지 못했습니다. 다시 시도하세요.')
     } finally {
-      setTimeout(() => URL.revokeObjectURL(fileUrl), 0)
+      if (fileUrl) {
+        const disposableFileUrl = fileUrl
+        setTimeout(() => URL.revokeObjectURL(disposableFileUrl), 0)
+      }
     }
   }
   return <div className="app-shell">
