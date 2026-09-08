@@ -48,6 +48,7 @@ function FactStep({ current, title, description, fields, facts, setFacts, setCur
   setFacts: (facts: DraftFacts) => void
   setCurrent: (step: number) => void
 }) {
+  /** Updates one fact and clears dependent facts when its owning state makes them inapplicable. */
   const update = (key: keyof DraftFacts, value: string) => {
     const next = { ...facts, [key]: value } as DraftFacts
     if (key === 'retentionStatus' && value !== 'applies') next.retentionPeriod = ''
@@ -80,7 +81,9 @@ function CollectionForm({ items, setItems, noCollectionAttested, setNoCollection
   setNoCollectionAttested: (attested: boolean) => void
   setCurrent: (step: number) => void
 }) {
+  /** Applies one collection-item patch while preserving every sibling item. */
   const update = (id: string, patch: Partial<PolicyItem>) => setItems(items.map((item) => item.id === id ? { ...item, ...patch } : item))
+  /** Enforces a no-collection attestation by clearing facts that would contradict it. */
   const setNoCollection = (attested: boolean) => {
     if (attested) setItems(items.map((item) => ({ ...item, enabled: false, purpose: '', detail: '', mode: '' })))
     setNoCollectionAttested(attested)
@@ -110,6 +113,7 @@ function CollectionForm({ items, setItems, noCollectionAttested, setNoCollection
 /** Captures processing purposes for collection items explicitly selected by the operator. */
 function PurposeForm({ items, setItems, noCollectionAttested, setCurrent }: { items: PolicyItem[]; setItems: (items: PolicyItem[]) => void; noCollectionAttested: boolean; setCurrent: (step: number) => void }) {
   const enabled = items.filter((item) => item.enabled)
+  /** Updates the processing purpose for one selected collection item only. */
   const updatePurpose = (id: string, purpose: string) => setItems(items.map((item) => item.id === id ? { ...item, purpose } : item))
   return <main className="form-panel">
     <header className="section-head"><h1>3. 처리 목적</h1><p>선택한 개인정보 항목마다 실제 처리 목적을 연결합니다. 목적이 없는 항목은 공개 검토를 통과할 수 없습니다.</p></header>
@@ -216,7 +220,9 @@ export default function App() {
   const completedSteps = useMemo(() => getCompletedSteps(items, noCollectionAttested, facts), [items, noCollectionAttested, facts])
   const blockingCount = collectionReview.blockingCount + draftFindings.length
   const [message, setMessage] = useState('')
+  /** Reports readiness for responsible review without claiming that a publication occurred. */
   function publish() { setMessage(blockingCount ? '필수 확인 항목을 먼저 입력하세요.' : '필수 확인이 완료되었습니다. 현재 검토본을 책임자와 검토하고 필요한 사실을 보완하세요.') }
+  /** Downloads the deterministic local export and revokes its object URL after activation. */
   function exportDraft() {
     let fileUrl: string | null = null
     try {
