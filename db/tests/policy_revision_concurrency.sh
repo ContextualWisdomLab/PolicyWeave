@@ -182,8 +182,8 @@ begin
 
   if stored_count <> 1
      or stored_label <> 'Concurrent contact email'
-     or stored_mode <> 'optional'
-     or stored_path <> 'Account profile form' then
+     or stored_mode is distinct from 'optional'
+     or stored_path is distinct from 'Account profile form' then
     raise exception 'concurrent collection-item UPSERTs did not converge';
   end if;
 end;
