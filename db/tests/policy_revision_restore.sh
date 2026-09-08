@@ -78,6 +78,8 @@ declare
   collection_rule_count integer;
   stored_service_name text;
   stored_item_label text;
+  stored_item_mode text;
+  stored_item_path text;
   stored_purpose text;
   stored_period text;
   no_collection_revision_count integer;
@@ -96,8 +98,11 @@ begin
     from service_profile
    where policy_revision_id = '60000000-0000-4000-8000-000000000001';
 
-  select count(*), max(collection_item_label)
-    into collection_item_count, stored_item_label
+  select count(*),
+         max(collection_item_label),
+         max(collection_mode::text),
+         max(collection_path)
+    into collection_item_count, stored_item_label, stored_item_mode, stored_item_path
     from collection_item
    where policy_revision_id = '60000000-0000-4000-8000-000000000001'
      and collection_item_key = 'contact_email';
@@ -135,6 +140,8 @@ begin
      or stored_service_name <> 'Restore Probe Service'
      or collection_item_count <> 1
      or stored_item_label <> 'Restore contact email'
+     or stored_item_mode is distinct from 'required'
+     or stored_item_path is distinct from 'Account registration form'
      or collection_purpose_count <> 1
      or stored_purpose <> 'Account notices'
      or collection_rule_count <> 1
