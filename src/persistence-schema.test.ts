@@ -40,7 +40,7 @@ describe('PostgreSQL policy revision schema', () => {
     expect(migrationSql).toMatch(/old\.policy_revision_id is distinct from new\.policy_revision_id/i)
 
     for (const tableName of ['service_profile', 'collection_item', 'processing_purpose', 'retention_rule']) {
-      expect(migrationSql).toMatch(new RegExp(`create constraint trigger ${tableName}_fact_contract[\s\S]*on ${tableName}`, 'i'))
+      expect(migrationSql).toMatch(new RegExp(`create constraint trigger ${tableName}_fact_contract[\\s\\S]*on ${tableName}`, 'i'))
     }
   })
 
