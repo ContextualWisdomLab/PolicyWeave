@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest'
 
 const migrationPath = fileURLToPath(new URL('../db/migrations/0001_policy_revision.sql', import.meta.url))
 const migrationSql = existsSync(migrationPath) ? readFileSync(migrationPath, 'utf8') : ''
+const gapBaselinePath = fileURLToPath(new URL('../docs/product-technical-gap-baseline.md', import.meta.url))
+const gapBaseline = readFileSync(gapBaselinePath, 'utf8')
 
 describe('PostgreSQL policy revision schema', () => {
   it('versions policy revisions within a tenant account', () => {
@@ -45,5 +47,10 @@ describe('PostgreSQL policy revision schema', () => {
   it('declares item-level UPSERT idempotency on the revision natural key', () => {
     expect(migrationSql).toMatch(/create function upsert_collection_item/i)
     expect(migrationSql).toMatch(/on conflict \(policy_revision_id, collection_item_key\)[\s\S]*do update/i)
+  })
+
+  it('documents the same-transaction retention transition contract', () => {
+    expect(gapBaseline).toMatch(/transitioning away from `applies`[\s\S]*same transaction/i)
+    expect(gapBaseline).toMatch(/retained[^.]*`retention_rule`[^.]*deferred constraint[^.]*reject/i)
   })
 })
