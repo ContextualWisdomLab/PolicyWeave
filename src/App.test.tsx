@@ -78,13 +78,11 @@ describe('policy editing workflow', () => {
 
   it('작성 사실을 JSON 파일로 로컬 내보내고 제공하지 않는 생성 기능은 노출하지 않는다', () => {
     vi.useFakeTimers()
-    const createObjectUrl = vi.fn((fileBlob: Blob) => {
+    const createObjectUrl = vi.spyOn(URL, 'createObjectURL').mockImplementation((fileBlob) => {
       void fileBlob
       return 'blob:policyweave-draft'
     })
-    const revokeObjectUrl = vi.fn()
-    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectUrl })
-    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectUrl })
+    const revokeObjectUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
     const clickDownload = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
 
     const { container } = render(<App />)
