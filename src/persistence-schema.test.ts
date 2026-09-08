@@ -53,4 +53,15 @@ describe('PostgreSQL policy revision schema', () => {
     expect(gapBaseline).toMatch(/transitioning away from `applies`[\s\S]*same transaction/i)
     expect(gapBaseline).toMatch(/retained[^.]*`retention_rule`[^.]*deferred constraint[^.]*reject/i)
   })
+
+  it('binds action-runtime evidence to immutable heads without a recursive current-head claim', () => {
+    const actionEvidence = gapBaseline.split('Action-runtime cleanup')[1]?.split('## Current baseline')[0] ?? ''
+
+    expect(actionEvidence).toContain('head `23b3a1c7429aca2ea39e153c6504beee9d507d39` CI `34179633214`')
+    expect(actionEvidence).toContain('head `fba59b85c5ce33813147939f8124cb2d69b184a1` CI `34180350163`')
+    expect(actionEvidence).toContain('artifact `10038696518`')
+    expect(actionEvidence).toContain('sha256:f31fd4d0dee1164e76e0841f01cc2c5f6f9ce73c6b07fc08e98ac9bd4b333fa8')
+    expect(actionEvidence).not.toMatch(/Exact-head CI/)
+  })
+
 })
