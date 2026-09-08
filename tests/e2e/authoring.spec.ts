@@ -1,0 +1,278 @@
+import AxeBuilder from '@axe-core/playwright'
+import { expect, test, type Download, type Page } from '@playwright/test'
+
+async function readDownload(download: Download) {
+  const downloadStream = await download.createReadStream()
+  downloadStream.setEncoding('utf8')
+  let downloadContent = ''
+  for await (const contentChunk of downloadStream) downloadContent += contentChunk
+  return downloadContent
+}
+
+async function installDownloadAudit(page: Page) {
+  await page.addInitScript(() => {
+    const audit = { created: [] as Array<{ url: string; type: string }>, revoked: [] as string[] }
+    const createObjectUrl = URL.createObjectURL.bind(URL)
+    const revokeObjectUrl = URL.revokeObjectURL.bind(URL)
+    Object.defineProperty(window, '__policyweaveDownloadAudit', { value: audit })
+    URL.createObjectURL = (object) => {
+      const url = createObjectUrl(object)
+      audit.created.push({ url, type: object instanceof Blob ? object.type : '' })
+      return url
+    }
+    URL.revokeObjectURL = (url) => {
+      audit.revoked.push(url)
+      revokeObjectUrl(url)
+    }
+  })
+}
+
+test('renders a truthful responsive initial workspace without serious accessibility violations', async ({ page }, testInfo) => {
+  await page.goto('/')
+
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('1. 서비스 정보')
+  await expect(page.getByText('0/7 완료')).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('initial-workspace.png'), fullPage: true, animations: 'disabled' })
+
+  const viewportOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+  expect(viewportOverflow).toBeLessThanOrEqual(0)
+
+  const accessibility = await new AxeBuilder({ page }).analyze()
+  expect(accessibility.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([])
+})
+
+test('preserves keyboard context through the explicit no-collection path', async ({ page }) => {
+  await page.goto('/')
+
+  const collectionStep = page.getByRole('button', { name: /수집 항목/ }).first()
+  await collectionStep.focus()
+  await page.keyboard.press('Enter')
+  const collectionHeading = page.getByRole('heading', { level: 1, name: '2. 수집 항목' })
+  await expect(collectionHeading).toBeFocused()
+  const headingBounds = await collectionHeading.boundingBox()
+  expect(headingBounds).not.toBeNull()
+  expect(headingBounds!.y).toBeGreaterThanOrEqual(0)
+  expect(headingBounds!.y + headingBounds!.height).toBeLessThanOrEqual(page.viewportSize()!.height)
+
+  const noCollection = page.getByRole('checkbox', { name: '개인정보를 수집하지 않음으로 확인' })
+  await noCollection.focus()
+  await page.keyboard.press('Space')
+  await expect(noCollection).toBeChecked()
+  await expect(page.getByText('2/7 완료')).toBeVisible()
+
+  const nextStep = page.getByRole('button', { name: '다음 단계' })
+  await nextStep.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { level: 1, name: '3. 처리 목적' })).toBeFocused()
+  await expect(page.getByText('개인정보를 수집하지 않음으로 확인되었습니다.')).toBeVisible()
+})
+
+test('keeps the owning step heading visible after keyboard navigation from a review warning', async ({ page }) => {
+  await page.goto('/')
+
+  const serviceWarning = page
+    .locator('.document-warning')
+    .filter({ hasText: '서비스 이름 확인이 필요합니다.' })
+    .getByRole('button', { name: '서비스 정보 확인', exact: true })
+  await serviceWarning.scrollIntoViewIfNeeded()
+  await serviceWarning.focus()
+  await page.keyboard.press('Enter')
+
+  const serviceHeading = page.getByRole('heading', { level: 1, name: '1. 서비스 정보' })
+  await expect(serviceHeading).toBeFocused()
+  const headingBounds = await serviceHeading.boundingBox()
+  expect(headingBounds).not.toBeNull()
+  expect(headingBounds!.y).toBeGreaterThanOrEqual(0)
+  expect(headingBounds!.y + headingBounds!.height).toBeLessThanOrEqual(page.viewportSize()!.height)
+})
+
+test('invalidates stale retention evidence through responsive browser transitions', async ({ page }) => {
+  await page.goto('/')
+
+  const retentionStep = page.locator('.rail').getByRole('button', { name: /보유 기간/ })
+  await retentionStep.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { level: 1, name: '4. 보유 기간' })).toBeFocused()
+
+  const retentionStatus = page.getByLabel('개인정보 보유 여부')
+  await retentionStatus.selectOption('applies')
+  const retentionPeriod = page.getByLabel('대표 보유 기간 또는 종료 조건')
+  await retentionPeriod.fill('회원 탈퇴 시까지')
+
+  const retentionRailItem = page.locator('.rail li').filter({ hasText: '보유 기간' })
+  await expect(retentionRailItem).toHaveClass(/done/)
+  await expect(page.locator('.paper').getByText('회원 탈퇴 시까지', { exact: true })).toBeVisible()
+
+  await retentionStatus.selectOption('none')
+  await expect(retentionPeriod).toHaveCount(0)
+  await expect(retentionRailItem).toHaveClass(/done/)
+  await expect(page.locator('.paper').getByText('보유하는 개인정보 없음으로 확인되었습니다.', { exact: true })).toBeVisible()
+
+  await retentionStatus.selectOption('applies')
+  const renewedRetentionPeriod = page.getByLabel('대표 보유 기간 또는 종료 조건')
+  await expect(renewedRetentionPeriod).toHaveValue('')
+  await expect(retentionRailItem).not.toHaveClass(/done/)
+  await expect(page.locator('.paper').getByText('보유 기간을 확인해야 합니다.', { exact: true })).toBeVisible()
+})
+
+test('reflows the core authoring flow at an effective 200% browser zoom', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'Browser zoom reflow is measured from the desktop viewport.')
+
+  const viewport = page.viewportSize()
+  expect(viewport).not.toBeNull()
+  await page.setViewportSize({ width: Math.floor(viewport!.width / 2), height: Math.floor(viewport!.height / 2) })
+  await page.goto('/')
+
+  const viewportOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  )
+  expect(viewportOverflow).toBeLessThanOrEqual(0)
+
+  await expect(page.getByRole('heading', { level: 1, name: '1. 서비스 정보' })).toBeVisible()
+  const nextStep = page.getByRole('button', { name: '다음 단계' })
+  await nextStep.scrollIntoViewIfNeeded()
+  await nextStep.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { level: 1, name: '2. 수집 항목' })).toBeFocused()
+})
+
+test('downloads a versioned policy draft with real browser payload semantics', async ({ page }) => {
+  await page.goto('/')
+  await page.getByLabel('서비스 이름').fill('Buyer Portal')
+
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: /JSON 내보내기/ }).click()
+  const download = await downloadPromise
+
+  expect(download.suggestedFilename()).toBe('policyweave-draft.json')
+  const downloadContent = await readDownload(download)
+
+  const exportedDraft = JSON.parse(downloadContent)
+  expect(exportedDraft).toMatchObject({
+    schema_version: 1,
+    document_state: 'incomplete',
+    policy_facts: {
+      service_profile: {
+        service_name: 'Buyer Portal',
+        service_url: null,
+      },
+    },
+  })
+  expect(exportedDraft.review_finding_codes).toEqual(expect.arrayContaining(['service_url', 'collection_selection']))
+})
+
+test('keeps keyboard exports byte-stable and revokes every JSON object URL', async ({ page }) => {
+  await installDownloadAudit(page)
+  await page.goto('/')
+  await page.getByLabel('서비스 이름').fill('Buyer Portal')
+
+  const exportButton = page.getByRole('button', { name: /JSON 내보내기/ })
+  const exportedBytes: string[] = []
+  for (let exportAttempt = 0; exportAttempt < 2; exportAttempt += 1) {
+    const downloadPromise = page.waitForEvent('download')
+    await exportButton.focus()
+    await page.keyboard.press('Enter')
+    const download = await downloadPromise
+    expect(download.suggestedFilename()).toBe('policyweave-draft.json')
+    exportedBytes.push(await readDownload(download))
+  }
+
+  expect(exportedBytes[1]).toBe(exportedBytes[0])
+  await expect.poll(() => page.evaluate(() => {
+    const audit = (window as typeof window & { __policyweaveDownloadAudit: { created: Array<{ url: string; type: string }>; revoked: string[] } }).__policyweaveDownloadAudit
+    return { created: audit.created.length, revoked: audit.revoked.length }
+  })).toEqual({ created: 2, revoked: 2 })
+  const downloadAudit = await page.evaluate(() => (window as typeof window & {
+    __policyweaveDownloadAudit: { created: Array<{ url: string; type: string }>; revoked: string[] }
+  }).__policyweaveDownloadAudit)
+  expect(downloadAudit.created.map(({ type }) => type)).toEqual(['application/json', 'application/json'])
+  expect(new Set(downloadAudit.created.map(({ url }) => url)).size).toBe(2)
+  expect(downloadAudit.revoked).toEqual(downloadAudit.created.map(({ url }) => url))
+})
+
+test('reports a download activation failure and revokes its JSON object URL', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'One browser profile proves the activation-error lifecycle.')
+
+  await installDownloadAudit(page)
+  await page.addInitScript(() => {
+    const click = HTMLAnchorElement.prototype.click
+    HTMLAnchorElement.prototype.click = function () {
+      if (this.download === 'policyweave-draft.json') throw new Error('simulated download activation failure')
+      click.call(this)
+    }
+  })
+  await page.goto('/')
+
+  const pageErrors: Error[] = []
+  page.on('pageerror', (error) => pageErrors.push(error))
+  await page.getByRole('button', { name: /JSON 내보내기/ }).click()
+  await expect(page.locator('output')).toHaveText('JSON 파일을 내보내지 못했습니다. 다시 시도하세요.')
+
+  await expect.poll(() => page.evaluate(() => {
+    const audit = (window as typeof window & {
+      __policyweaveDownloadAudit: { created: Array<{ url: string; type: string }>; revoked: string[] }
+    }).__policyweaveDownloadAudit
+    return { created: audit.created.map(({ url }) => url), revoked: audit.revoked }
+  })).toEqual({ created: [expect.any(String)], revoked: [expect.any(String)] })
+  const downloadAudit = await page.evaluate(() => (window as typeof window & {
+    __policyweaveDownloadAudit: { created: Array<{ url: string; type: string }>; revoked: string[] }
+  }).__policyweaveDownloadAudit)
+  expect(downloadAudit.revoked).toEqual(downloadAudit.created.map(({ url }) => url))
+  expect(pageErrors).toEqual([])
+})
+
+test('reports an object URL creation failure without leaking a page error', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'One browser profile proves the pre-activation error boundary.')
+
+  await page.addInitScript(() => {
+    URL.createObjectURL = () => {
+      throw new Error('simulated object URL creation failure')
+    }
+  })
+  await page.goto('/')
+
+  const pageErrors: Error[] = []
+  page.on('pageerror', (error) => pageErrors.push(error))
+  await page.getByRole('button', { name: /JSON 내보내기/ }).click()
+  await expect(page.locator('output')).toHaveText('JSON 파일을 내보내지 못했습니다. 다시 시도하세요.')
+  expect(pageErrors).toEqual([])
+})
+
+test('exports a review-ready no-collection draft without unresolved findings', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'One complete export proves state semantics; layout coverage is exercised separately.')
+
+  await page.goto('/')
+  await page.getByLabel('서비스 이름').fill('Example Service')
+  await page.getByLabel('서비스 URL').fill('https://example.test/privacy')
+  await page.locator('.rail').getByRole('button', { name: /수집 항목/ }).click()
+  await page.getByRole('checkbox', { name: '개인정보를 수집하지 않음으로 확인' }).check()
+  await page.locator('.rail').getByRole('button', { name: /보유 기간/ }).click()
+  await page.getByLabel('개인정보 보유 여부').selectOption('none')
+  await page.locator('.rail').getByRole('button', { name: /제3자 제공/ }).click()
+  await page.getByLabel('제3자 제공 여부').selectOption('no')
+  await page.locator('.rail').getByRole('button', { name: /국외 이전/ }).click()
+  await page.getByLabel('국외 이전 여부').selectOption('no')
+  await page.locator('.rail').getByRole('button', { name: /개인정보 보호 담당자/ }).click()
+  await page.getByLabel('담당자 또는 담당 부서').fill('Privacy Team')
+  await page.getByLabel('연락 이메일').fill('privacy@example.test')
+  await expect(page.getByText('7/7 완료')).toBeVisible()
+
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: /JSON 내보내기/ }).click()
+  const exportedDraft = JSON.parse(await readDownload(await downloadPromise))
+
+  expect(exportedDraft.document_state).toBe('review_ready')
+  expect(exportedDraft.review_finding_codes).toEqual([])
+})
+
+test('accepts touch activation for the mobile JSON download', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile-chromium', 'Touch activation is scoped to the touch-enabled mobile project.')
+
+  await page.goto('/')
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: /JSON 내보내기/ }).tap()
+  const download = await downloadPromise
+
+  expect(download.suggestedFilename()).toBe('policyweave-draft.json')
+  expect(JSON.parse(await readDownload(download)).schema_version).toBe(1)
+})

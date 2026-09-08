@@ -1,71 +1,120 @@
 # PolicyWeave
 
-PolicyWeave is a proposed privacy-notice authoring product for teams that need
-to turn an evidence-backed description of personal-data processing into a
-reviewable draft. The intended value is to expose missing or contradictory
-facts before publication and preserve why each disclosure was included.
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ContextualWisdomLab/PolicyWeave)
 
-> PolicyWeave does not provide legal advice or certify compliance. A privacy
-> officer or qualified legal reviewer must approve any notice before use.
+**실제 개인정보 처리 사실을 구조화해, 누락과 모순을 찾고 검토 가능한 개인정보처리방침 초안을 만드는 로컬 우선 워크스페이스입니다.**
 
-## Current status
+PolicyWeave는 범용 법률 문구를 임의로 채우는 생성기가 아닙니다. 운영자가 확인한 서비스 사실을 단계별로 입력하면 수집 항목, 처리 목적, 보유 기간, 제3자 제공, 국외 이전과 담당자 정보를 서로 연결하고, 공개 전에 다시 확인해야 할 지점을 보여 줍니다.
 
-This repository is a **concept seed**. It does not yet contain an application,
-package manifest, executable service, database schema, release, or published
-documentation site. There is therefore no supported install, quickstart, API,
-or deployment procedure yet.
+> PolicyWeave의 출력은 법률 자문, 준법 보장 또는 인증이 아닙니다. 공개 전 개인정보보호책임자 또는 적절한 법률 전문가의 검토가 필요합니다.
 
-The previous `npm install` / `npm run dev` instructions and links to PRD and ADR
-files were removed because the referenced implementation and documents are not
-present on the protected branch.
+## 누구를 위한 제품인가
 
-## Intended workflow
+| 사용자 | PolicyWeave가 돕는 일 |
+| --- | --- |
+| 웹·앱 운영자 | 실제 서비스의 개인정보 처리 흐름을 빠짐없이 정리하고 검토본을 만든다. |
+| 개인정보보호 책임자 | 입력 사실, 누락 경고와 검토 필요 항목을 한 흐름에서 확인한다. |
+| 제품·개발 팀 | 정책 문구보다 먼저 구조화된 처리 사실과 책임 경계를 합의한다. |
+| 통합·유지보수 담당자 | 정책 데이터 모델, 제품 요구사항과 결정 기록을 저장소에서 추적한다. |
 
-The first usable release is expected to let an authorized product or privacy
-team:
+## 현재 할 수 있는 일
 
-1. describe one processing activity and its purpose, data categories, people,
-   recipients, retention, legal basis, and international transfers;
-2. see blocking omissions and non-blocking review prompts separately;
-3. generate a versioned review draft with evidence and approval status;
-4. revise or roll back the draft without losing its audit history; and
-5. export only an approved version for publication.
+현재 소스는 다음 7단계 작성 흐름을 구현합니다.
 
-These are product requirements, not claims about implemented behavior.
+1. 서비스 정보
+2. 수집 항목
+3. 처리 목적
+4. 보유 기간
+5. 제3자 제공
+6. 국외 이전
+7. 개인정보 보호 담당자
 
-## Product boundary
+선택한 수집 항목에는 수집 경로와 처리 목적을 별도로 기록할 수 있습니다. 필수 사실이 없거나 처리 목적이 비어 있으면 검토본이 이를 숨기지 않고 차단 또는 검토 경고로 드러내며, 경고에서 원인이 있는 입력 단계로 돌아갈 수 있습니다. 작성 내용은 실시간 검토본에 반영되고 모바일·키보드 사용도 고려합니다.
 
-PolicyWeave should own privacy-notice authoring, review, approval, versioning,
-and publication evidence. Identity, organizational policy, ontology labels,
-and external publication remain separate responsibilities connected only
-through released contracts. No integration is currently implemented.
+## 빠른 시작
 
-## Security and data handling
+현재 제품은 저장소에서 실행하는 초기 개발 버전입니다. 패키지 메타데이터는 `0.1.0`이지만 GitHub에 게시된 릴리스는 아직 없습니다.
 
-Do not enter real personal information, credentials, customer records, or
-production processing inventories into this repository. Before real use, the
-product needs authenticated access, tenant isolation, purpose limitation,
-retention and deletion controls, immutable audit evidence, encrypted storage,
-backup and recovery, and tested export/publication authorization.
+```bash
+npm ci
+npm run dev
+```
 
-## Development status and evidence
+프로덕션 번들 및 검증:
 
-The current requirements, missing technical foundations, and acceptance gates
-are tracked in the
-[product and technical gap baseline](docs/product-technical-gap-baseline.md).
-Changes should keep customer-facing claims tied to protected-branch code,
-tests, security evidence, and released artifacts.
+```bash
+npm run lint
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
 
-## Support
+`npm ci`는 체크인된 `package-lock.json`을 사용합니다. 이 저장소는 `private: true` 패키지이므로 npm 배포물을 제품 릴리스로 간주하지 않습니다.
 
-Use this repository's GitHub Issues for product questions, defects, security
-coordination, and implementation proposals. Do not include personal data or
-secrets in an issue.
+## 제품 경계
 
-## License
+PolicyWeave가 책임지는 것은 **운영자가 입력한 개인정보 처리 사실의 구조화, 검토 지원, 결정적인 검토본 생성**입니다.
 
-No `LICENSE` file or verified rights grant is present. Copyright law therefore
-applies by default: this repository does not currently grant permission to
-use, copy, modify, or distribute its contents. A license may be added only
-after ownership and inbound provenance are verified; this README does not
-manufacture or imply those rights.
+PolicyWeave는 다음을 권위 있게 판단하지 않습니다.
+
+- 실제 서비스가 어떤 SDK·쿠키·데이터를 사용하는지 자동 추측
+- 특정 처리의 법적 적법성에 대한 최종 판단
+- 동의가 필요한지 여부를 모든 상황에 동일하게 결정
+- 법률 자문, 규제기관 판단, 인증 또는 감사 의견 대체
+- 아직 구현되지 않은 정적 공개 URL·호스팅 백엔드를 현재 기능처럼 표시
+
+향후 공개·버전 이력·영속화가 추가되더라도, 사람이 확인한 처리 사실과 책임자 검토가 자동 생성 문구보다 우선합니다.
+
+## 동작 방식
+
+```text
+운영자가 확인한 처리 사실
+        │
+        ▼
+7단계 구조화 편집
+        │
+        ├── 필수 사실/관계 검증
+        ├── 차단 오류와 검토 경고
+        └── 원인 단계로 이동
+        │
+        ▼
+실시간 개인정보처리방침 검토본
+        │
+        ▼
+책임자·법률 검토 후 별도 공개 결정
+```
+
+현재 브라우저 애플리케이션은 작성과 검토 경험에 집중합니다. PRD에 기록된 정적 공개 URL, 버전 영속화와 배포 계약은 후속 제품 작업이며 현재 구현으로 과장하지 않습니다.
+
+## 개인정보와 보안 관점
+
+PolicyWeave는 개인정보처리방침을 만들기 위해 불필요한 실제 개인정보를 수집하도록 설계하지 않습니다. 정책 작성에는 서비스의 **처리 범주와 운영 사실**을 입력하고, 사람·고객의 실제 민감 값을 데모나 문서에 복사하지 않는 것이 기본 원칙입니다.
+
+보안 및 신뢰 경계는 [`SECURITY.md`](SECURITY.md)와 기술 문서에서 관리합니다. 새 저장·호스팅·외부 연동 기능은 별도의 인증·권한·감사·tenant 경계를 갖추기 전까지 현재 기능으로 취급하지 않습니다.
+
+## 문서
+
+- [제품 요구사항](docs/PRD.md) — 사용자 문제, MVP, 비목표와 성공 기준
+- [기술 요구사항](docs/TRD.md) — 구현 및 품질 계약
+- [아키텍처](ARCHITECTURE.md) — 제품 책임과 기술 경계
+- [ADR-0001: Policy as Data](docs/ADR-0001-policy-as-data.md) — 핵심 설계 결정
+- [제품·기술 Gap baseline](docs/product-technical-gap-baseline.md) — 아직 닫히지 않은 상용화 Gap과 완료 증거
+- [공개 문서 홈](docs/index.md) — 저장소 문서 탐색 시작점
+- [변경 이력](CHANGELOG.md)
+
+## 기여와 검증
+
+동작을 바꾸는 변경은 해당 사용자 흐름의 회귀 테스트와 문서 계약을 함께 갱신해야 합니다. 작업 전 [`AGENTS.md`](AGENTS.md)와 [`CLAUDE.md`](CLAUDE.md)를 읽고, 최소한 다음 검증이 동일한 head에서 통과하는지 확인합니다.
+
+```bash
+npm run lint
+npm test
+npm run build
+```
+
+통과한 로컬 명령이나 PR branch 자체는 배포·인증·규제 준수 또는 게시 릴리스의 증거가 아닙니다.
+
+## 라이선스
+
+PolicyWeave의 ContextualWisdomLab 원저작 소스와 문서는 [MIT License](LICENSE)로 제공됩니다. npm 의존성, 표준 문서, 외부 서비스·자산은 각각의 라이선스와 이용 조건을 유지하며 이 저장소의 MIT grant가 이를 재라이선스하지 않습니다. 상업적 사용과 배포에 적합하지 않은 inbound 소프트웨어·자산은 제품 의존성으로 반입하지 않습니다.
