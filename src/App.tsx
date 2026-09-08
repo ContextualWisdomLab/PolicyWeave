@@ -224,6 +224,9 @@ export default function App() {
     downloadLink.download = 'policyweave-draft.json'
     try {
       downloadLink.click()
+      setMessage('')
+    } catch {
+      setMessage('JSON 파일을 내보내지 못했습니다. 다시 시도하세요.')
     } finally {
       setTimeout(() => URL.revokeObjectURL(fileUrl), 0)
     }
