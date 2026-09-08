@@ -42,7 +42,7 @@ Rejected. No released owner contract currently supplies PolicyWeave's product-do
 
 ## Evidence
 
-`src/persistence-schema.test.ts` fixes the stable schema markers for revision identity, normalized ownership, deferred fact consistency, and natural-key UPSERT. `db/tests/policy_revision_runtime.sh` applies the migration to a digest-pinned PostgreSQL 18 service, exercises natural-key retry and deferred failure scenes, executes the down migration, verifies object removal, and repeats the apply/down cycle. This remains CI evidence rather than a deployed storage claim.
+`src/persistence-schema.test.ts` fixes the stable schema markers for revision identity, normalized ownership, deferred fact consistency, and natural-key UPSERT. `db/tests/policy_revision_runtime.sh` applies the migration to a digest-pinned PostgreSQL 18 service, exercises natural-key retry, requires each negative scene to emit its expected domain error, executes the down migration, verifies object removal, and repeats the apply/down cycle. This remains CI evidence rather than a deployed storage claim.
 
 ## Risks and effects
 

@@ -17,6 +17,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 - Playwright/axe browser evidence harness covering desktop, tablet, and mobile rendering; horizontal overflow; keyboard activation and focus transfer; explicit no-collection progression; retention-status transitions and stale-period invalidation; effective 200% browser-zoom reflow from the desktop profile; serious/critical automated accessibility findings; and exact-head screenshot artifacts.
 
 ### Changed
+- PostgreSQL negative-path evidence now matches each expected domain error message, so an unrelated SQL or connection failure cannot masquerade as a passing invariant check.
 - Repository CI now starts one digest-pinned PostgreSQL 18 service inside the existing verification job and runs the migration contract before browser evidence, avoiding a second workflow or runner while producing real database evidence.
 - Repository CI now groups runs by workflow plus pull-request number or branch ref and cancels superseded heads, preventing stale queued runs from consuming runner capacity without coupling unrelated PRs or refs.
 - GitHub Actions checkout, setup/cache, and browser-evidence upload now use immutable Node 24-based `actions/checkout@v7.0.1`, `actions/setup-node@v7.0.0`, and `actions/upload-artifact@v7.0.1` releases instead of deprecated action runtimes.

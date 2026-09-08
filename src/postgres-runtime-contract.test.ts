@@ -23,9 +23,16 @@ describe('PostgreSQL runtime evidence contract', () => {
     expect(runtimeTest).toContain('0001_policy_revision.down.sql')
     expect(runtimeTest).toMatch(/server_version_num[^\n]*180000/)
     expect(runtimeTest).toMatch(/upsert_collection_item[\s\S]*count\(\*\)/)
-    expect(runtimeTest).toContain('expect_failure no_collection_conflict')
-    expect(runtimeTest).toContain('expect_failure retention_rule_missing')
-    expect(runtimeTest).toContain('expect_failure revision_owner_change')
+    expect(runtimeTest).toContain(
+      "expect_failure no_collection_conflict 'no-collection confirmation conflicts with collection items'",
+    )
+    expect(runtimeTest).toContain(
+      "expect_failure retention_rule_missing 'retention status applies requires a retention rule'",
+    )
+    expect(runtimeTest).toContain(
+      "expect_failure revision_owner_change 'revision-owned facts cannot move between policy revisions'",
+    )
+    expect(runtimeTest).toMatch(/grep -F -- "\$expected_message" "\$failure_log"/)
   })
 
   it('removes every migration-owned object during rollback', () => {

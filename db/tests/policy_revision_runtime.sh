@@ -14,8 +14,15 @@ psql_command() {
 
 expect_failure() {
   failure_name=$1
-  if psql_command >"/tmp/${failure_name}.log" 2>&1; then
+  expected_message=$2
+  failure_log="/tmp/${failure_name}.log"
+  if psql_command >"$failure_log" 2>&1; then
     echo "expected PostgreSQL failure: ${failure_name}" >&2
+    return 1
+  fi
+  if ! grep -F -- "$expected_message" "$failure_log"; then
+    cat "$failure_log" >&2
+    echo "unexpected PostgreSQL failure: ${failure_name}" >&2
     return 1
   fi
 }
@@ -66,7 +73,7 @@ end;
 $runtime_assertion$;
 SQL
 
-expect_failure no_collection_conflict <<'SQL'
+expect_failure no_collection_conflict 'no-collection confirmation conflicts with collection items' <<'SQL'
 begin;
 insert into policy_revision (
   policy_revision_id, tenant_account_id, revision_number, no_collection_confirmed
@@ -78,7 +85,7 @@ values ('10000000-0000-4000-8000-000000000002', 'contact_email', 'Contact email'
 commit;
 SQL
 
-expect_failure retention_rule_missing <<'SQL'
+expect_failure retention_rule_missing 'retention status applies requires a retention rule' <<'SQL'
 begin;
 insert into policy_revision (
   policy_revision_id, tenant_account_id, revision_number, retention_status
@@ -97,7 +104,7 @@ insert into service_profile (policy_revision_id, service_name)
 values ('10000000-0000-4000-8000-000000000004', 'Example Service');
 SQL
 
-expect_failure revision_owner_change <<'SQL'
+expect_failure revision_owner_change 'revision-owned facts cannot move between policy revisions' <<'SQL'
 begin;
 update service_profile
    set policy_revision_id = '10000000-0000-4000-8000-000000000005'
