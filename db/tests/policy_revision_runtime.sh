@@ -59,14 +59,22 @@ do $runtime_assertion$
 declare
   stored_count integer;
   stored_label text;
+  stored_mode text;
+  stored_path text;
 begin
-  select count(*), max(collection_item_label)
-    into stored_count, stored_label
+  select count(*),
+         max(collection_item_label),
+         max(collection_mode::text),
+         max(collection_path)
+    into stored_count, stored_label, stored_mode, stored_path
     from collection_item
    where policy_revision_id = '10000000-0000-4000-8000-000000000001'
      and collection_item_key = 'contact_email';
 
-  if stored_count <> 1 or stored_label <> 'Account contact email' then
+  if stored_count <> 1
+     or stored_label <> 'Account contact email'
+     or stored_mode <> 'optional'
+     or stored_path <> 'Account profile form' then
     raise exception 'collection-item UPSERT was not idempotent';
   end if;
 end;
