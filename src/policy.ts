@@ -62,14 +62,22 @@ export const initialFacts: DraftFacts = {
 
 export const steps = ['서비스 정보', '수집 항목', '처리 목적', '보유 기간', '제3자 제공', '국외 이전', '개인정보 보호 담당자']
 
-/** Returns whether a service URL is an absolute HTTP(S) web location suitable for a buyer-facing policy target. */
-export function isWebServiceUrl(value: string) {
+/** Returns a canonical credential-free HTTP(S) service URL, or null when the address is not admissible. */
+function normalizeWebServiceUrl(value: string): string | null {
   try {
     const url = new URL(value)
-    return (url.protocol === 'https:' || url.protocol === 'http:') && Boolean(url.hostname) && !url.username && !url.password
+    if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname || url.username || url.password) return null
+    url.search = ''
+    url.hash = ''
+    return url.toString()
   } catch {
-    return false
+    return null
   }
+}
+
+/** Returns whether a service URL is an absolute HTTP(S) web location suitable for a buyer-facing policy target. */
+export function isWebServiceUrl(value: string) {
+  return normalizeWebServiceUrl(value) !== null
 }
 
 /** Applies the minimal address-shape contract needed for a usable contact channel without claiming mailbox existence. */
@@ -209,7 +217,7 @@ export function createPolicyExport(items: PolicyItem[], noCollectionAttested: bo
     policy_facts: {
       service_profile: {
         service_name: trimOrNull(facts.serviceName),
-        service_url: isWebServiceUrl(serviceUrl) ? serviceUrl : null,
+        service_url: normalizeWebServiceUrl(serviceUrl),
       },
       no_collection_attested: noCollectionAttested,
       collection_items: collectionReview.enabled.map((item) => ({
