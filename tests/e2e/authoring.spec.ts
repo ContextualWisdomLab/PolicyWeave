@@ -109,3 +109,31 @@ test('reflows the core authoring flow at an effective 200% browser zoom', async 
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { level: 1, name: '2. 수집 항목' })).toBeFocused()
 })
+
+test('downloads a versioned policy draft with real browser payload semantics', async ({ page }) => {
+  await page.goto('/')
+  await page.getByLabel('서비스 이름').fill('Buyer Portal')
+
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: /JSON 내보내기/ }).click()
+  const download = await downloadPromise
+
+  expect(download.suggestedFilename()).toBe('policyweave-draft.json')
+  const downloadStream = await download.createReadStream()
+  downloadStream.setEncoding('utf8')
+  let downloadContent = ''
+  for await (const contentChunk of downloadStream) downloadContent += contentChunk
+
+  const exportedDraft = JSON.parse(downloadContent)
+  expect(exportedDraft).toMatchObject({
+    schema_version: 1,
+    document_state: 'incomplete',
+    policy_facts: {
+      service_profile: {
+        service_name: 'Buyer Portal',
+        service_url: null,
+      },
+    },
+  })
+  expect(exportedDraft.review_finding_codes).toEqual(expect.arrayContaining(['service_url', 'collection_selection']))
+})
