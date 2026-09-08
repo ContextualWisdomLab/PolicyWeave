@@ -101,6 +101,7 @@ export function getReview(items: PolicyItem[], noCollectionAttested = false) {
 /** Derives non-collection authoring findings without inferring retention state from collection state. */
 export function getDraftReview(facts: DraftFacts, _noCollectionAttested = false): DraftFinding[] {
   const findings: DraftFinding[] = []
+  /** Appends one stable finding only when its owning operator-authored value is blank. */
   const addWhenBlank = (value: string, code: string, step: number, label: string) => {
     if (!value.trim()) findings.push({ code, step, label })
   }
@@ -199,6 +200,7 @@ export type PolicyDraftExport = {
 
 /** Creates a deterministic draft export without network access, inferred facts, or credential-bearing service URLs. */
 export function createPolicyExport(items: PolicyItem[], noCollectionAttested: boolean, facts: DraftFacts): PolicyDraftExport {
+  /** Normalizes optional human-entered text without inventing a non-empty fact. */
   const trimOrNull = (value: string) => value.trim() || null
   const collectionReview = getReview(items, noCollectionAttested)
   const reviewFindingCodes = [
