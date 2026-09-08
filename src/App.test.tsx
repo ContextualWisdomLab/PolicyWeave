@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
+})
 
 function openCollectionStep(container: HTMLElement) {
   fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[1])
@@ -67,12 +70,24 @@ describe('policy editing workflow', () => {
     expect(reviewDraft).toContain('서비스 URL 형식')
   })
 
-  it('아직 제공하지 않는 내보내기와 생성 기능을 클릭 가능한 동작처럼 노출하지 않는다', () => {
+  it('작성 사실을 JSON 파일로 로컬 내보내고 제공하지 않는 생성 기능은 노출하지 않는다', () => {
+    const createObjectUrl = vi.fn(() => 'blob:policyweave-draft')
+    const revokeObjectUrl = vi.fn()
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectUrl })
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectUrl })
+    const clickDownload = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
+
     const { container } = render(<App />)
     const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>('button'))
     const exportButton = buttons.find((button) => button.textContent?.includes('JSON 내보내기'))
-    expect(exportButton?.disabled).toBe(true)
-    expect(exportButton?.textContent).toContain('준비 중')
+    expect(exportButton?.disabled).toBe(false)
+    expect(exportButton?.textContent).not.toContain('준비 중')
+
+    fireEvent.click(exportButton!)
+    expect(createObjectUrl).toHaveBeenCalledOnce()
+    expect(createObjectUrl.mock.calls[0][0]).toBeInstanceOf(Blob)
+    expect(clickDownload).toHaveBeenCalledOnce()
+    expect(revokeObjectUrl).toHaveBeenCalledWith('blob:policyweave-draft')
     expect(buttons.find((button) => button.textContent?.includes('개인정보처리방침'))).toBeUndefined()
     expect(container.querySelector('.document-name')?.tagName).toBe('SPAN')
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.preview button')).some((button) => button.textContent?.includes('검토본 생성'))).toBe(false)
