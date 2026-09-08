@@ -70,6 +70,17 @@ describe('policy JSON export', () => {
     expect(exported.review_finding_codes).toContain('retention_status')
   })
 
+  it('normalizes an unresolved collection mode without leaking the UI empty-string sentinel', () => {
+    const items = initialItems.map((item) => item.id === 'email'
+      ? { ...item, enabled: true, purpose: 'Account access', detail: 'Signup form' }
+      : item)
+
+    const exported = createPolicyExport(items, false, initialFacts)
+
+    expect(exported.policy_facts.collection_items[0].collection_mode).toBeNull()
+    expect(exported.review_finding_codes).toContain('collection_mode:email')
+  })
+
   it('does not export credentials embedded in an invalid service URL', () => {
     const exported = createPolicyExport(initialItems, false, {
       ...initialFacts,

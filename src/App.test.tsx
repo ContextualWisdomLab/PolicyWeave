@@ -6,6 +6,7 @@ import App from './App'
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
+  vi.useRealTimers()
 })
 
 function openCollectionStep(container: HTMLElement) {
@@ -71,6 +72,7 @@ describe('policy editing workflow', () => {
   })
 
   it('작성 사실을 JSON 파일로 로컬 내보내고 제공하지 않는 생성 기능은 노출하지 않는다', () => {
+    vi.useFakeTimers()
     const createObjectUrl = vi.fn((fileBlob: Blob) => {
       void fileBlob
       return 'blob:policyweave-draft'
@@ -90,6 +92,8 @@ describe('policy editing workflow', () => {
     expect(createObjectUrl).toHaveBeenCalledOnce()
     expect(createObjectUrl.mock.calls[0][0]).toBeInstanceOf(Blob)
     expect(clickDownload).toHaveBeenCalledOnce()
+    expect(revokeObjectUrl).not.toHaveBeenCalled()
+    vi.runAllTimers()
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:policyweave-draft')
     expect(buttons.find((button) => button.textContent?.includes('개인정보처리방침'))).toBeUndefined()
     expect(container.querySelector('.document-name')?.tagName).toBe('SPAN')
