@@ -12,7 +12,7 @@ PolicyWeave is a local-first privacy-policy fact-authoring workspace. It structu
 - Do not encode legal conclusions from memory. Every legal/rule/template decision needs an authoritative source, effective date, source revision, and implementation/test trace.
 - Do not commit identifying customer, individual, or real operational-organization data in tests, examples, fixtures, or product documentation. Publicly documented legal authorities, official document titles, standards bodies, source publishers, and the repository owner may be named when required for accurate provenance and citation. Production must not consume synthetic demo data.
 - Keep persistence objects semantically named with at least two words and `snake_case` unless a framework contract requires another convention. Avoid generic named persistence objects such as a standalone `id` table/collection.
-- Hosted persistence/publication must be introduced only behind explicit tenant, authorization, audit, encryption, immutable revision, and supersession contracts. CI PostgreSQL restart and dump/restore evidence lives in `db/tests/policy_revision_restore.sh` and does not enable a hosted adapter.
+- Hosted persistence/publication must be introduced only behind explicit tenant, authorization, audit, encryption, immutable revision, and supersession contracts. CI PostgreSQL restart and dump/restore evidence lives in `db/tests/policy_revision_restore.sh` and does not enable a hosted adapter. Seed `retention_status = applies` only in the same transaction as its `retention_rule`; autocommit fails the deferred fact contract.
 - GitHub Actions dependencies stay SHA pinned and checkout credentials must not persist.
 
 ## Verification
