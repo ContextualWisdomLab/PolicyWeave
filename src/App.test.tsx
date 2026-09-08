@@ -3,10 +3,15 @@ import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
+const originalCreateObjectUrl = URL.createObjectURL
+const originalRevokeObjectUrl = URL.revokeObjectURL
+
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
   vi.useRealTimers()
+  expect(URL.createObjectURL).toBe(originalCreateObjectUrl)
+  expect(URL.revokeObjectURL).toBe(originalRevokeObjectUrl)
 })
 
 function openCollectionStep(container: HTMLElement) {

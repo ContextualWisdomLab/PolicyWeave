@@ -81,6 +81,17 @@ describe('policy JSON export', () => {
     expect(exported.review_finding_codes).toContain('collection_mode:email')
   })
 
+  it('removes query and fragment data from an otherwise valid exported service URL', () => {
+    const exported = createPolicyExport(initialItems, false, {
+      ...initialFacts,
+      serviceUrl: 'https://example.test/privacy?access_token=query-secret#fragment-secret',
+    })
+
+    expect(exported.policy_facts.service_profile.service_url).toBe('https://example.test/privacy')
+    expect(JSON.stringify(exported)).not.toContain('query-secret')
+    expect(JSON.stringify(exported)).not.toContain('fragment-secret')
+  })
+
   it('does not export credentials embedded in an invalid service URL', () => {
     const exported = createPolicyExport(initialItems, false, {
       ...initialFacts,
