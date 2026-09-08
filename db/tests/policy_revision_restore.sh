@@ -242,7 +242,6 @@ psql_command --command 'checkpoint'
 
 docker restart "$postgres_container_id" >/dev/null
 wait_for_postgres
-psql_command --command "update service_profile set service_url = null where policy_revision_id = '60000000-0000-4000-8000-000000000001'"
 assert_restored_facts restart
 
 docker exec "$postgres_container_id" pg_dump \
