@@ -21,6 +21,9 @@ describe('PostgreSQL concurrent writer evidence contract', () => {
   it('proves competing facts fail closed and same-item UPSERTs converge', () => {
     expect(concurrencyTest).toContain('no-collection confirmation conflicts with collection items')
     expect(concurrencyTest).toMatch(/count\(\*\)[\s\S]*Concurrent contact email/)
+    expect(concurrencyTest).toMatch(
+      /stored_mode[\s\S]*stored_path[\s\S]*if[\s\S]*stored_mode <> 'optional'[\s\S]*stored_path <> 'Account profile form'/,
+    )
     expect(workflowSource).toContain('run: sh db/tests/policy_revision_concurrency.sh')
   })
 })
