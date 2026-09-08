@@ -68,5 +68,14 @@ describe('policy JSON export', () => {
     expect(exported.review_finding_codes).toContain('collection_selection')
     expect(exported.review_finding_codes).toContain('service_name')
     expect(exported.review_finding_codes).toContain('retention_status')
+  })  it('does not export credentials embedded in an invalid service URL', () => {
+    const exported = createPolicyExport(initialItems, false, {
+      ...initialFacts,
+      serviceUrl: 'https://operator:secret@example.test',
+    })
+
+    expect(exported.policy_facts.service_profile.service_url).toBeNull()
+    expect(exported.review_finding_codes).toContain('service_url_format')
+    expect(JSON.stringify(exported)).not.toContain('operator:secret')
   })
 })
