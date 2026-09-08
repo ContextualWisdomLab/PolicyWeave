@@ -53,6 +53,14 @@ jobs:
           PGDATABASE: policyweave_test
           PGPASSWORD: policyweave_ci_password
         run: sh db/tests/policy_revision_concurrency.sh
+      - name: Verify PostgreSQL policy revision restore
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: 5432
+          PGUSER: policyweave_ci
+          PGDATABASE: policyweave_test
+          PGPASSWORD: policyweave_ci_password
+        run: sh db/tests/policy_revision_restore.sh
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - name: Upload exact-head browser evidence
