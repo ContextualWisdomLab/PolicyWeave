@@ -5,6 +5,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 ## Unreleased
 
 ### Added
+- PostgreSQL 18 runtime contract coverage for migration apply/down/apply cycles, item-key UPSERT idempotency, and deferred rejection of no-collection, missing-retention-rule, and revision-owner contradictions. The database remains CI-only and is not a hosted product backend.
 - Proposed PostgreSQL `policy_revision` 3NF migration contract with tenant-scoped version identity, normalized revision-owned facts, owner-key immutability, parent-row-serialized deferred no-collection/retention consistency checks, and item-level natural-key UPSERT. It is source-validated only and does not claim a deployed database or hosted persistence.
 - Seven-step authoring workflow with distinct editing surfaces for service information, collection items, processing purposes, retention, third-party transfer, international transfer, and privacy contact.
 - Explicit `개인정보를 수집하지 않음` operator attestation so a genuine no-collection service can complete collection authoring without treating an empty item list as `none`.
@@ -16,6 +17,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 - Playwright/axe browser evidence harness covering desktop, tablet, and mobile rendering; horizontal overflow; keyboard activation and focus transfer; explicit no-collection progression; retention-status transitions and stale-period invalidation; effective 200% browser-zoom reflow from the desktop profile; serious/critical automated accessibility findings; and exact-head screenshot artifacts.
 
 ### Changed
+- Repository CI now starts one digest-pinned PostgreSQL 18 service inside the existing verification job and runs the migration contract before browser evidence, avoiding a second workflow or runner while producing real database evidence.
 - Repository CI now groups runs by workflow plus pull-request number or branch ref and cancels superseded heads, preventing stale queued runs from consuming runner capacity without coupling unrelated PRs or refs.
 - GitHub Actions checkout, setup/cache, and browser-evidence upload now use immutable Node 24-based `actions/checkout@v7.0.1`, `actions/setup-node@v7.0.0`, and `actions/upload-artifact@v7.0.1` releases instead of deprecated action runtimes.
 - ADR readiness language now matches the executable retention contract: status is explicit, a period/end condition is required only for `applies`, and `none` needs no period; unmerged ADRs remain Proposed until protected-branch adoption.
@@ -50,6 +52,6 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 ### Not yet shipped
 - Authoritative legal-rule snapshots that can determine legal sufficiency beyond product-defined fact completeness.
 - Manual zoom and screen-reader evidence beyond the automated desktop/tablet/mobile Chromium accessibility and focus checks.
-- Executed durable versioned policy persistence, tenant authorization, immutable audit history, migration rollback, concurrency, and backup/restore evidence; the Proposed source migration alone is not a runtime.
+- A product persistence adapter, durable hosted storage, tenant authorization, immutable audit history, concurrent-writer scheduling, restart, encryption, and backup/restore evidence. CI migration and rollback execution do not constitute a hosted runtime.
 - Authenticated immutable publication revisions and public URL lifecycle.
 - Hosted tenant/security/operability evidence and endpoint load testing.

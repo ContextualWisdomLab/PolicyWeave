@@ -57,10 +57,8 @@ describe('PostgreSQL policy revision schema', () => {
   it('binds action-runtime evidence to immutable heads without a recursive current-head claim', () => {
     const actionEvidence = gapBaseline.split('Action-runtime cleanup')[1]?.split('## Current baseline')[0] ?? ''
 
-    expect(actionEvidence).toContain('head `23b3a1c7429aca2ea39e153c6504beee9d507d39` CI `34179633214`')
-    expect(actionEvidence).toContain('head `fba59b85c5ce33813147939f8124cb2d69b184a1` CI `34180350163`')
-    expect(actionEvidence).toContain('artifact `10038696518`')
-    expect(actionEvidence).toContain('sha256:f31fd4d0dee1164e76e0841f01cc2c5f6f9ce73c6b07fc08e98ac9bd4b333fa8')
+    expect(actionEvidence).toMatch(/head `23b3a1c7429aca2ea39e153c6504beee9d507d39` CI `34179633214`[\s\S]*?artifact `10038466559` is bound by digest `sha256:83d8e177c78856a41eb58c3312fb8a671903989deb7b3bb2b8a747f8eea9091b`/)
+    expect(actionEvidence).toMatch(/head `fba59b85c5ce33813147939f8124cb2d69b184a1` CI `34180350163`[\s\S]*?artifact `10038696518` is bound by digest `sha256:f31fd4d0dee1164e76e0841f01cc2c5f6f9ce73c6b07fc08e98ac9bd4b333fa8`/)
     expect(actionEvidence).not.toMatch(/Exact-head CI/)
   })
 
