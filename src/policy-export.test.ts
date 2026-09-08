@@ -89,27 +89,16 @@ describe('policy JSON export', () => {
     expect(exported.review_finding_codes).toContain('collection_mode:email')
   })
 
-  it('fails closed rather than rewriting query-dependent or fragment-routed service URLs', () => {
-    for (const serviceUrl of [
-      'https://example.test/app?tenant=acme',
-      'https://example.test/#/privacy',
-      'https://example.test/privacy?access_token=query-secret#fragment-secret',
-    ]) {
-      const exported = createPolicyExport(initialItems, false, {
-        ...initialFacts,
-        serviceUrl,
-      })
-
-      expect(exported.policy_facts.service_profile.service_url).toBeNull()
-      expect(exported.review_finding_codes).toContain('service_url_format')
-    }
-
-    const credentialExport = createPolicyExport(initialItems, false, {
+  it('rejects query and fragment service URLs instead of rewriting the authored destination', () => {
+    const exported = createPolicyExport(initialItems, false, {
       ...initialFacts,
       serviceUrl: 'https://example.test/privacy?access_token=query-secret#fragment-secret',
     })
-    expect(JSON.stringify(credentialExport)).not.toContain('query-secret')
-    expect(JSON.stringify(credentialExport)).not.toContain('fragment-secret')
+
+    expect(exported.policy_facts.service_profile.service_url).toBeNull()
+    expect(exported.review_finding_codes).toContain('service_url_format')
+    expect(JSON.stringify(exported)).not.toContain('query-secret')
+    expect(JSON.stringify(exported)).not.toContain('fragment-secret')
   })
 
   it('does not export credentials embedded in an invalid service URL', () => {

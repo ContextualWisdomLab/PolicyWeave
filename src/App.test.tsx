@@ -76,6 +76,18 @@ describe('policy editing workflow', () => {
     expect(reviewDraft).toContain('서비스 URL 형식')
   })
 
+  it('query 또는 fragment가 있는 서비스 URL은 다른 위치로 재작성하지 않고 수정 대상으로 남긴다', () => {
+    const { container } = render(<App />)
+    const serviceUrl = container.querySelector<HTMLInputElement>('input[name="serviceUrl"]')!
+
+    for (const value of ['https://example.test/app?tenant=acme', 'https://example.test/#/privacy']) {
+      fireEvent.change(serviceUrl, { target: { value } })
+      const reviewDraft = container.querySelector('.paper')?.textContent ?? ''
+      expect(reviewDraft).not.toContain(value)
+      expect(reviewDraft).toContain('서비스 URL 형식')
+    }
+  })
+
   it('작성 사실을 JSON 파일로 로컬 내보내고 제공하지 않는 생성 기능은 노출하지 않는다', () => {
     vi.useFakeTimers()
     const createObjectUrl = vi.spyOn(URL, 'createObjectURL').mockImplementation((fileBlob) => {
