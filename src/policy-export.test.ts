@@ -93,6 +93,8 @@ describe('policy JSON export', () => {
     for (const serviceUrl of [
       'https://example.test/app?tenant=acme',
       'https://example.test/#/privacy',
+      'https://example.test/privacy?',
+      'https://example.test/privacy#',
       'https://example.test/privacy?access_token=query-secret#fragment-secret',
     ]) {
       const exported = createPolicyExport(initialItems, false, { ...initialFacts, serviceUrl })
