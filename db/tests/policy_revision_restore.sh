@@ -166,6 +166,7 @@ trap cleanup_restore_test 0 1 2 15
 psql_command --file db/migrations/0001_policy_revision.sql
 
 psql_command <<'SQL'
+begin;
 insert into policy_revision (
   policy_revision_id, tenant_account_id, revision_number, retention_status
 ) values (
@@ -201,6 +202,7 @@ insert into policy_revision (
 ) values (
   '60000000-0000-4000-8000-000000000002', '50000000-0000-4000-8000-000000000001', 2, true, 'none'
 );
+commit;
 SQL
 
 psql_command --command 'checkpoint'
