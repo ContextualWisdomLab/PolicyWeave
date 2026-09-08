@@ -180,14 +180,14 @@ test('keeps keyboard exports byte-stable and revokes every JSON object URL', asy
   expect(exportedBytes[1]).toBe(exportedBytes[0])
   await expect.poll(() => page.evaluate(() => {
     const audit = (window as typeof window & { __policyweaveDownloadAudit: { created: Array<{ url: string; type: string }>; revoked: string[] } }).__policyweaveDownloadAudit
-    return { created: audit.created, revoked: audit.revoked }
-  })).toEqual({
-    created: [
-      { url: expect.stringMatching(/^blob:/), type: 'application/json' },
-      { url: expect.stringMatching(/^blob:/), type: 'application/json' },
-    ],
-    revoked: [expect.stringMatching(/^blob:/), expect.stringMatching(/^blob:/)],
-  })
+    return { created: audit.created.length, revoked: audit.revoked.length }
+  })).toEqual({ created: 2, revoked: 2 })
+  const downloadAudit = await page.evaluate(() => (window as typeof window & {
+    __policyweaveDownloadAudit: { created: Array<{ url: string; type: string }>; revoked: string[] }
+  }).__policyweaveDownloadAudit)
+  expect(downloadAudit.created.map(({ type }) => type)).toEqual(['application/json', 'application/json'])
+  expect(new Set(downloadAudit.created.map(({ url }) => url)).size).toBe(2)
+  expect(downloadAudit.revoked).toEqual(downloadAudit.created.map(({ url }) => url))
 })
 
 test('exports a review-ready no-collection draft without unresolved findings', async ({ page }, testInfo) => {
