@@ -5,7 +5,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 ## Unreleased
 
 ### Added
-- PostgreSQL restart and custom-format dump/restore evidence that preserves independent no-collection and retention facts after a service-container restart and a restore into a fresh database, then still rejects a contradictory collection item.
+- PostgreSQL restart and custom-format dump/restore evidence that preserves complete collection-item label/mode/path values plus independent no-collection and retention facts after a service-container restart and a restore into a fresh database, then still rejects a contradictory collection item.
 - PostgreSQL two-session concurrency evidence that observes real lock waits, rejects a collection-item writer racing with a no-collection update, and proves competing same-item UPSERTs converge to one row carrying the second writer's label, mode, and path with NULL-safe complete-value assertions and without timing-based transaction sleeps.
 - PostgreSQL 18 runtime contract coverage for migration apply/down/apply cycles, item-key UPSERT idempotency, and deferred rejection of no-collection, missing-retention-rule, and revision-owner contradictions. The database remains CI-only and is not a hosted product backend.
 - Proposed PostgreSQL `policy_revision` 3NF migration contract with tenant-scoped version identity, normalized revision-owned facts, owner-key immutability, parent-row-serialized deferred no-collection/retention consistency checks, and item-level natural-key UPSERT. It is source-validated only and does not claim a deployed database or hosted persistence.
