@@ -221,6 +221,23 @@ test('reports a download activation failure and revokes its JSON object URL', as
   expect(pageErrors).toEqual([])
 })
 
+test('reports an object URL creation failure without leaking a page error', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'One browser profile proves the pre-activation error boundary.')
+
+  await page.addInitScript(() => {
+    URL.createObjectURL = () => {
+      throw new Error('simulated object URL creation failure')
+    }
+  })
+  await page.goto('/')
+
+  const pageErrors: Error[] = []
+  page.on('pageerror', (error) => pageErrors.push(error))
+  await page.getByRole('button', { name: /JSON 내보내기/ }).click()
+  await expect(page.locator('output')).toHaveText('JSON 파일을 내보내지 못했습니다. 다시 시도하세요.')
+  expect(pageErrors).toEqual([])
+})
+
 test('exports a review-ready no-collection draft without unresolved findings', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'One complete export proves state semantics; layout coverage is exercised separately.')
 
