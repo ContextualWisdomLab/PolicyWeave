@@ -15,10 +15,10 @@ describe('repository CI concurrency contract', () => {
 describe('repository dependency evidence contract', () => {
   it('publishes a CycloneDX SBOM from the exact installed lock graph', () => {
     expect(workflowSource).toMatch(
-      /name:\s*Generate exact-head dependency SBOM[\s\S]*npm sbom --sbom-format cyclonedx > test-results\/policyweave-dependency-sbom\.cdx\.json/,
+      /name:\s*Generate exact-head dependency SBOM[\s\S]*npm sbom --sbom-format cyclonedx > dependency-evidence\/policyweave-dependency-sbom\.cdx\.json/,
     )
     expect(workflowSource).toMatch(
-      /name:\s*policyweave-dependency-sbom[\s\S]*path:\s*test-results\/policyweave-dependency-sbom\.cdx\.json/,
+      /name:\s*policyweave-dependency-sbom[\s\S]*path:\s*dependency-evidence\/policyweave-dependency-sbom\.cdx\.json/,
     )
   })
 })
