@@ -23,6 +23,8 @@ describe('PostgreSQL runtime evidence contract', () => {
     expect(runtimeTest).toContain('0001_policy_revision.down.sql')
     expect(runtimeTest).toMatch(/server_version_num[^\n]*180000/)
     expect(runtimeTest).toMatch(/upsert_collection_item[\s\S]*count\(\*\)/)
+    expect(runtimeTest).toContain("stored_mode <> 'optional'")
+    expect(runtimeTest).toContain("stored_path <> 'Account profile form'")
     expect(runtimeTest).toContain(
       "expect_failure no_collection_conflict 'no-collection confirmation conflicts with collection items'",
     )
