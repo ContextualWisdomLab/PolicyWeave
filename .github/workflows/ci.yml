@@ -36,8 +36,8 @@ jobs:
       - run: npm ci
       - name: Generate exact-head dependency SBOM
         run: |
-          mkdir -p test-results
-          npm sbom --sbom-format cyclonedx > test-results/policyweave-dependency-sbom.cdx.json
+          mkdir -p dependency-evidence
+          npm sbom --sbom-format cyclonedx > dependency-evidence/policyweave-dependency-sbom.cdx.json
       - run: npm run lint
       - run: npm test
       - run: npm run build
@@ -79,5 +79,5 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: policyweave-dependency-sbom
-          path: test-results/policyweave-dependency-sbom.cdx.json
+          path: dependency-evidence/policyweave-dependency-sbom.cdx.json
           if-no-files-found: error
