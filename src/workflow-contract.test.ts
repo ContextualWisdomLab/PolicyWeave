@@ -20,5 +20,8 @@ describe('repository dependency evidence contract', () => {
     expect(workflowSource).toMatch(
       /name:\s*policyweave-dependency-sbom[\s\S]*path:\s*dependency-evidence\/policyweave-dependency-sbom\.cdx\.json/,
     )
+    expect(workflowSource).toMatch(
+      /name:\s*policyweave-browser-evidence[\s\S]*path:\s*test-results/,
+    )
   })
 })

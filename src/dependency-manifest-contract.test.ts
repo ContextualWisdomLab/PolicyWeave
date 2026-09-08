@@ -25,11 +25,11 @@ const exactVersion = /^\d+\.\d+\.\d+$/
 
 describe('direct dependency manifest contract', () => {
   it('pins every direct dependency to the reviewed lock resolution', () => {
-    const directDependencies = {
-      ...packageManifest.dependencies,
-      ...packageManifest.devDependencies,
-    }
-    const mutableOrMismatched = Object.entries(directDependencies).filter(
+    const directDependencies = [
+      ...Object.entries(packageManifest.dependencies ?? {}),
+      ...Object.entries(packageManifest.devDependencies ?? {}),
+    ]
+    const mutableOrMismatched = directDependencies.filter(
       ([name, version]) =>
         !exactVersion.test(version) ||
         packageLock.packages[`node_modules/${name}`]?.version !== version,
