@@ -220,6 +220,19 @@ insert into policy_revision (
 ) values (
   '60000000-0000-4000-8000-000000000002', '50000000-0000-4000-8000-000000000001', 2, true, 'none'
 );
+
+insert into policy_revision (
+  policy_revision_id, tenant_account_id, revision_number, retention_status
+) values (
+  '60000000-0000-4000-8000-000000000003', '50000000-0000-4000-8000-000000000001', 3, 'none'
+);
+select upsert_collection_item(
+  '60000000-0000-4000-8000-000000000003',
+  'support_email',
+  'Support email',
+  'optional',
+  'Support request form'
+);
 commit;
 SQL
 
@@ -275,6 +288,19 @@ PGDATABASE=policyweave_restore expect_failure restored_no_collection_conflict 'n
 begin;
 insert into collection_item (policy_revision_id, collection_item_key, collection_item_label)
 values ('60000000-0000-4000-8000-000000000002', 'contact_email', 'Contact email');
+commit;
+SQL
+PGDATABASE=policyweave_restore expect_failure restored_status_without_rule 'retention status applies requires a retention rule' <<'SQL'
+begin;
+update policy_revision
+   set retention_status = 'applies'
+ where policy_revision_id = '60000000-0000-4000-8000-000000000002';
+commit;
+SQL
+PGDATABASE=policyweave_restore expect_failure restored_rule_without_status 'retention rule requires retention status applies' <<'SQL'
+begin;
+insert into retention_rule (policy_revision_id, retention_period)
+values ('60000000-0000-4000-8000-000000000002', '1 year');
 commit;
 SQL
 
