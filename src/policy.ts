@@ -67,8 +67,9 @@ function normalizeWebServiceUrl(value: string): string | null {
   try {
     const url = new URL(value)
     if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname || url.username || url.password) return null
-    if (url.search || url.hash) return null
-    return url.toString()
+    const normalized = url.toString()
+    if (normalized.includes('?') || normalized.includes('#')) return null
+    return normalized
   } catch {
     return null
   }
