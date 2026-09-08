@@ -16,7 +16,7 @@ The browser workspace holds an operator's draft only in memory. A hosted product
 - `retention_status = applies` requires exactly one current `retention_rule`; other statuses cannot retain one.
 - Organization-owned persistence identifiers use two or more semantic words and `snake_case`.
 - Retries update one collection item through its declared natural key; they do not replace an entire revision.
-- Hosted authorization, audit, encryption, publication, backup/restore, and runtime migration evidence remain mandatory before production use.
+- Hosted authorization, audit, encryption, publication, and operational backup/restore remain mandatory before production use. CI restart and dump/restore evidence does not replace those hosted controls.
 
 ## Decision
 
@@ -42,12 +42,12 @@ Rejected. No released owner contract currently supplies PolicyWeave's product-do
 
 ## Evidence
 
-`src/persistence-schema.test.ts` fixes the stable schema markers for revision identity, normalized ownership, deferred fact consistency, and natural-key UPSERT. `db/tests/policy_revision_runtime.sh` applies the migration to a digest-pinned PostgreSQL 18 service, exercises natural-key retry, requires each negative scene to emit its expected domain error, executes the down migration, verifies object removal, and repeats the apply/down cycle. `db/tests/policy_revision_concurrency.sh` coordinates two real sessions with FIFOs, observes PostgreSQL lock waits, and verifies conflicting fact writers fail closed while same-item UPSERT writers converge. This remains CI evidence rather than a deployed storage claim.
+`src/persistence-schema.test.ts` fixes the stable schema markers for revision identity, normalized ownership, deferred fact consistency, and natural-key UPSERT. `db/tests/policy_revision_runtime.sh` applies the migration to a digest-pinned PostgreSQL 18 service, exercises natural-key retry, requires each negative scene to emit its expected domain error, executes the down migration, verifies object removal, and repeats the apply/down cycle. `db/tests/policy_revision_concurrency.sh` coordinates two real sessions with FIFOs, observes PostgreSQL lock waits, and verifies conflicting fact writers fail closed while same-item UPSERT writers converge. `db/tests/policy_revision_restore.sh` checkpoints, restarts the service container, dumps a custom-format archive, restores it into a fresh database, and proves independent no-collection and retention facts plus deferred contradiction checks survive. This remains CI evidence rather than a deployed storage claim.
 
 ## Risks and effects
 
 - The migration is not a production backend and grants no network access.
-- Exact-head CI must prove PostgreSQL 18 execution for the covered single- and two-session cases; it does not prove restart safety, tenant authorization, backup/restore, or production-scale contention.
+- Exact-head CI must prove PostgreSQL 18 execution for the covered single-session, two-session, process-restart, and dump/restore cases; it does not prove tenant authorization, encryption, deletion, or production-scale contention.
 - The `tenant_account_id` is deliberately not linked to an identity table until a released Keyverse contract and PolicyWeave authorization design exist.
 - Draft facts may remain nullable while unresolved; database constraints protect contradictions, while completeness remains the deterministic review responsibility.
 - The collection mode enum uses locale-neutral values. UI labels are translated at the application boundary rather than stored as database truth.
@@ -64,4 +64,4 @@ Rejected. No released owner contract currently supplies PolicyWeave's product-do
 
 ## Follow-up
 
-Verify restart and backup/restore, add tenant-purpose authorization and immutable audit events, measure production-scale contention, and only then connect a hosted asynchronous API. Immutable publication and supersession remain a separate Review & Publication decision.
+Add tenant-purpose authorization and immutable audit events, measure production-scale contention, and only then connect a hosted asynchronous API. Immutable publication and supersession remain a separate Review & Publication decision.
