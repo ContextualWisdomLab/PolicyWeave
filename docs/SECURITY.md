@@ -30,3 +30,7 @@ Protected assets include policy facts, contact details, processing descriptions,
 
 ## Verification
 Security posture is head-specific. A successful predecessor scan, unresolved finding dismissal, or queued security workflow is not passing evidence. Merge/release decisions must reacquire the exact current head's organization-required security/SAST/review checks.
+
+
+## Local JSON export
+The export path serializes only the current in-memory PolicyWeave draft and deterministic readiness codes into a browser Blob. It makes no network request, uses a fixed filename rather than customer-controlled path text, and revokes its object URL after initiating the download. A service URL containing username or password components is omitted from the file and remains represented by the `service_url_format` finding. The file is still customer-controlled sensitive data; operators remain responsible for its storage and transfer. This control is not encryption, persistence, publication, backup, or authorization evidence.

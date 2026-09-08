@@ -5,6 +5,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 ## Unreleased
 
 ### Added
+- Deterministic local JSON draft export with a versioned `snake_case` contract, normalized operator-authored facts, explicit incomplete/review-ready state, readiness finding codes, and fail-closed omission of credential-bearing service URLs. The browser download performs no network transfer and does not claim publication.
 - PostgreSQL restart and custom-format dump/restore evidence that preserves NULL-safe complete service/collection-item values, a collecting-without-retention cross-state fixture, and independent no-collection and applies-retention facts, then re-executes no-collection plus both retention-status/rule contradictions against the restored database.
 - PostgreSQL two-session concurrency evidence that observes real lock waits, rejects a collection-item writer racing with a no-collection update, and proves competing same-item UPSERTs converge to one row carrying the second writer's label, mode, and path with NULL-safe complete-value assertions and without timing-based transaction sleeps.
 - PostgreSQL 18 runtime contract coverage for migration apply/down/apply cycles, item-key UPSERT idempotency, and deferred rejection of no-collection, missing-retention-rule, and revision-owner contradictions. The database remains CI-only and is not a hosted product backend.
@@ -45,7 +46,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 - Step-rail, previous/next, and review-warning navigation now transfers programmatic focus to the newly active step heading; ordinary form controls and the dedicated preview shortcut are excluded from that transfer.
 - Review-warning navigation now lets the browser scroll the focused owner heading into view; the previous `preventScroll` option could leave that heading hundreds of pixels above the desktop or mobile viewport.
 - The publication-area CTA describes a readiness check and directs the operator to responsible review rather than exposing internal implementation boundaries.
-- Unshipped JSON export is visibly disabled as `준비 중`, the redundant no-op `검토본 생성` control was removed, and the document title is non-interactive status text.
+- JSON export now downloads the current structured draft locally; the redundant no-op `검토본 생성` control remains removed, and the document title remains non-interactive status text.
 - Authored generic and custom-checkbox keyboard focus outlines now use the high-contrast `--green` token; a CSS regression test computes and enforces at least 3:1 contrast against white instead of relying on a low-contrast focus color.
 - Responsive review behavior and mobile publication feedback were repaired during PR review.
 - Responsive CSS contract tests use literal media-query regular expressions, removing the Semgrep dynamic-RegExp finding without suppressing or weakening the scanner gate.

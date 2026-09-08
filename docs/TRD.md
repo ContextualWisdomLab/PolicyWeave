@@ -6,6 +6,7 @@ This TRD covers the pre-release PolicyWeave browser workspace and the contracts 
 ## Current runtime
 - React + TypeScript + Vite browser application.
 - Structured authoring state is in browser memory; no production database or backend exists.
+- Local JSON export projects the current draft through `createPolicyExport` into deterministic `schema_version = 1` data with normalized facts, explicit `incomplete`/`review_ready` state, and readiness finding codes. Invalid credential-bearing service URLs export as `null`; download uses a browser Blob/object URL and performs no network request.
 - `src/policy.ts` owns deterministic review logic for collection selection/no-collection attestation/mode/purpose/path and the non-collection authoring-completeness findings for service identity, explicit retention status/period, transfer statuses/details, and privacy contact.
 - `src/App.tsx` provides the seven-step authoring flow, review navigation, explicit collection/retention/transfer-status capture, stale dependent-fact invalidation, and deterministic preview projection.
 - `src/AuthoringFocusController.tsx` keeps explicit step navigation and review-warning jumps aligned with the newly active step by moving programmatic focus to its heading after the React update and allowing the browser to reveal that target; ordinary form controls and the dedicated preview shortcut are outside this behavior.
@@ -36,6 +37,9 @@ The separation between collection and retention follows the PIPC Standard Person
 - Browser/accessibility validation must include keyboard/focus order, focus-target viewport visibility, WCAG 2.2 automated checks, responsive desktop/tablet/mobile interactions, and screenshot evidence before a buyer-facing accessibility claim. Deterministic jsdom focus-transition coverage is supporting evidence only and does not substitute for real-browser, zoom, screen-reader, or responsive verification.
 - Hosted web endpoints, when introduced, use non-blocking/asynchronous handling and require realistic k6 tests before a p95 <=20 ms page/API claim is recorded.
 - Production does not depend on synthetic demo data.
+
+## Local draft portability
+The JSON file is a draft portability artifact, not a publication receipt, immutable revision, legal approval, or persistence backup. It may be exported while incomplete so operators can inspect and transfer their authored work without converting blanks into `none`. Contract changes require a new schema version and compatibility evidence; the current fixed filename avoids using customer-controlled text as a filesystem name.
 
 ## Hosted persistence/publication entry criteria
 Before network persistence lands, define a versioned policy-data schema, migration policy, 3NF relational model, per-item UPSERT/idempotency rules, immutable publication receipt, supersession/rollback semantics, tenant/purpose authorization, audit evidence, encryption/key management, retention/deletion behavior, and backup/restore testing. Use two-or-more-word semantic persistence object names in `snake_case` by default. The revision model must preserve explicit no-collection and explicit retention status independently; `none` must not be materialized from collection absence, and an inapplicable/non-retained state must not carry a live `retention_rule` value.
