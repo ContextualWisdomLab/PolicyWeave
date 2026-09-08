@@ -176,16 +176,16 @@ export type PolicyDraftExport = {
       processing_purpose: string | null
     }>
     retention: {
-      retention_status: RetentionStatus | null
+      retention_status: Exclude<RetentionStatus, ''> | null
       retention_period: string | null
     }
     third_party_transfer: {
-      transfer_status: DisclosureStatus | null
+      transfer_status: Exclude<DisclosureStatus, ''> | null
       recipient_name: string | null
       transfer_purpose: string | null
     }
     international_transfer: {
-      transfer_status: DisclosureStatus | null
+      transfer_status: Exclude<DisclosureStatus, ''> | null
       destination_country: string | null
       recipient_name: string | null
     }
