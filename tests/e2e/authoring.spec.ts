@@ -190,6 +190,37 @@ test('keeps keyboard exports byte-stable and revokes every JSON object URL', asy
   expect(downloadAudit.revoked).toEqual(downloadAudit.created.map(({ url }) => url))
 })
 
+test('reports a download activation failure and revokes its JSON object URL', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'One browser profile proves the activation-error lifecycle.')
+
+  await installDownloadAudit(page)
+  await page.addInitScript(() => {
+    const click = HTMLAnchorElement.prototype.click
+    HTMLAnchorElement.prototype.click = function () {
+      if (this.download === 'policyweave-draft.json') throw new Error('simulated download activation failure')
+      click.call(this)
+    }
+  })
+  await page.goto('/')
+
+  const pageErrors: Error[] = []
+  page.on('pageerror', (error) => pageErrors.push(error))
+  await page.getByRole('button', { name: /JSON 내보내기/ }).click()
+  await expect(page.locator('output')).toHaveText('JSON 파일을 내보내지 못했습니다. 다시 시도하세요.')
+
+  await expect.poll(() => page.evaluate(() => {
+    const audit = (window as typeof window & {
+      __policyweaveDownloadAudit: { created: Array<{ url: string; type: string }>; revoked: string[] }
+    }).__policyweaveDownloadAudit
+    return { created: audit.created.map(({ url }) => url), revoked: audit.revoked }
+  })).toEqual({ created: [expect.any(String)], revoked: [expect.any(String)] })
+  const downloadAudit = await page.evaluate(() => (window as typeof window & {
+    __policyweaveDownloadAudit: { created: Array<{ url: string; type: string }>; revoked: string[] }
+  }).__policyweaveDownloadAudit)
+  expect(downloadAudit.revoked).toEqual(downloadAudit.created.map(({ url }) => url))
+  expect(pageErrors).toEqual([])
+})
+
 test('exports a review-ready no-collection draft without unresolved findings', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'One complete export proves state semantics; layout coverage is exercised separately.')
 
