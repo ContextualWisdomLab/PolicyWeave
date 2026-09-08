@@ -85,6 +85,7 @@ declare
   no_collection_revision_count integer;
   no_collection_item_count integer;
   no_collection_rule_count integer;
+  collection_without_retention_count integer;
 begin
   select count(*)
     into collection_revision_count
@@ -135,9 +136,18 @@ begin
     from retention_rule
    where policy_revision_id = '60000000-0000-4000-8000-000000000002';
 
+  select count(*)
+    into collection_without_retention_count
+    from policy_revision as revision
+    join collection_item as item using (policy_revision_id)
+   where revision.policy_revision_id = '60000000-0000-4000-8000-000000000003'
+     and revision.no_collection_confirmed = false
+     and revision.retention_status = 'none'
+     and item.collection_item_key = 'support_email';
+
   if collection_revision_count <> 1
      or service_profile_count <> 1
-     or stored_service_name <> 'Restore Probe Service'
+     or stored_service_name is distinct from 'Restore Probe Service'
      or collection_item_count <> 1
      or stored_item_label <> 'Restore contact email'
      or stored_item_mode is distinct from 'required'
@@ -148,7 +158,8 @@ begin
      or stored_period <> '1 year after account closure'
      or no_collection_revision_count <> 1
      or no_collection_item_count <> 0
-     or no_collection_rule_count <> 0 then
+     or no_collection_rule_count <> 0
+     or collection_without_retention_count <> 1 then
     raise exception '${scene_name} did not preserve independent collection and retention facts';
   end if;
 end;
