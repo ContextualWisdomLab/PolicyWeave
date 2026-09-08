@@ -111,6 +111,16 @@ describe('policy JSON export', () => {
     expect(JSON.stringify(secretExport)).not.toContain('fragment-secret')
   })
 
+  it('preserves encoded question marks and hashes as pathname data', () => {
+    const exported = createPolicyExport(initialItems, false, {
+      ...initialFacts,
+      serviceUrl: 'https://example.test/privacy%3Fpolicy%23section',
+    })
+
+    expect(exported.policy_facts.service_profile.service_url).toBe('https://example.test/privacy%3Fpolicy%23section')
+    expect(exported.review_finding_codes).not.toContain('service_url_format')
+  })
+
   it('does not export credentials embedded in an invalid service URL', () => {
     const exported = createPolicyExport(initialItems, false, {
       ...initialFacts,
