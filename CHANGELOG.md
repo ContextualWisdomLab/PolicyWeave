@@ -5,6 +5,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 ## Unreleased
 
 ### Added
+- PostgreSQL two-session concurrency evidence that observes real lock waits, rejects a collection-item writer racing with a no-collection update, and converges competing same-item UPSERTs without timing-based transaction sleeps.
 - PostgreSQL 18 runtime contract coverage for migration apply/down/apply cycles, item-key UPSERT idempotency, and deferred rejection of no-collection, missing-retention-rule, and revision-owner contradictions. The database remains CI-only and is not a hosted product backend.
 - Proposed PostgreSQL `policy_revision` 3NF migration contract with tenant-scoped version identity, normalized revision-owned facts, owner-key immutability, parent-row-serialized deferred no-collection/retention consistency checks, and item-level natural-key UPSERT. It is source-validated only and does not claim a deployed database or hosted persistence.
 - Seven-step authoring workflow with distinct editing surfaces for service information, collection items, processing purposes, retention, third-party transfer, international transfer, and privacy contact.
@@ -53,6 +54,6 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 ### Not yet shipped
 - Authoritative legal-rule snapshots that can determine legal sufficiency beyond product-defined fact completeness.
 - Manual zoom and screen-reader evidence beyond the automated desktop/tablet/mobile Chromium accessibility and focus checks.
-- A product persistence adapter, durable hosted storage, tenant authorization, immutable audit history, concurrent-writer scheduling, restart, encryption, and backup/restore evidence. CI migration and rollback execution do not constitute a hosted runtime.
+- A product persistence adapter, durable hosted storage, tenant authorization, immutable audit history, restart, encryption, backup/restore, and production-scale contention evidence. Bounded CI database execution does not constitute a hosted runtime.
 - Authenticated immutable publication revisions and public URL lifecycle.
 - Hosted tenant/security/operability evidence and endpoint load testing.

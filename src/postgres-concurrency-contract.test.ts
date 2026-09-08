@@ -14,6 +14,7 @@ describe('PostgreSQL concurrent writer evidence contract', () => {
     expect(concurrencyTest).toContain("wait_event_type = 'Lock'")
     expect(concurrencyTest).toContain('policyweave_parent_writer')
     expect(concurrencyTest).toContain('policyweave_item_writer')
+    expect(concurrencyTest).toContain('statement_timeout=15000')
     expect(concurrencyTest).not.toContain('pg_sleep')
   })
 
