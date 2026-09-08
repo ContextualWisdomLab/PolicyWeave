@@ -225,7 +225,7 @@ export default function App() {
     try {
       downloadLink.click()
     } finally {
-      URL.revokeObjectURL(fileUrl)
+      setTimeout(() => URL.revokeObjectURL(fileUrl), 0)
     }
   }
   return <div className="app-shell">

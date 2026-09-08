@@ -163,7 +163,7 @@ export type PolicyDraftExport = {
     collection_items: Array<{
       collection_item_key: string
       collection_item_label: string
-      collection_mode: CollectionMode
+      collection_mode: Exclude<CollectionMode, ''> | null
       collection_path: string | null
       processing_purpose: string | null
     }>
@@ -215,7 +215,7 @@ export function createPolicyExport(items: PolicyItem[], noCollectionAttested: bo
       collection_items: collectionReview.enabled.map((item) => ({
         collection_item_key: item.id,
         collection_item_label: item.label,
-        collection_mode: item.mode,
+        collection_mode: item.mode || null,
         collection_path: trimOrNull(item.detail ?? ''),
         processing_purpose: trimOrNull(item.purpose),
       })),
