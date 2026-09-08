@@ -27,4 +27,16 @@ describe('PostgreSQL restart and restore evidence contract', () => {
     expect(restoreTest).toContain('no-collection confirmation conflicts with collection items')
     expect(workflowSource).toContain('run: sh db/tests/policy_revision_restore.sh')
   })
+
+  it('commits applies retention only after the required rule exists in the same transaction', () => {
+    const appliesIndex = restoreTest.indexOf("1, 'applies'")
+    const beginIndex = restoreTest.lastIndexOf('begin;', appliesIndex)
+    const ruleIndex = restoreTest.indexOf('insert into retention_rule', appliesIndex)
+    const commitIndex = restoreTest.indexOf('commit;', Math.max(appliesIndex, ruleIndex))
+    expect(appliesIndex).toBeGreaterThan(-1)
+    expect(beginIndex).toBeGreaterThan(-1)
+    expect(beginIndex).toBeLessThan(appliesIndex)
+    expect(ruleIndex).toBeGreaterThan(appliesIndex)
+    expect(commitIndex).toBeGreaterThan(ruleIndex)
+  })
 })
