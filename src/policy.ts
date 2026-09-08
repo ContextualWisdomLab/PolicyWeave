@@ -148,3 +148,96 @@ export function getCompletedSteps(items: PolicyItem[], noCollectionAttested: boo
 
   return completed
 }
+
+
+/** Versioned local export of operator-authored policy facts and deterministic readiness evidence. */
+export type PolicyDraftExport = {
+  schema_version: 1
+  document_state: 'incomplete' | 'review_ready'
+  policy_facts: {
+    service_profile: {
+      service_name: string | null
+      service_url: string | null
+    }
+    no_collection_attested: boolean
+    collection_items: Array<{
+      collection_item_key: string
+      collection_item_label: string
+      collection_mode: CollectionMode
+      collection_path: string | null
+      processing_purpose: string | null
+    }>
+    retention: {
+      retention_status: RetentionStatus | null
+      retention_period: string | null
+    }
+    third_party_transfer: {
+      transfer_status: DisclosureStatus | null
+      recipient_name: string | null
+      transfer_purpose: string | null
+    }
+    international_transfer: {
+      transfer_status: DisclosureStatus | null
+      destination_country: string | null
+      recipient_name: string | null
+    }
+    privacy_contact: {
+      contact_name: string | null
+      contact_email: string | null
+    }
+  }
+  review_finding_codes: string[]
+}
+
+/** Creates a deterministic draft export without network access, inferred facts, or credential-bearing service URLs. */
+export function createPolicyExport(items: PolicyItem[], noCollectionAttested: boolean, facts: DraftFacts): PolicyDraftExport {
+  const trimOrNull = (value: string) => value.trim() || null
+  const collectionReview = getReview(items, noCollectionAttested)
+  const reviewFindingCodes = [
+    ...(collectionReview.selectionMissing ? ['collection_selection'] : []),
+    ...(collectionReview.collectionContradiction ? ['collection_contradiction'] : []),
+    ...collectionReview.modeBlocking.map((item) => `collection_mode:${item.id}`),
+    ...collectionReview.pathBlocking.map((item) => `collection_path:${item.id}`),
+    ...collectionReview.blocking.map((item) => `processing_purpose:${item.id}`),
+    ...getDraftReview(facts, noCollectionAttested).map((finding) => finding.code),
+  ]
+  const serviceUrl = facts.serviceUrl.trim()
+
+  return {
+    schema_version: 1,
+    document_state: reviewFindingCodes.length === 0 ? 'review_ready' : 'incomplete',
+    policy_facts: {
+      service_profile: {
+        service_name: trimOrNull(facts.serviceName),
+        service_url: isWebServiceUrl(serviceUrl) ? serviceUrl : null,
+      },
+      no_collection_attested: noCollectionAttested,
+      collection_items: collectionReview.enabled.map((item) => ({
+        collection_item_key: item.id,
+        collection_item_label: item.label,
+        collection_mode: item.mode,
+        collection_path: trimOrNull(item.detail ?? ''),
+        processing_purpose: trimOrNull(item.purpose),
+      })),
+      retention: {
+        retention_status: facts.retentionStatus || null,
+        retention_period: facts.retentionStatus === 'applies' ? trimOrNull(facts.retentionPeriod) : null,
+      },
+      third_party_transfer: {
+        transfer_status: facts.thirdPartyStatus || null,
+        recipient_name: facts.thirdPartyStatus === 'yes' ? trimOrNull(facts.thirdPartyRecipient) : null,
+        transfer_purpose: facts.thirdPartyStatus === 'yes' ? trimOrNull(facts.thirdPartyPurpose) : null,
+      },
+      international_transfer: {
+        transfer_status: facts.internationalStatus || null,
+        destination_country: facts.internationalStatus === 'yes' ? trimOrNull(facts.internationalCountry) : null,
+        recipient_name: facts.internationalStatus === 'yes' ? trimOrNull(facts.internationalRecipient) : null,
+      },
+      privacy_contact: {
+        contact_name: trimOrNull(facts.privacyOfficerName),
+        contact_email: trimOrNull(facts.privacyOfficerEmail),
+      },
+    },
+    review_finding_codes: reviewFindingCodes,
+  }
+}
