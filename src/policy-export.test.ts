@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, expectTypeOf, it } from 'vitest'
 import { createPolicyExport, initialFacts, initialItems } from './policy'
 
 describe('policy JSON export', () => {
@@ -68,6 +68,14 @@ describe('policy JSON export', () => {
     expect(exported.review_finding_codes).toContain('collection_selection')
     expect(exported.review_finding_codes).toContain('service_name')
     expect(exported.review_finding_codes).toContain('retention_status')
+  })
+
+  it('keeps UI empty-string sentinels out of the portable schema types', () => {
+    const exported = createPolicyExport(initialItems, false, initialFacts)
+
+    expectTypeOf(exported.policy_facts.retention.retention_status).toEqualTypeOf<'applies' | 'none' | null>()
+    expectTypeOf(exported.policy_facts.third_party_transfer.transfer_status).toEqualTypeOf<'yes' | 'no' | null>()
+    expectTypeOf(exported.policy_facts.international_transfer.transfer_status).toEqualTypeOf<'yes' | 'no' | null>()
   })
 
   it('normalizes an unresolved collection mode without leaking the UI empty-string sentinel', () => {
