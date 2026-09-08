@@ -77,6 +77,7 @@ declare
   collection_purpose_count integer;
   collection_rule_count integer;
   stored_service_name text;
+  stored_service_url text;
   stored_item_label text;
   stored_item_mode text;
   stored_item_path text;
@@ -94,8 +95,8 @@ begin
      and no_collection_confirmed = false
      and retention_status = 'applies';
 
-  select count(*), max(service_name)
-    into service_profile_count, stored_service_name
+  select count(*), max(service_name), max(service_url)
+    into service_profile_count, stored_service_name, stored_service_url
     from service_profile
    where policy_revision_id = '60000000-0000-4000-8000-000000000001';
 
@@ -148,6 +149,7 @@ begin
   if collection_revision_count <> 1
      or service_profile_count <> 1
      or stored_service_name is distinct from 'Restore Probe Service'
+     or stored_service_url is distinct from 'https://restore.example.test'
      or collection_item_count <> 1
      or stored_item_label <> 'Restore contact email'
      or stored_item_mode is distinct from 'required'
@@ -240,6 +242,7 @@ psql_command --command 'checkpoint'
 
 docker restart "$postgres_container_id" >/dev/null
 wait_for_postgres
+psql_command --command "update service_profile set service_url = null where policy_revision_id = '60000000-0000-4000-8000-000000000001'"
 assert_restored_facts restart
 
 docker exec "$postgres_container_id" pg_dump \
