@@ -59,3 +59,32 @@ test('keeps the owning step heading visible after keyboard navigation from a rev
   expect(headingBounds!.y).toBeGreaterThanOrEqual(0)
   expect(headingBounds!.y + headingBounds!.height).toBeLessThanOrEqual(page.viewportSize()!.height)
 })
+
+test('invalidates stale retention evidence through responsive browser transitions', async ({ page }) => {
+  await page.goto('/')
+
+  const retentionStep = page.locator('.rail').getByRole('button', { name: /보유 기간/ })
+  await retentionStep.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { level: 1, name: '4. 보유 기간' })).toBeFocused()
+
+  const retentionStatus = page.getByLabel('개인정보 보유 여부')
+  await retentionStatus.selectOption('applies')
+  const retentionPeriod = page.getByLabel('대표 보유 기간 또는 종료 조건')
+  await retentionPeriod.fill('회원 탈퇴 시까지')
+
+  const retentionRailItem = page.locator('.rail li').filter({ hasText: '보유 기간' })
+  await expect(retentionRailItem).toHaveClass(/done/)
+  await expect(page.locator('.paper').getByText('회원 탈퇴 시까지', { exact: true })).toBeVisible()
+
+  await retentionStatus.selectOption('none')
+  await expect(retentionPeriod).toHaveCount(0)
+  await expect(retentionRailItem).toHaveClass(/done/)
+  await expect(page.locator('.paper').getByText('보유하는 개인정보 없음으로 확인되었습니다.', { exact: true })).toBeVisible()
+
+  await retentionStatus.selectOption('applies')
+  const renewedRetentionPeriod = page.getByLabel('대표 보유 기간 또는 종료 조건')
+  await expect(renewedRetentionPeriod).toHaveValue('')
+  await expect(retentionRailItem).not.toHaveClass(/done/)
+  await expect(page.locator('.paper').getByText('보유 기간을 확인해야 합니다.', { exact: true })).toBeVisible()
+})
