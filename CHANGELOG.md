@@ -5,6 +5,10 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 ## Unreleased
 
 ### Added
+- PostgreSQL restart and custom-format dump/restore evidence that preserves NULL-safe complete service/collection-item values, a collecting-without-retention cross-state fixture, and independent no-collection and applies-retention facts, then re-executes no-collection plus both retention-status/rule contradictions against the restored database.
+- PostgreSQL two-session concurrency evidence that observes real lock waits, rejects a collection-item writer racing with a no-collection update, and proves competing same-item UPSERTs converge to one row carrying the second writer's label, mode, and path with NULL-safe complete-value assertions and without timing-based transaction sleeps.
+- PostgreSQL 18 runtime contract coverage for migration apply/down/apply cycles, item-key UPSERT idempotency, and deferred rejection of no-collection, missing-retention-rule, and revision-owner contradictions. The database remains CI-only and is not a hosted product backend.
+- Proposed PostgreSQL `policy_revision` 3NF migration contract with tenant-scoped version identity, normalized revision-owned facts, owner-key immutability, parent-row-serialized deferred no-collection/retention consistency checks, and item-level natural-key UPSERT. It is source-validated only and does not claim a deployed database or hosted persistence.
 - Seven-step authoring workflow with distinct editing surfaces for service information, collection items, processing purposes, retention, third-party transfer, international transfer, and privacy contact.
 - Explicit `개인정보를 수집하지 않음` operator attestation so a genuine no-collection service can complete collection authoring without treating an empty item list as `none`.
 - Independent explicit retention status (`확인 필요` / `보유함` / `보유하지 않음`) so collection absence cannot be misused as evidence that storage or retention is absent.
@@ -12,9 +16,13 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 - Explicit unresolved/yes/no states for third-party provision and international transfer, with dependent detail capture only for confirmed `yes` cases.
 - Regression coverage for all seven step routes, zero-inferred startup facts, first-responsibility startup state, explicit no-collection state and stale-item invalidation, independent retention authority and stale-period invalidation, collection-mode/path confirmation, seven-step readiness, explicit no-transfer attestations, transfer-dependent fact invalidation, whitespace normalization, service URL projection, warning navigation, collection-path/purpose separation, stale collection evidence invalidation, buyer-facing publication guidance, non-deceptive handling of unshipped affordances, authored focus-indicator contrast, and authoring-step focus transfer.
 - Product/technical gap ledger, architecture, technical requirements, security baseline, and legal-source/accessibility traceability.
-- Playwright/axe browser evidence harness covering desktop, tablet, and mobile rendering; horizontal overflow; keyboard activation and focus transfer; explicit no-collection progression; serious/critical automated accessibility findings; and exact-head screenshot artifacts.
+- Playwright/axe browser evidence harness covering desktop, tablet, and mobile rendering; horizontal overflow; keyboard activation and focus transfer; explicit no-collection progression; retention-status transitions and stale-period invalidation; effective 200% browser-zoom reflow from the desktop profile; serious/critical automated accessibility findings; and exact-head screenshot artifacts.
 
 ### Changed
+- PostgreSQL negative-path evidence now matches each expected domain error message, so an unrelated SQL or connection failure cannot masquerade as a passing invariant check.
+- Repository CI now starts one digest-pinned PostgreSQL 18 service inside the existing verification job and runs the migration contract before browser evidence, avoiding a second workflow or runner while producing real database evidence.
+- Repository CI now groups runs by workflow plus pull-request number or branch ref and cancels superseded heads, preventing stale queued runs from consuming runner capacity without coupling unrelated PRs or refs.
+- GitHub Actions checkout, setup/cache, and browser-evidence upload now use immutable Node 24-based `actions/checkout@v7.0.1`, `actions/setup-node@v7.0.0`, and `actions/upload-artifact@v7.0.1` releases instead of deprecated action runtimes.
 - ADR readiness language now matches the executable retention contract: status is explicit, a period/end condition is required only for `applies`, and `none` needs no period; unmerged ADRs remain Proposed until protected-branch adoption.
 - Browser-discovered muted text now uses a darker authored token, with a regression contract requiring at least 4.5:1 contrast on every current white, rail, conditional-field, and metadata surface.
 - Fresh workspaces no longer preselect collection items or prefill collection modes/processing purposes; readiness fails closed until the operator establishes actual collection facts or explicitly attests that the service collects no personal data.
@@ -47,6 +55,6 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 ### Not yet shipped
 - Authoritative legal-rule snapshots that can determine legal sufficiency beyond product-defined fact completeness.
 - Manual zoom and screen-reader evidence beyond the automated desktop/tablet/mobile Chromium accessibility and focus checks.
-- Durable versioned policy persistence and audit history.
+- A product persistence adapter, durable hosted storage, tenant authorization, immutable audit history, encryption, operational backup/restore, and production-scale contention evidence. Bounded CI database execution, including process restart and dump/restore, does not constitute a hosted runtime.
 - Authenticated immutable publication revisions and public URL lifecycle.
 - Hosted tenant/security/operability evidence and endpoint load testing.
