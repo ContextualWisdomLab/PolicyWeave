@@ -16,6 +16,8 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 - Playwright/axe browser evidence harness covering desktop, tablet, and mobile rendering; horizontal overflow; keyboard activation and focus transfer; explicit no-collection progression; retention-status transitions and stale-period invalidation; effective 200% browser-zoom reflow from the desktop profile; serious/critical automated accessibility findings; and exact-head screenshot artifacts.
 
 ### Changed
+- Repository CI now groups runs by workflow plus pull-request number or branch ref and cancels superseded heads, preventing stale queued runs from consuming runner capacity without coupling unrelated PRs or refs.
+- GitHub Actions checkout, setup/cache, and browser-evidence upload now use immutable Node 24-based `actions/checkout@v7.0.1`, `actions/setup-node@v7.0.0`, and `actions/upload-artifact@v7.0.1` releases instead of deprecated action runtimes.
 - ADR readiness language now matches the executable retention contract: status is explicit, a period/end condition is required only for `applies`, and `none` needs no period; unmerged ADRs remain Proposed until protected-branch adoption.
 - Browser-discovered muted text now uses a darker authored token, with a regression contract requiring at least 4.5:1 contrast on every current white, rail, conditional-field, and metadata surface.
 - Fresh workspaces no longer preselect collection items or prefill collection modes/processing purposes; readiness fails closed until the operator establishes actual collection facts or explicitly attests that the service collects no personal data.
