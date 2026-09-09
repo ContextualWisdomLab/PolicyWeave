@@ -42,12 +42,12 @@ Rejected. No released owner contract currently supplies PolicyWeave's product-do
 
 ## Evidence
 
-`src/persistence-schema.test.ts` fixes the stable schema markers for revision identity, normalized ownership, deferred fact consistency, and natural-key UPSERT. The test-only PR head fails because the migration is absent; the following implementation makes those four contracts pass. This evidence validates source shape only until PostgreSQL migration execution is available.
+`src/persistence-schema.test.ts` fixes the stable schema markers for revision identity, normalized ownership, deferred fact consistency, and natural-key UPSERT. `db/tests/policy_revision_runtime.sh` applies the migration to a digest-pinned PostgreSQL 18 service, exercises natural-key retry, requires each negative scene to emit its expected domain error, executes the down migration, verifies object removal, and repeats the apply/down cycle. This remains CI evidence rather than a deployed storage claim.
 
 ## Risks and effects
 
 - The migration is not a production backend and grants no network access.
-- Source-shape tests require the parent-row lock mode and owner-key immutability but cannot prove PostgreSQL execution, lock scheduling, restart safety, tenant authorization, or backup/restore.
+- CI proves PostgreSQL 18 execution for the covered single-session cases but does not prove concurrent lock scheduling, restart safety, tenant authorization, or backup/restore.
 - The `tenant_account_id` is deliberately not linked to an identity table until a released Keyverse contract and PolicyWeave authorization design exist.
 - Draft facts may remain nullable while unresolved; database constraints protect contradictions, while completeness remains the deterministic review responsibility.
 - The collection mode enum uses locale-neutral values. UI labels are translated at the application boundary rather than stored as database truth.
@@ -62,4 +62,4 @@ Rejected. No released owner contract currently supplies PolicyWeave's product-do
 
 ## Follow-up
 
-Run the migration and rollback/restore path against the supported PostgreSQL version, add tenant-purpose authorization and immutable audit events, measure concurrent UPSERT/lock behavior, and only then connect a hosted asynchronous API. Immutable publication and supersession remain a separate Review & Publication decision.
+Measure concurrent UPSERT/lock behavior, verify restart and backup/restore, add tenant-purpose authorization and immutable audit events, and only then connect a hosted asynchronous API. Immutable publication and supersession remain a separate Review & Publication decision.
