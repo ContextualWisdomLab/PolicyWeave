@@ -5,6 +5,7 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 ## Unreleased
 
 ### Added
+- Proposed PostgreSQL `policy_revision` 3NF migration contract with tenant-scoped version identity, normalized revision-owned facts, owner-key immutability, parent-row-serialized deferred no-collection/retention consistency checks, and item-level natural-key UPSERT. It is source-validated only and does not claim a deployed database or hosted persistence.
 - Seven-step authoring workflow with distinct editing surfaces for service information, collection items, processing purposes, retention, third-party transfer, international transfer, and privacy contact.
 - Explicit `개인정보를 수집하지 않음` operator attestation so a genuine no-collection service can complete collection authoring without treating an empty item list as `none`.
 - Independent explicit retention status (`확인 필요` / `보유함` / `보유하지 않음`) so collection absence cannot be misused as evidence that storage or retention is absent.
@@ -47,6 +48,6 @@ All notable product changes are recorded here. PolicyWeave is pre-release; entri
 ### Not yet shipped
 - Authoritative legal-rule snapshots that can determine legal sufficiency beyond product-defined fact completeness.
 - Manual zoom and screen-reader evidence beyond the automated desktop/tablet/mobile Chromium accessibility and focus checks.
-- Durable versioned policy persistence and audit history.
+- Executed durable versioned policy persistence, tenant authorization, immutable audit history, migration rollback, concurrency, and backup/restore evidence; the Proposed source migration alone is not a runtime.
 - Authenticated immutable publication revisions and public URL lifecycle.
 - Hosted tenant/security/operability evidence and endpoint load testing.

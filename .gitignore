@@ -3,4 +3,5 @@ dist
 .env
 coverage
 playwright-report
+test-results/
 *.tsbuildinfo

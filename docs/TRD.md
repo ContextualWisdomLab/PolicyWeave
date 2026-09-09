@@ -40,6 +40,8 @@ The separation between collection and retention follows the PIPC Standard Person
 ## Hosted persistence/publication entry criteria
 Before network persistence lands, define a versioned policy-data schema, migration policy, 3NF relational model, per-item UPSERT/idempotency rules, immutable publication receipt, supersession/rollback semantics, tenant/purpose authorization, audit evidence, encryption/key management, retention/deletion behavior, and backup/restore testing. Use two-or-more-word semantic persistence object names in `snake_case` by default. The revision model must preserve explicit no-collection and explicit retention status independently; `none` must not be materialized from collection absence, and an inapplicable/non-retained state must not carry a live `retention_rule` value.
 
+ADR-0003 and migration `0001_policy_revision.sql` satisfy only the source-contract portion of that entry criterion: tenant-scoped revision identity, normalized service/collection/purpose/retention facts, parent-row-serialized deferred contradiction checks, and collection-item natural-key UPSERT. Current CI validates stable DDL markers but does not execute PostgreSQL. Runtime migration/rollback, concurrency, authorization, audit, encryption, deletion, and backup/restore evidence remain required before any adapter may enable network persistence.
+
 A publication command must operate on a specific reviewed `policy_revision` and create a new immutable `publication_revision`. It must fail closed when blocking findings, incompatible rule/template versions, missing source receipts, or missing authorization exist. Publication never mutates foreign customer databases.
 
 ## External boundaries
