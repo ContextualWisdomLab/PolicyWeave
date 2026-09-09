@@ -27,6 +27,17 @@ describe('PostgreSQL restart and restore evidence contract', () => {
     expect(restoreTest).toMatch(
       /stored_item_mode[\s\S]*stored_item_path[\s\S]*stored_item_mode is distinct from 'required'[\s\S]*stored_item_path is distinct from 'Account registration form'/i,
     )
+    expect(restoreTest).toContain("stored_service_url is distinct from 'https://restore.example.test'")
+    expect(restoreTest).toContain('collection_without_retention_count <> 1')
+    expect(restoreTest).toContain(
+      "60000000-0000-4000-8000-000000000003', '50000000-0000-4000-8000-000000000001', 3, 'none'",
+    )
+    expect(restoreTest).toMatch(
+      /upsert_collection_item\(\s*'60000000-0000-4000-8000-000000000003',\s*'support_email'/,
+    )
+    expect(restoreTest).toMatch(
+      /revision\.policy_revision_id = '60000000-0000-4000-8000-000000000003'[\s\S]*?revision\.no_collection_confirmed = false[\s\S]*?revision\.retention_status = 'none'[\s\S]*?item\.collection_item_key = 'support_email'/,
+    )
     expect(restoreTest).toContain('no-collection confirmation conflicts with collection items')
     expect(workflowSource).toContain('run: sh db/tests/policy_revision_restore.sh')
   })
