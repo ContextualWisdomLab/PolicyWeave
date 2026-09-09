@@ -16,7 +16,7 @@ The browser workspace holds an operator's draft only in memory. A hosted product
 - `retention_status = applies` requires exactly one current `retention_rule`; other statuses cannot retain one.
 - Organization-owned persistence identifiers use two or more semantic words and `snake_case`.
 - Retries update one collection item through its declared natural key; they do not replace an entire revision.
-- Hosted authorization, audit, encryption, publication, backup/restore, and runtime migration evidence remain mandatory before production use.
+- Hosted authorization, audit, encryption, publication, and operational backup/restore remain mandatory before production use. CI restart and dump/restore evidence does not replace those hosted controls.
 
 ## Decision
 
@@ -42,12 +42,12 @@ Rejected. No released owner contract currently supplies PolicyWeave's product-do
 
 ## Evidence
 
-`src/persistence-schema.test.ts` fixes the stable schema markers for revision identity, normalized ownership, deferred fact consistency, and natural-key UPSERT. `db/tests/policy_revision_runtime.sh` applies the migration to a digest-pinned PostgreSQL 18 service, exercises natural-key retry, requires each negative scene to emit its expected domain error, executes the down migration, verifies object removal, and repeats the apply/down cycle. This remains CI evidence rather than a deployed storage claim.
+`src/persistence-schema.test.ts` fixes the stable schema markers for revision identity, normalized ownership, deferred fact consistency, and natural-key UPSERT. `db/tests/policy_revision_runtime.sh` applies the migration to a digest-pinned PostgreSQL 18 service, exercises natural-key retry, requires each negative scene to emit its expected domain error, executes the down migration, verifies object removal, and repeats the apply/down cycle. `db/tests/policy_revision_concurrency.sh` coordinates two real sessions with FIFOs, observes PostgreSQL lock waits, and verifies conflicting fact writers fail closed while same-item UPSERT writers converge to one row carrying the second writer's label, mode, and path; nullable mode/path comparisons use `IS DISTINCT FROM` so missing values cannot satisfy the evidence assertion. `db/tests/policy_revision_restore.sh` checkpoints, restarts the service container, dumps a custom-format archive, restores it into a fresh database, and proves a collecting revision may independently retain `retention_status = none`, NULL-safe complete service/collection-item values survive, and no-collection plus both retention status/rule deferred contradictions still fail against the restored schema; nullable restored values are checked with `IS DISTINCT FROM`. Applies retention and its required rule are seeded in one transaction because the deferred fact trigger evaluates the final commit state. This remains CI evidence rather than a deployed storage claim.
 
 ## Risks and effects
 
 - The migration is not a production backend and grants no network access.
-- CI proves PostgreSQL 18 execution for the covered single-session cases but does not prove concurrent lock scheduling, restart safety, tenant authorization, or backup/restore.
+- Exact-head CI must prove PostgreSQL 18 execution for the covered single-session, two-session, process-restart, and dump/restore cases; it does not prove tenant authorization, encryption, deletion, or production-scale contention.
 - The `tenant_account_id` is deliberately not linked to an identity table until a released Keyverse contract and PolicyWeave authorization design exist.
 - Draft facts may remain nullable while unresolved; database constraints protect contradictions, while completeness remains the deterministic review responsibility.
 - The collection mode enum uses locale-neutral values. UI labels are translated at the application boundary rather than stored as database truth.
@@ -58,8 +58,10 @@ Rejected. No released owner contract currently supplies PolicyWeave's product-do
 - A client tries to add an item to a revision confirmed as no-collection: commit fails with a constraint violation.
 - A client changes retention from `applies` to `none` but forgets to remove the old rule: commit fails, so stale retention evidence cannot survive.
 - A client attempts to move a retention rule between revisions: commit fails instead of leaving the original `applies` revision without its required rule.
+- A no-collection writer holds the revision lock while a second client adds an item: the second client waits, observes the committed parent fact, and fails closed.
+- Two clients UPSERT the same item key: the second waits for the first and updates the same row rather than creating a duplicate.
 - Two clients claim the same tenant revision number: the unique constraint rejects one rather than creating ambiguous versions.
 
 ## Follow-up
 
-Measure concurrent UPSERT/lock behavior, verify restart and backup/restore, add tenant-purpose authorization and immutable audit events, and only then connect a hosted asynchronous API. Immutable publication and supersession remain a separate Review & Publication decision.
+Add tenant-purpose authorization and immutable audit events, measure production-scale contention, and only then connect a hosted asynchronous API. Immutable publication and supersession remain a separate Review & Publication decision.
