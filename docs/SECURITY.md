@@ -27,9 +27,10 @@ Protected assets include policy facts, contact details, processing descriptions,
 7. Define backup/restore, incident response, access review, retention/deletion, and evidence collection before claiming SOC 2 readiness. Map hosted controls toward CSAP and SOC 2 without describing an unassessed product as certified.
 8. Tests/docs use fictionalized organizations and people; real personal/institutional names are not fixtures.
 9. Service URLs containing credentials, query, or fragment components are invalid and withheld from the review projection; operators must provide a credential-free HTTP(S) location whose destination can be exported without lossy rewriting.
+10. Direct npm declarations use exact reviewed lock resolutions, and compiler/bundler packages are development-only. Exact-head CI emits a CycloneDX SBOM from the installed lock graph; the package-lock license inventory supports review but does not itself approve license compatibility.
 
 ## Verification
-Security posture is head-specific. A successful predecessor scan, unresolved finding dismissal, or queued security workflow is not passing evidence. Merge/release decisions must reacquire the exact current head's organization-required security/SAST/review checks.
+Security posture is head-specific. A successful predecessor scan, unresolved finding dismissal, or queued security workflow is not passing evidence. Merge/release decisions must reacquire the exact current head's organization-required security/SAST/review checks plus the dependency manifest contract and CycloneDX artifact. Vulnerability or license inventory is evidence for review, not a substitute for an explicit release decision.
 
 
 ## Local JSON export
