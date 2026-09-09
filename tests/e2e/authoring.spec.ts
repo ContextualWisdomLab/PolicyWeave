@@ -1,5 +1,31 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test } from '@playwright/test'
+import { expect, test, type Download, type Page } from '@playwright/test'
+
+async function readDownload(download: Download) {
+  const downloadStream = await download.createReadStream()
+  downloadStream.setEncoding('utf8')
+  let downloadContent = ''
+  for await (const contentChunk of downloadStream) downloadContent += contentChunk
+  return downloadContent
+}
+
+async function installDownloadAudit(page: Page) {
+  await page.addInitScript(() => {
+    const audit = { created: [] as Array<{ url: string; type: string }>, revoked: [] as string[] }
+    const createObjectUrl = URL.createObjectURL.bind(URL)
+    const revokeObjectUrl = URL.revokeObjectURL.bind(URL)
+    Object.defineProperty(window, '__policyweaveDownloadAudit', { value: audit })
+    URL.createObjectURL = (object) => {
+      const url = createObjectUrl(object)
+      audit.created.push({ url, type: object instanceof Blob ? object.type : '' })
+      return url
+    }
+    URL.revokeObjectURL = (url) => {
+      audit.revoked.push(url)
+      revokeObjectUrl(url)
+    }
+  })
+}
 
 test('renders a truthful responsive initial workspace without serious accessibility violations', async ({ page }, testInfo) => {
   await page.goto('/')
@@ -108,4 +134,145 @@ test('reflows the core authoring flow at an effective 200% browser zoom', async 
   await nextStep.focus()
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { level: 1, name: '2. 수집 항목' })).toBeFocused()
+})
+
+test('downloads a versioned policy draft with real browser payload semantics', async ({ page }) => {
+  await page.goto('/')
+  await page.getByLabel('서비스 이름').fill('Buyer Portal')
+
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: /JSON 내보내기/ }).click()
+  const download = await downloadPromise
+
+  expect(download.suggestedFilename()).toBe('policyweave-draft.json')
+  const downloadContent = await readDownload(download)
+
+  const exportedDraft = JSON.parse(downloadContent)
+  expect(exportedDraft).toMatchObject({
+    schema_version: 1,
+    document_state: 'incomplete',
+    policy_facts: {
+      service_profile: {
+        service_name: 'Buyer Portal',
+        service_url: null,
+      },
+    },
+  })
+  expect(exportedDraft.review_finding_codes).toEqual(expect.arrayContaining(['service_url', 'collection_selection']))
+})
+
+test('keeps keyboard exports byte-stable and revokes every JSON object URL', async ({ page }) => {
+  await installDownloadAudit(page)
+  await page.goto('/')
+  await page.getByLabel('서비스 이름').fill('Buyer Portal')
+
+  const exportButton = page.getByRole('button', { name: /JSON 내보내기/ })
+  const exportedBytes: string[] = []
+  for (let exportAttempt = 0; exportAttempt < 2; exportAttempt += 1) {
+    const downloadPromise = page.waitForEvent('download')
+    await exportButton.focus()
+    await page.keyboard.press('Enter')
+    const download = await downloadPromise
+    expect(download.suggestedFilename()).toBe('policyweave-draft.json')
+    exportedBytes.push(await readDownload(download))
+  }
+
+  expect(exportedBytes[1]).toBe(exportedBytes[0])
+  await expect.poll(() => page.evaluate(() => {
+    const audit = (window as typeof window & { __policyweaveDownloadAudit: { created: Array<{ url: string; type: string }>; revoked: string[] } }).__policyweaveDownloadAudit
+    return { created: audit.created.length, revoked: audit.revoked.length }
+  })).toEqual({ created: 2, revoked: 2 })
+  const downloadAudit = await page.evaluate(() => (window as typeof window & {
+    __policyweaveDownloadAudit: { created: Array<{ url: string; type: string }>; revoked: string[] }
+  }).__policyweaveDownloadAudit)
+  expect(downloadAudit.created.map(({ type }) => type)).toEqual(['application/json', 'application/json'])
+  expect(new Set(downloadAudit.created.map(({ url }) => url)).size).toBe(2)
+  expect(downloadAudit.revoked).toEqual(downloadAudit.created.map(({ url }) => url))
+})
+
+test('reports a download activation failure and revokes its JSON object URL', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'One browser profile proves the activation-error lifecycle.')
+
+  await installDownloadAudit(page)
+  await page.addInitScript(() => {
+    const click = HTMLAnchorElement.prototype.click
+    HTMLAnchorElement.prototype.click = function () {
+      if (this.download === 'policyweave-draft.json') throw new Error('simulated download activation failure')
+      click.call(this)
+    }
+  })
+  await page.goto('/')
+
+  const pageErrors: Error[] = []
+  page.on('pageerror', (error) => pageErrors.push(error))
+  await page.getByRole('button', { name: /JSON 내보내기/ }).click()
+  await expect(page.locator('output')).toHaveText('JSON 파일을 내보내지 못했습니다. 다시 시도하세요.')
+
+  await expect.poll(() => page.evaluate(() => {
+    const audit = (window as typeof window & {
+      __policyweaveDownloadAudit: { created: Array<{ url: string; type: string }>; revoked: string[] }
+    }).__policyweaveDownloadAudit
+    return { created: audit.created.map(({ url }) => url), revoked: audit.revoked }
+  })).toEqual({ created: [expect.any(String)], revoked: [expect.any(String)] })
+  const downloadAudit = await page.evaluate(() => (window as typeof window & {
+    __policyweaveDownloadAudit: { created: Array<{ url: string; type: string }>; revoked: string[] }
+  }).__policyweaveDownloadAudit)
+  expect(downloadAudit.revoked).toEqual(downloadAudit.created.map(({ url }) => url))
+  expect(pageErrors).toEqual([])
+})
+
+test('reports an object URL creation failure without leaking a page error', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'One browser profile proves the pre-activation error boundary.')
+
+  await page.addInitScript(() => {
+    URL.createObjectURL = () => {
+      throw new Error('simulated object URL creation failure')
+    }
+  })
+  await page.goto('/')
+
+  const pageErrors: Error[] = []
+  page.on('pageerror', (error) => pageErrors.push(error))
+  await page.getByRole('button', { name: /JSON 내보내기/ }).click()
+  await expect(page.locator('output')).toHaveText('JSON 파일을 내보내지 못했습니다. 다시 시도하세요.')
+  expect(pageErrors).toEqual([])
+})
+
+test('exports a review-ready no-collection draft without unresolved findings', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'One complete export proves state semantics; layout coverage is exercised separately.')
+
+  await page.goto('/')
+  await page.getByLabel('서비스 이름').fill('Example Service')
+  await page.getByLabel('서비스 URL').fill('https://example.test/privacy')
+  await page.locator('.rail').getByRole('button', { name: /수집 항목/ }).click()
+  await page.getByRole('checkbox', { name: '개인정보를 수집하지 않음으로 확인' }).check()
+  await page.locator('.rail').getByRole('button', { name: /보유 기간/ }).click()
+  await page.getByLabel('개인정보 보유 여부').selectOption('none')
+  await page.locator('.rail').getByRole('button', { name: /제3자 제공/ }).click()
+  await page.getByLabel('제3자 제공 여부').selectOption('no')
+  await page.locator('.rail').getByRole('button', { name: /국외 이전/ }).click()
+  await page.getByLabel('국외 이전 여부').selectOption('no')
+  await page.locator('.rail').getByRole('button', { name: /개인정보 보호 담당자/ }).click()
+  await page.getByLabel('담당자 또는 담당 부서').fill('Privacy Team')
+  await page.getByLabel('연락 이메일').fill('privacy@example.test')
+  await expect(page.getByText('7/7 완료')).toBeVisible()
+
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: /JSON 내보내기/ }).click()
+  const exportedDraft = JSON.parse(await readDownload(await downloadPromise))
+
+  expect(exportedDraft.document_state).toBe('review_ready')
+  expect(exportedDraft.review_finding_codes).toEqual([])
+})
+
+test('accepts touch activation for the mobile JSON download', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile-chromium', 'Touch activation is scoped to the touch-enabled mobile project.')
+
+  await page.goto('/')
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: /JSON 내보내기/ }).tap()
+  const download = await downloadPromise
+
+  expect(download.suggestedFilename()).toBe('policyweave-draft.json')
+  expect(JSON.parse(await readDownload(download)).schema_version).toBe(1)
 })
