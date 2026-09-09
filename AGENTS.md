@@ -18,3 +18,7 @@ PolicyWeave is a local-first privacy-policy fact-authoring workspace. It structu
 
 ## Verification
 The minimum exact-head gate is `npm run lint`, `npm test`, and `npm run build`, plus every live organization-required workflow, independent approval, and resolved review thread. Queued, skipped, predecessor-head, or stale results are not passing evidence.
+
+## Know-how
+- Draft PRs cannot merge through the API: mark ready (`gh pr ready`), re-confirm exact-head CLEAN/MERGEABLE/verify GREEN with zero unresolved threads, then ordinary `--merge` without branch deletion or force-push.
+- Slow local executors flake Vitest's default 5s per-test timeout on full-workflow UI tests while exact-head CI stays GREEN. Use `npx vitest run --testTimeout=60000` for the local signal; CI `verify` is authoritative. Detail: `CLAUDE.md`.
