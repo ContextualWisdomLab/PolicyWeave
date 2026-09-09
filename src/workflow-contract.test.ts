@@ -11,3 +11,17 @@ describe('repository CI concurrency contract', () => {
     expect(workflowSource).toMatch(/cancel-in-progress:\s*true/)
   })
 })
+
+describe('repository dependency evidence contract', () => {
+  it('publishes a CycloneDX SBOM from the exact installed lock graph', () => {
+    expect(workflowSource).toMatch(
+      /name:\s*Generate exact-head dependency SBOM[\s\S]*npm sbom --sbom-format cyclonedx > dependency-evidence\/policyweave-dependency-sbom\.cdx\.json/,
+    )
+    expect(workflowSource).toMatch(
+      /name:\s*policyweave-dependency-sbom[\s\S]*path:\s*dependency-evidence\/policyweave-dependency-sbom\.cdx\.json/,
+    )
+    expect(workflowSource).toMatch(
+      /name:\s*policyweave-browser-evidence[\s\S]*path:\s*test-results/,
+    )
+  })
+})
