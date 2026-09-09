@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { AlertTriangle, Check, ChevronDown, ExternalLink, FileText, Link, Save } from 'lucide-react'
-import { DraftFacts, getCompletedSteps, getDraftReview, getReview, initialFacts, initialItems, isWebServiceUrl, PolicyItem, steps } from './policy'
+import { createPolicyExport, DraftFacts, getCompletedSteps, getDraftReview, getReview, initialFacts, initialItems, isWebServiceUrl, PolicyItem, steps } from './policy'
 
 type FactField = {
   key: keyof DraftFacts
@@ -48,6 +48,7 @@ function FactStep({ current, title, description, fields, facts, setFacts, setCur
   setFacts: (facts: DraftFacts) => void
   setCurrent: (step: number) => void
 }) {
+  /** Updates one fact and clears dependent facts when its owning state makes them inapplicable. */
   const update = (key: keyof DraftFacts, value: string) => {
     const next = { ...facts, [key]: value } as DraftFacts
     if (key === 'retentionStatus' && value !== 'applies') next.retentionPeriod = ''
@@ -80,7 +81,9 @@ function CollectionForm({ items, setItems, noCollectionAttested, setNoCollection
   setNoCollectionAttested: (attested: boolean) => void
   setCurrent: (step: number) => void
 }) {
+  /** Applies one collection-item patch while preserving every sibling item. */
   const update = (id: string, patch: Partial<PolicyItem>) => setItems(items.map((item) => item.id === id ? { ...item, ...patch } : item))
+  /** Enforces a no-collection attestation by clearing facts that would contradict it. */
   const setNoCollection = (attested: boolean) => {
     if (attested) setItems(items.map((item) => ({ ...item, enabled: false, purpose: '', detail: '', mode: '' })))
     setNoCollectionAttested(attested)
@@ -110,6 +113,7 @@ function CollectionForm({ items, setItems, noCollectionAttested, setNoCollection
 /** Captures processing purposes for collection items explicitly selected by the operator. */
 function PurposeForm({ items, setItems, noCollectionAttested, setCurrent }: { items: PolicyItem[]; setItems: (items: PolicyItem[]) => void; noCollectionAttested: boolean; setCurrent: (step: number) => void }) {
   const enabled = items.filter((item) => item.enabled)
+  /** Updates the processing purpose for one selected collection item only. */
   const updatePurpose = (id: string, purpose: string) => setItems(items.map((item) => item.id === id ? { ...item, purpose } : item))
   return <main className="form-panel">
     <header className="section-head"><h1>3. 처리 목적</h1><p>선택한 개인정보 항목마다 실제 처리 목적을 연결합니다. 목적이 없는 항목은 공개 검토를 통과할 수 없습니다.</p></header>
@@ -216,9 +220,29 @@ export default function App() {
   const completedSteps = useMemo(() => getCompletedSteps(items, noCollectionAttested, facts), [items, noCollectionAttested, facts])
   const blockingCount = collectionReview.blockingCount + draftFindings.length
   const [message, setMessage] = useState('')
+  /** Reports readiness for responsible review without claiming that a publication occurred. */
   function publish() { setMessage(blockingCount ? '필수 확인 항목을 먼저 입력하세요.' : '필수 확인이 완료되었습니다. 현재 검토본을 책임자와 검토하고 필요한 사실을 보완하세요.') }
+  /** Downloads the deterministic local export and revokes its object URL after activation. */
+  function exportDraft() {
+    let fileUrl: string | null = null
+    try {
+      fileUrl = URL.createObjectURL(new Blob([`${JSON.stringify(createPolicyExport(items, noCollectionAttested, facts), null, 2)}\n`], { type: 'application/json' }))
+      const downloadLink = document.createElement('a')
+      downloadLink.href = fileUrl
+      downloadLink.download = 'policyweave-draft.json'
+      downloadLink.click()
+      setMessage('')
+    } catch {
+      setMessage('JSON 파일을 내보내지 못했습니다. 다시 시도하세요.')
+    } finally {
+      if (fileUrl) {
+        const disposableFileUrl = fileUrl
+        setTimeout(() => URL.revokeObjectURL(disposableFileUrl), 0)
+      }
+    }
+  }
   return <div className="app-shell">
-    <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><span className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침</span><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><span className="save-state"><Check size={15} /> 브라우저 작업 중</span><button className="outline" disabled><Save size={15} /> JSON 내보내기 준비 중</button></header>
+    <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><span className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침</span><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><span className="save-state"><Check size={15} /> 브라우저 작업 중</span><button className="outline" onClick={exportDraft}><Save size={15} /> JSON 내보내기</button></header>
     <div className="workspace" id="top"><StepRail current={current} completedSteps={completedSteps} setCurrent={setCurrent} /><EditingPanel current={current} items={items} setItems={setItems} noCollectionAttested={noCollectionAttested} setNoCollectionAttested={setNoCollectionAttested} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /><DocumentPreview items={items} noCollectionAttested={noCollectionAttested} facts={facts} setCurrent={setCurrent} /></div>
     <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 준비 상태를 확인하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{blockingCount}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{collectionReview.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={blockingCount > 0}><Link size={16} /> 공개 준비 확인</button><output aria-live="polite">{message}</output></footer>
   </div>

@@ -14,6 +14,7 @@ PolicyWeave is a local-first privacy-policy fact-authoring workspace. It structu
 - Keep persistence objects semantically named with at least two words and `snake_case` unless a framework contract requires another convention. Avoid generic named persistence objects such as a standalone `id` table/collection.
 - Hosted persistence/publication must be introduced only behind explicit tenant, authorization, audit, encryption, immutable revision, and supersession contracts. CI PostgreSQL restart and dump/restore evidence lives in `db/tests/policy_revision_restore.sh` and does not enable a hosted adapter. Seed `retention_status = applies` only in the same transaction as its `retention_rule`; autocommit fails the deferred fact contract.
 - GitHub Actions dependencies stay SHA pinned and checkout credentials must not persist.
+- Direct npm dependencies stay pinned to their reviewed lock resolutions. Compiler and bundler packages belong in `devDependencies`, and exact-head CI publishes a CycloneDX dependency SBOM without treating license metadata as legal approval.
 
 ## Verification
 The minimum exact-head gate is `npm run lint`, `npm test`, and `npm run build`, plus every live organization-required workflow, independent approval, and resolved review thread. Queued, skipped, predecessor-head, or stale results are not passing evidence.
