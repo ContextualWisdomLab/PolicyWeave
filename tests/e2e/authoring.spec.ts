@@ -40,3 +40,22 @@ test('preserves keyboard context through the explicit no-collection path', async
   await expect(page.getByRole('heading', { level: 1, name: '3. 처리 목적' })).toBeFocused()
   await expect(page.getByText('개인정보를 수집하지 않음으로 확인되었습니다.')).toBeVisible()
 })
+
+test('keeps the owning step heading visible after keyboard navigation from a review warning', async ({ page }) => {
+  await page.goto('/')
+
+  const serviceWarning = page
+    .locator('.document-warning')
+    .filter({ hasText: '서비스 이름 확인이 필요합니다.' })
+    .getByRole('button', { name: '서비스 정보 확인', exact: true })
+  await serviceWarning.scrollIntoViewIfNeeded()
+  await serviceWarning.focus()
+  await page.keyboard.press('Enter')
+
+  const serviceHeading = page.getByRole('heading', { level: 1, name: '1. 서비스 정보' })
+  await expect(serviceHeading).toBeFocused()
+  const headingBounds = await serviceHeading.boundingBox()
+  expect(headingBounds).not.toBeNull()
+  expect(headingBounds!.y).toBeGreaterThanOrEqual(0)
+  expect(headingBounds!.y + headingBounds!.height).toBeLessThanOrEqual(page.viewportSize()!.height)
+})
