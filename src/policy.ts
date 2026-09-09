@@ -62,14 +62,22 @@ export const initialFacts: DraftFacts = {
 
 export const steps = ['서비스 정보', '수집 항목', '처리 목적', '보유 기간', '제3자 제공', '국외 이전', '개인정보 보호 담당자']
 
-/** Returns whether a service URL is an absolute HTTP(S) web location suitable for a buyer-facing policy target. */
-export function isWebServiceUrl(value: string) {
+/** Returns a canonical credential-free HTTP(S) service URL, or null when the address is not admissible. */
+function normalizeWebServiceUrl(value: string): string | null {
   try {
     const url = new URL(value)
-    return (url.protocol === 'https:' || url.protocol === 'http:') && Boolean(url.hostname) && !url.username && !url.password
+    if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname || url.username || url.password) return null
+    const normalized = url.toString()
+    if (normalized.includes('?') || normalized.includes('#')) return null
+    return normalized
   } catch {
-    return false
+    return null
   }
+}
+
+/** Returns whether a service URL is an absolute HTTP(S) web location suitable for a buyer-facing policy target. */
+export function isWebServiceUrl(value: string) {
+  return normalizeWebServiceUrl(value) !== null
 }
 
 /** Applies the minimal address-shape contract needed for a usable contact channel without claiming mailbox existence. */
@@ -93,6 +101,7 @@ export function getReview(items: PolicyItem[], noCollectionAttested = false) {
 /** Derives non-collection authoring findings without inferring retention state from collection state. */
 export function getDraftReview(facts: DraftFacts, _noCollectionAttested = false): DraftFinding[] {
   const findings: DraftFinding[] = []
+  /** Appends one stable finding only when its owning operator-authored value is blank. */
   const addWhenBlank = (value: string, code: string, step: number, label: string) => {
     if (!value.trim()) findings.push({ code, step, label })
   }
@@ -147,4 +156,98 @@ export function getCompletedSteps(items: PolicyItem[], noCollectionAttested: boo
   }
 
   return completed
+}
+
+
+/** Versioned local export of operator-authored policy facts and deterministic readiness evidence. */
+export type PolicyDraftExport = {
+  schema_version: 1
+  document_state: 'incomplete' | 'review_ready'
+  policy_facts: {
+    service_profile: {
+      service_name: string | null
+      service_url: string | null
+    }
+    no_collection_attested: boolean
+    collection_items: Array<{
+      collection_item_key: string
+      collection_item_label: string
+      collection_mode: Exclude<CollectionMode, ''> | null
+      collection_path: string | null
+      processing_purpose: string | null
+    }>
+    retention: {
+      retention_status: Exclude<RetentionStatus, ''> | null
+      retention_period: string | null
+    }
+    third_party_transfer: {
+      transfer_status: Exclude<DisclosureStatus, ''> | null
+      recipient_name: string | null
+      transfer_purpose: string | null
+    }
+    international_transfer: {
+      transfer_status: Exclude<DisclosureStatus, ''> | null
+      destination_country: string | null
+      recipient_name: string | null
+    }
+    privacy_contact: {
+      contact_name: string | null
+      contact_email: string | null
+    }
+  }
+  review_finding_codes: string[]
+}
+
+/** Creates a deterministic draft export without network access, inferred facts, or credential-bearing service URLs. */
+export function createPolicyExport(items: PolicyItem[], noCollectionAttested: boolean, facts: DraftFacts): PolicyDraftExport {
+  /** Normalizes optional human-entered text without inventing a non-empty fact. */
+  const trimOrNull = (value: string) => value.trim() || null
+  const collectionReview = getReview(items, noCollectionAttested)
+  const reviewFindingCodes = [
+    ...(collectionReview.selectionMissing ? ['collection_selection'] : []),
+    ...(collectionReview.collectionContradiction ? ['collection_contradiction'] : []),
+    ...collectionReview.modeBlocking.map((item) => `collection_mode:${item.id}`),
+    ...collectionReview.pathBlocking.map((item) => `collection_path:${item.id}`),
+    ...collectionReview.blocking.map((item) => `processing_purpose:${item.id}`),
+    ...getDraftReview(facts, noCollectionAttested).map((finding) => finding.code),
+  ]
+  const serviceUrl = facts.serviceUrl.trim()
+
+  return {
+    schema_version: 1,
+    document_state: reviewFindingCodes.length === 0 ? 'review_ready' : 'incomplete',
+    policy_facts: {
+      service_profile: {
+        service_name: trimOrNull(facts.serviceName),
+        service_url: normalizeWebServiceUrl(serviceUrl),
+      },
+      no_collection_attested: noCollectionAttested,
+      collection_items: collectionReview.enabled.map((item) => ({
+        collection_item_key: item.id,
+        collection_item_label: item.label,
+        collection_mode: item.mode || null,
+        collection_path: trimOrNull(item.detail ?? ''),
+        processing_purpose: trimOrNull(item.purpose),
+      })),
+      retention: {
+        retention_status: facts.retentionStatus || null,
+        retention_period: facts.retentionStatus === 'applies' ? trimOrNull(facts.retentionPeriod) : null,
+      },
+      third_party_transfer: {
+        transfer_status: facts.thirdPartyStatus || null,
+        recipient_name: facts.thirdPartyStatus === 'yes' ? trimOrNull(facts.thirdPartyRecipient) : null,
+        transfer_purpose: facts.thirdPartyStatus === 'yes' ? trimOrNull(facts.thirdPartyPurpose) : null,
+      },
+      international_transfer: {
+        transfer_status: facts.internationalStatus || null,
+        destination_country: facts.internationalStatus === 'yes' ? trimOrNull(facts.internationalCountry) : null,
+        recipient_name: facts.internationalStatus === 'yes' ? trimOrNull(facts.internationalRecipient) : null,
+      },
+      privacy_contact: {
+        contact_name: trimOrNull(facts.privacyOfficerName),
+        contact_email: trimOrNull(facts.privacyOfficerEmail),
+      },
+    },
+    review_finding_codes: reviewFindingCodes,
+  }
 }

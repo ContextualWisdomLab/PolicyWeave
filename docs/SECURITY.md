@@ -26,7 +26,11 @@ Protected assets include policy facts, contact details, processing descriptions,
 6. Validate and encode user-entered content at output boundaries; do not treat imported HTML/Markdown/source material as executable instructions.
 7. Define backup/restore, incident response, access review, retention/deletion, and evidence collection before claiming SOC 2 readiness. Map hosted controls toward CSAP and SOC 2 without describing an unassessed product as certified.
 8. Tests/docs use fictionalized organizations and people; real personal/institutional names are not fixtures.
-9. Credential-bearing service URLs are invalid and are withheld from the review projection; operators must provide a credential-free HTTP(S) location.
+9. Service URLs containing credentials, query, or fragment components are invalid and withheld from the review projection; operators must provide a credential-free HTTP(S) location whose destination can be exported without lossy rewriting.
 
 ## Verification
 Security posture is head-specific. A successful predecessor scan, unresolved finding dismissal, or queued security workflow is not passing evidence. Merge/release decisions must reacquire the exact current head's organization-required security/SAST/review checks.
+
+
+## Local JSON export
+The export path serializes only the current in-memory PolicyWeave draft and deterministic readiness codes into a browser Blob. It makes no network request, uses a fixed filename rather than customer-controlled path text, and defers object-URL revocation until the next task after initiating the download so browsers with deferred navigation can consume the Blob. If local download preparation or activation throws, the exception is contained and the existing live status output directs the operator to retry. A temporary object URL is revoked exactly when allocation succeeded; preparation failure before allocation has no fabricated cleanup target. A service URL containing username, password, query, or fragment components is omitted from the file and remains represented by the `service_url_format` finding. The same shared validator withholds it from preview and readiness, preventing token disclosure and destination-changing rewrites. The file is still customer-controlled sensitive data; operators remain responsible for its storage and transfer. This control is not encryption, persistence, publication, backup, authorization, or mid-transfer cancellation evidence.

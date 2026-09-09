@@ -1,9 +1,18 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
-afterEach(cleanup)
+const originalCreateObjectUrl = URL.createObjectURL
+const originalRevokeObjectUrl = URL.revokeObjectURL
+
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
+  vi.useRealTimers()
+  expect(URL.createObjectURL).toBe(originalCreateObjectUrl)
+  expect(URL.revokeObjectURL).toBe(originalRevokeObjectUrl)
+})
 
 function openCollectionStep(container: HTMLElement) {
   fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[1])
@@ -67,12 +76,40 @@ describe('policy editing workflow', () => {
     expect(reviewDraft).toContain('서비스 URL 형식')
   })
 
-  it('아직 제공하지 않는 내보내기와 생성 기능을 클릭 가능한 동작처럼 노출하지 않는다', () => {
+  it('query 또는 fragment가 있는 서비스 URL은 다른 위치로 재작성하지 않고 수정 대상으로 남긴다', () => {
+    const { container } = render(<App />)
+    const serviceUrl = container.querySelector<HTMLInputElement>('input[name="serviceUrl"]')!
+
+    for (const value of ['https://example.test/app?tenant=acme', 'https://example.test/#/privacy']) {
+      fireEvent.change(serviceUrl, { target: { value } })
+      const reviewDraft = container.querySelector('.paper')?.textContent ?? ''
+      expect(reviewDraft).not.toContain(value)
+      expect(reviewDraft).toContain('서비스 URL 형식')
+    }
+  })
+
+  it('작성 사실을 JSON 파일로 로컬 내보내고 제공하지 않는 생성 기능은 노출하지 않는다', () => {
+    vi.useFakeTimers()
+    const createObjectUrl = vi.spyOn(URL, 'createObjectURL').mockImplementation((fileBlob) => {
+      void fileBlob
+      return 'blob:policyweave-draft'
+    })
+    const revokeObjectUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
+    const clickDownload = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
+
     const { container } = render(<App />)
     const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>('button'))
     const exportButton = buttons.find((button) => button.textContent?.includes('JSON 내보내기'))
-    expect(exportButton?.disabled).toBe(true)
-    expect(exportButton?.textContent).toContain('준비 중')
+    expect(exportButton?.disabled).toBe(false)
+    expect(exportButton?.textContent).not.toContain('준비 중')
+
+    fireEvent.click(exportButton!)
+    expect(createObjectUrl).toHaveBeenCalledOnce()
+    expect(createObjectUrl.mock.calls[0][0]).toBeInstanceOf(Blob)
+    expect(clickDownload).toHaveBeenCalledOnce()
+    expect(revokeObjectUrl).not.toHaveBeenCalled()
+    vi.runAllTimers()
+    expect(revokeObjectUrl).toHaveBeenCalledWith('blob:policyweave-draft')
     expect(buttons.find((button) => button.textContent?.includes('개인정보처리방침'))).toBeUndefined()
     expect(container.querySelector('.document-name')?.tagName).toBe('SPAN')
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.preview button')).some((button) => button.textContent?.includes('검토본 생성'))).toBe(false)
