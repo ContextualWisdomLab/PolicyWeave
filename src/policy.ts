@@ -1,7 +1,11 @@
+/** Operator-selected collection basis for one collection item; empty means the operator has not confirmed a basis yet. */
 export type CollectionMode = '' | '필수' | '선택'
+/** Operator-attested transfer state; empty means the operator has not confirmed either outcome yet. */
 export type DisclosureStatus = '' | 'yes' | 'no'
+/** Operator-attested retention state; empty means the operator has not confirmed either outcome yet. */
 export type RetentionStatus = '' | 'applies' | 'none'
 
+/** One authorable personal-data collection item with its operator-established mode, purpose, and path evidence. */
 export type PolicyItem = {
   id: string
   label: string
@@ -12,6 +16,7 @@ export type PolicyItem = {
   detail?: string
 }
 
+/** Operator-authored non-collection facts for the seven-step workspace; blank means unresolved, never none. */
 export type DraftFacts = {
   serviceName: string
   serviceUrl: string
@@ -27,12 +32,14 @@ export type DraftFacts = {
   privacyOfficerEmail: string
 }
 
+/** One product-defined authoring gap that blocks readiness until its owning step resolves it. */
 export type DraftFinding = {
   code: string
   step: number
   label: string
 }
 
+/** Fresh-workspace collection catalog; every item starts disabled with no inferred mode or purpose. */
 export const initialItems: PolicyItem[] = [
   { id: 'name', label: '이름', description: '서비스 이용자 식별', purpose: '', enabled: false, mode: '' },
   { id: 'email', label: '이메일 주소', description: '계정 식별, 로그인, 중요 고지 수신', purpose: '', enabled: false, mode: '' },
@@ -45,6 +52,7 @@ export const initialItems: PolicyItem[] = [
   { id: 'content', label: '게시물 및 문의 내용', description: '게시 기능, 고객 문의 처리', purpose: '', enabled: false, mode: '' },
 ]
 
+/** Fresh-workspace fact state; every value starts blank so readiness fails closed until the operator establishes it. */
 export const initialFacts: DraftFacts = {
   serviceName: '',
   serviceUrl: '',
@@ -60,6 +68,7 @@ export const initialFacts: DraftFacts = {
   privacyOfficerEmail: '',
 }
 
+/** Ordered seven authoring responsibilities, from service information through the privacy contact. */
 export const steps = ['서비스 정보', '수집 항목', '처리 목적', '보유 기간', '제3자 제공', '국외 이전', '개인정보 보호 담당자']
 
 /** Returns a canonical credential-free HTTP(S) service URL, or null when the address is not admissible. */
