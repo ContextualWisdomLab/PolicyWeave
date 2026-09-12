@@ -94,11 +94,26 @@ function isContactEmail(value: string) {
   return /^[^\s@]+@[^\s@]+$/.test(value)
 }
 
+/** Admits only the two operator-confirmed collection modes; truthiness and coercion are not evidence. */
+function isConfirmedCollectionMode(value: unknown): value is Exclude<CollectionMode, ''> {
+  return value === '필수' || value === '선택'
+}
+
+/** Admits only an explicit positive or negative transfer attestation at runtime. */
+function isConfirmedDisclosureStatus(value: unknown): value is Exclude<DisclosureStatus, ''> {
+  return value === 'yes' || value === 'no'
+}
+
+/** Admits only an explicit retention attestation, independently of collection state. */
+function isConfirmedRetentionStatus(value: unknown): value is Exclude<RetentionStatus, ''> {
+  return value === 'applies' || value === 'none'
+}
+
 /** Derives deterministic readiness findings from operator-confirmed collection facts and an explicit no-collection attestation. */
 export function getReview(items: PolicyItem[], noCollectionAttested = false) {
   const enabled = items.filter((item) => item.enabled)
   const blocking = enabled.filter((item) => !item.purpose.trim())
-  const modeBlocking = enabled.filter((item) => !item.mode)
+  const modeBlocking = enabled.filter((item) => !isConfirmedCollectionMode(item.mode))
   const pathBlocking = enabled.filter((item) => !item.detail?.trim())
   const selectionMissing = enabled.length === 0 && !noCollectionAttested
   const collectionContradiction = noCollectionAttested && enabled.length > 0
@@ -120,20 +135,20 @@ export function getDraftReview(facts: DraftFacts, _noCollectionAttested = false)
   if (!serviceUrl) findings.push({ code: 'service_url', step: 1, label: '서비스 URL' })
   else if (!isWebServiceUrl(serviceUrl)) findings.push({ code: 'service_url_format', step: 1, label: '서비스 URL 형식' })
 
-  if (!facts.retentionStatus) {
+  if (!isConfirmedRetentionStatus(facts.retentionStatus)) {
     findings.push({ code: 'retention_status', step: 4, label: '개인정보 보유 여부' })
   } else if (facts.retentionStatus === 'applies') {
     addWhenBlank(facts.retentionPeriod, 'retention_period', 4, '보유 기간')
   }
 
-  if (!facts.thirdPartyStatus) {
+  if (!isConfirmedDisclosureStatus(facts.thirdPartyStatus)) {
     findings.push({ code: 'third_party_status', step: 5, label: '제3자 제공 여부' })
   } else if (facts.thirdPartyStatus === 'yes') {
     addWhenBlank(facts.thirdPartyRecipient, 'third_party_recipient', 5, '제3자 제공받는 자')
     addWhenBlank(facts.thirdPartyPurpose, 'third_party_purpose', 5, '제3자 제공 목적')
   }
 
-  if (!facts.internationalStatus) {
+  if (!isConfirmedDisclosureStatus(facts.internationalStatus)) {
     findings.push({ code: 'international_status', step: 6, label: '국외 이전 여부' })
   } else if (facts.internationalStatus === 'yes') {
     addWhenBlank(facts.internationalCountry, 'international_country', 6, '이전 국가')
@@ -234,21 +249,21 @@ export function createPolicyExport(items: PolicyItem[], noCollectionAttested: bo
       collection_items: collectionReview.enabled.map((item) => ({
         collection_item_key: item.id,
         collection_item_label: item.label,
-        collection_mode: item.mode || null,
+        collection_mode: isConfirmedCollectionMode(item.mode) ? item.mode : null,
         collection_path: trimOrNull(item.detail ?? ''),
         processing_purpose: trimOrNull(item.purpose),
       })),
       retention: {
-        retention_status: facts.retentionStatus || null,
+        retention_status: isConfirmedRetentionStatus(facts.retentionStatus) ? facts.retentionStatus : null,
         retention_period: facts.retentionStatus === 'applies' ? trimOrNull(facts.retentionPeriod) : null,
       },
       third_party_transfer: {
-        transfer_status: facts.thirdPartyStatus || null,
+        transfer_status: isConfirmedDisclosureStatus(facts.thirdPartyStatus) ? facts.thirdPartyStatus : null,
         recipient_name: facts.thirdPartyStatus === 'yes' ? trimOrNull(facts.thirdPartyRecipient) : null,
         transfer_purpose: facts.thirdPartyStatus === 'yes' ? trimOrNull(facts.thirdPartyPurpose) : null,
       },
       international_transfer: {
-        transfer_status: facts.internationalStatus || null,
+        transfer_status: isConfirmedDisclosureStatus(facts.internationalStatus) ? facts.internationalStatus : null,
         destination_country: facts.internationalStatus === 'yes' ? trimOrNull(facts.internationalCountry) : null,
         recipient_name: facts.internationalStatus === 'yes' ? trimOrNull(facts.internationalRecipient) : null,
       },
