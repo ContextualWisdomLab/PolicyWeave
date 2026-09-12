@@ -3,6 +3,20 @@
 ## Current exposure
 PolicyWeave is currently a client-only, local-first authoring workspace. There is no production account system, server-side persistence, publication service, or secret-bearing provider integration in this repository. This limits current remote data exposure but does not make the product compliant or production-ready.
 
+## Local preview listener
+The default `npm run dev` and `npm run preview` scripts bind explicitly to
+`127.0.0.1`; they are local evaluation servers, not production hosting or
+identity/authorization services. Do not broaden the listener, allow arbitrary
+hosts, or disable origin protections as an onboarding workaround. Deliberate
+remote development requires a separately reviewed network and access-control
+configuration. A loopback listener does not prove protection from local processes
+or replace browser-origin controls.
+
+`npm test` runs `tests/local_preview_contract.mjs` through `pretest` before the
+existing Vitest suite. That check binds the script arguments and README security
+link to their source contracts; it is not a running-server or penetration test.
+See [the repair evidence](doctoring/local-preview-readme-boundary.md).
+
 ## Assets and trust boundaries
 Protected assets include policy facts, contact details, processing descriptions, legal/rule source receipts, review findings, audit events, and future publication artifacts. Browser state is trusted only for the active local editing session. Any future API, datastore, identity provider, legal-source feed, or customer system is an explicit external boundary and requires an ACL/adapter.
 
