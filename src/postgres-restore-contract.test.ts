@@ -1,0 +1,56 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { describe, expect, it } from 'vitest'
+
+const workflowPath = fileURLToPath(new URL('../.github/workflows/ci.yml', import.meta.url))
+const restorePath = fileURLToPath(new URL('../db/tests/policy_revision_restore.sh', import.meta.url))
+
+const workflowSource = readFileSync(workflowPath, 'utf8')
+const restoreTest = existsSync(restorePath) ? readFileSync(restorePath, 'utf8') : ''
+
+describe('PostgreSQL restart and restore evidence contract', () => {
+  it('restarts the digest-pinned PostgreSQL service and reconnects without fabricated delays', () => {
+    expect(restoreTest).toContain('docker restart')
+    expect(restoreTest).toContain('pg_isready')
+    expect(restoreTest).toContain('checkpoint')
+    expect(restoreTest).not.toContain('pg_sleep')
+    expect(restoreTest).not.toContain('sleep 5')
+  })
+
+  it('restores a custom dump after rollback and keeps collection independent from retention', () => {
+    expect(restoreTest).toContain('--format=custom')
+    expect(restoreTest).toContain('0001_policy_revision.down.sql')
+    expect(restoreTest).toContain('pg_restore')
+    expect(restoreTest).toContain("no_collection_confirmed = true")
+    expect(restoreTest).toContain("retention_status = 'none'")
+    expect(restoreTest).toContain("retention_status = 'applies'")
+    expect(restoreTest).toMatch(
+      /stored_item_mode[\s\S]*stored_item_path[\s\S]*stored_item_mode is distinct from 'required'[\s\S]*stored_item_path is distinct from 'Account registration form'/i,
+    )
+    expect(restoreTest).toContain("stored_service_url is distinct from 'https://restore.example.test'")
+    expect(restoreTest).toContain('collection_without_retention_count <> 1')
+    expect(restoreTest).toContain(
+      "60000000-0000-4000-8000-000000000003', '50000000-0000-4000-8000-000000000001', 3, 'none'",
+    )
+    expect(restoreTest).toMatch(
+      /upsert_collection_item\(\s*'60000000-0000-4000-8000-000000000003',\s*'support_email'/,
+    )
+    expect(restoreTest).toMatch(
+      /revision\.policy_revision_id = '60000000-0000-4000-8000-000000000003'[\s\S]*?revision\.no_collection_confirmed = false[\s\S]*?revision\.retention_status = 'none'[\s\S]*?item\.collection_item_key = 'support_email'/,
+    )
+    expect(restoreTest).toContain('no-collection confirmation conflicts with collection items')
+    expect(workflowSource).toContain('run: sh db/tests/policy_revision_restore.sh')
+  })
+
+  it('commits applies retention only after the required rule exists in the same transaction', () => {
+    const appliesIndex = restoreTest.indexOf("1, 'applies'")
+    const beginIndex = restoreTest.lastIndexOf('begin;', appliesIndex)
+    const ruleIndex = restoreTest.indexOf('insert into retention_rule', appliesIndex)
+    const commitIndex = restoreTest.indexOf('commit;', Math.max(appliesIndex, ruleIndex))
+    expect(appliesIndex).toBeGreaterThan(-1)
+    expect(beginIndex).toBeGreaterThan(-1)
+    expect(beginIndex).toBeLessThan(appliesIndex)
+    expect(ruleIndex).toBeGreaterThan(appliesIndex)
+    expect(commitIndex).toBeGreaterThan(ruleIndex)
+  })
+})
