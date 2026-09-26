@@ -50,6 +50,8 @@ Test-only commit `86d370b1` produced five intended failures while seven existing
 
 Browser contract `95b34a18` exercises a real download/restore round trip, visible focus, and invalid-file state preservation. Hosted exact-head CI execution of that contract, security workflows, and independent review remain required after the final integrated head is pushed. Local results do not authorize merge or publication.
 
+Review repair test-only commit `15aec429c068c64af6c396f7a01f09875400017c` reproduced both later findings: the documentation-index contract failed on the nonexistent root Security target, and the pending-read UI contract failed because the import and service-name inputs remained enabled. Implementation/docs commit `f55f640091991d15718f7f9f92fb6b606b322177` uses the native disabled-fieldset contract and a disabled import input, releases both in `finally`, and corrects the relative link. Exact tree `cde2309b7810c76bca018d487520c34ac0717385` passed six Node documentation/configuration contracts, 174 Vitest cases in 16 files, ESLint, the TypeScript/Vite production build, and diff checking locally. Hosted current-head browser/security results and qualifying approval remain separate merge gates.
+
 ## Consequences and follow-up
 
 PolicyWeave now owns a deterministic local export/restore round trip for schema-v1. This closes the missing current-version return path, not version migration. Any schema-v2 work must define explicit migration, loss reporting, compatibility fixtures, and rollback behavior. DB-backed versioned ko/en/ja/zh/vi/es/de/fr resources remain a separate owner contract; schema-v1 catalog-label identity must not be relaxed by embedding a full translation catalog in the browser.
