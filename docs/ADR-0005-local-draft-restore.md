@@ -33,7 +33,7 @@ This decision does not introduce hosted persistence, publication, legal approval
 
 `restorePolicyExport(unknown)` validates the exact schema-v1 object graph and reconstructs browser workspace state only from admitted facts. The canonical built-in collection catalog supplies label and description authority; the file may select catalog keys and supply their operator-authored mode, path, and purpose, but may not define new items or rename existing ones.
 
-After reconstruction, PolicyWeave runs `createPolicyExport` again. Imported `document_state` and ordered `review_finding_codes` must match the recomputed result. The UI reads at most one 1 MiB local file, disables the import input and authoring fieldset while reading and validating, and exposes a keyboard-operable cancel action outside that fieldset. Each attempt owns a monotonically invalidated token. Success, error, and cleanup effects run only for the current token, so cancellation immediately unlocks the unchanged workspace and a late result cannot apply. This logical cancellation does not claim that the browser stopped the underlying file read.
+After reconstruction, PolicyWeave runs `createPolicyExport` again. Imported `document_state` and ordered `review_finding_codes` must match the recomputed result. The UI reads at most one 1 MiB local file, disables the import input and authoring fieldset while reading and validating, and exposes a keyboard-operable cancel action outside that fieldset. Each attempt owns a monotonically invalidated token. Success, error, and cleanup effects run only for the current token, so cancellation immediately unlocks the unchanged workspace, moves focus from the removed cancel button to the current step's first enabled authoring control, and prevents a late result from applying. This logical cancellation does not claim that the browser stopped the underlying file read.
 
 ## User, operations, and failure scenes
 
@@ -43,7 +43,7 @@ After reconstruction, PolicyWeave runs `createPolicyExport` again. Imported `doc
 - A file with an unknown collection key, duplicate key, mismatched label, non-canonical string/URL, uppercase status, extra property, or contradictory no-collection state is rejected with bounded user guidance rather than partially applied.
 - A file larger than 1 MiB is rejected before JSON parsing. The limit bounds local memory/parse work; it is not a general upload or denial-of-service guarantee.
 - While a selected file is still being read, authoring inputs cannot accept changes that a later successful restore would overwrite. A failed read or validation unlocks the unchanged workspace for correction and retry.
-- An operator cancels a stalled read, hears the cancellation through the existing live output, resumes editing immediately, and is not overwritten when the old browser promise later resolves.
+- An operator cancels a stalled read, hears the cancellation through the existing live output, resumes editing from the current step's first enabled control instead of losing focus to the document, and is not overwritten when the old browser promise later resolves.
 
 ## Evidence
 
@@ -58,6 +58,8 @@ Pending-feedback test-only commit `3e2eba61e7e4f02c5ac8b3f9ee23895d515a37b3` the
 Semantic-fieldset test-only commit `52d252a2c0c46b12c6cecdebd3dcc67940322bde` reproduced the remaining accessibility risk by failing while `.editing-lock` used `display: contents`. Implementation `9d540895569ab945a087bed99c7d4906b82ae532` keeps the native disabled/`aria-busy` fieldset as the middle grid item, resets only its user-agent box, and gives the contained editing panel the grid item's height so bounded scrolling remains available. Focused style/import validation passed 10/10 locally; hosted browser and assistive-technology evidence remain separate gates.
 
 Cancellation test-only commit `d442ebd` reproduces the missing cancel action while a controlled `File.text()` promise remains pending and specifies that the current facts, live message, and unlocked controls survive a late valid result. It also adds one desktop Chromium keyboard/live-region contract. Minimal implementation `7684c0e` gives each attempt a ref-backed token, gates success/error/finally effects on that token, and clears the file input when cancellation invalidates it. The focused Vitest import matrix passed 5/5 locally. Chromium execution remains a hosted exact-head gate because the local Playwright browser binary is unavailable.
+
+CodeRabbit exact-head review finding `4111539873` identified that removing the focused cancel button left keyboard focus on the document. Test-only commit `e75f8b463b9781bc2defe0ba7f98e46ff1fb7afd` adds jsdom and desktop Chromium assertions for returning focus to the active service-name input; the focused Vitest matrix failed 1/5 with `document.activeElement` equal to `body`. The minimal repair scopes a ref to the authoring fieldset and, after React unlocks it, focuses its first enabled input, select, textarea, or button. Local verification on the final tree passed documentation/configuration contracts 6/6, Vitest 176/176, ESLint, TypeScript/Vite build, and diff checking. Hosted exact-head browser evidence and independent approval remain separate gates.
 
 ## Consequences and follow-up
 
