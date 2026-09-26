@@ -62,6 +62,40 @@ describe('policy draft import UI', () => {
     expect(container.querySelector<HTMLInputElement>('input[name="serviceName"]')?.matches(':disabled')).toBe(false)
   })
 
+  it('cancels a pending read and ignores its late result', async () => {
+    const exported = createPolicyExport(initialItems, true, {
+      ...initialFacts,
+      serviceName: 'Late Restore',
+      serviceUrl: 'https://restored.example.test/privacy',
+      retentionStatus: 'none',
+      thirdPartyStatus: 'no',
+      internationalStatus: 'no',
+      privacyOfficerName: 'Privacy Team',
+      privacyOfficerEmail: 'privacy@example.test',
+    })
+    let completeRead!: (contents: string) => void
+    const contents = new Promise<string>((resolve) => { completeRead = resolve })
+    const file = new File(['pending'], 'policyweave-draft.json', { type: 'application/json' })
+    Object.defineProperty(file, 'text', { value: () => contents })
+    const { container, getByRole } = render(<App />)
+    const serviceName = container.querySelector<HTMLInputElement>('input[name="serviceName"]')!
+    const importInput = container.querySelector<HTMLInputElement>('input[aria-label="JSON \uCD08\uC548 \uAC00\uC838\uC624\uAE30"]')!
+
+    fireEvent.change(serviceName, { target: { value: 'Current Work' } })
+    fireEvent.change(importInput, { target: { files: [file] } })
+    fireEvent.click(getByRole('button', { name: 'JSON \uAC00\uC838\uC624\uAE30 \uCDE8\uC18C' }))
+
+    expect(importInput.matches(':disabled')).toBe(false)
+    expect(serviceName.matches(':disabled')).toBe(false)
+    expect(serviceName.value).toBe('Current Work')
+    expect(container.querySelector('output')?.textContent).toContain('\uAC00\uC838\uC624\uAE30\uB97C \uCDE8\uC18C\uD588\uC2B5\uB2C8\uB2E4')
+
+    completeRead(JSON.stringify(exported))
+    await waitFor(() => expect(serviceName.value).toBe('Current Work'))
+    expect(container.querySelector('.document-name')?.textContent).not.toContain('Late Restore')
+    expect(container.querySelector('output')?.textContent).not.toContain('\uCD08\uC548\uC744 \uBD88\uB7EC\uC654\uC2B5\uB2C8\uB2E4')
+  })
+
   it('keeps current facts unchanged when an imported file fails validation', async () => {
     const { container } = render(<App />)
     fireEvent.change(container.querySelector<HTMLInputElement>('input[name="serviceName"]')!, { target: { value: 'Existing Service' } })
