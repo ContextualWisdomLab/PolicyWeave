@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import { createPolicyExport, initialFacts, initialItems } from './policy'
+import { createPolicyExport, initialFacts, initialItems, restorePolicyExport } from './policy'
 
 describe('policy JSON export', () => {
   it('projects normalized operator facts into a deterministic versioned draft', () => {
@@ -130,5 +130,108 @@ describe('policy JSON export', () => {
     expect(exported.policy_facts.service_profile.service_url).toBeNull()
     expect(exported.review_finding_codes).toContain('service_url_format')
     expect(JSON.stringify(exported)).not.toContain('operator:secret')
+  })
+})
+
+describe('policy JSON import', () => {
+  const readyItems = initialItems.map((item) => item.id === 'email'
+    ? { ...item, enabled: true, mode: '\uD544\uC218' as const, purpose: 'Account access', detail: 'Signup form' }
+    : item)
+  const readyFacts = {
+    ...initialFacts,
+    serviceName: 'Buyer Portal',
+    serviceUrl: 'https://buyer.example.test/privacy',
+    retentionStatus: 'none' as const,
+    thirdPartyStatus: 'no' as const,
+    internationalStatus: 'no' as const,
+    privacyOfficerName: 'Privacy Team',
+    privacyOfficerEmail: 'privacy@example.test',
+  }
+
+  it('restores a schema-v1 export without trusting presentation labels', () => {
+    const exported = createPolicyExport(readyItems, false, readyFacts)
+
+    const restored = restorePolicyExport(exported)
+
+    expect(restored.noCollectionAttested).toBe(false)
+    expect(restored.facts).toEqual(readyFacts)
+    expect(restored.items.find((item) => item.id === 'email')).toMatchObject({
+      label: '\uC774\uBA54\uC77C \uC8FC\uC18C',
+      enabled: true,
+      mode: '\uD544\uC218',
+      purpose: 'Account access',
+      detail: 'Signup form',
+    })
+    expect(restored.items.filter((item) => item.enabled).map((item) => item.id)).toEqual(['email'])
+  })
+
+  it('rejects fabricated readiness and finding evidence', () => {
+    const incomplete = createPolicyExport(initialItems, false, initialFacts)
+
+    expect(() => restorePolicyExport({ ...incomplete, document_state: 'review_ready' })).toThrow('document_state')
+    expect(() => restorePolicyExport({ ...incomplete, review_finding_codes: [] })).toThrow('review_finding_codes')
+  })
+
+  it('rejects unsupported versions, unknown fields, duplicate items, and unknown item keys', () => {
+    const exported = createPolicyExport(readyItems, false, readyFacts)
+
+    expect(() => restorePolicyExport({ ...exported, schema_version: 2 })).toThrow('schema_version')
+    expect(() => restorePolicyExport({ ...exported, unexpected: true })).toThrow('root')
+    expect(() => restorePolicyExport({
+      ...exported,
+      policy_facts: {
+        ...exported.policy_facts,
+        collection_items: [
+          ...exported.policy_facts.collection_items,
+          exported.policy_facts.collection_items[0],
+        ],
+      },
+    })).toThrow('duplicate')
+    expect(() => restorePolicyExport({
+      ...exported,
+      policy_facts: {
+        ...exported.policy_facts,
+        collection_items: [{
+          ...exported.policy_facts.collection_items[0],
+          collection_item_key: 'shadow_identifier',
+        }],
+      },
+    })).toThrow('collection_item_key')
+  })
+
+  it('rejects a collection label mismatch and contradictory no-collection facts', () => {
+    const exported = createPolicyExport(readyItems, false, readyFacts)
+    const [email] = exported.policy_facts.collection_items
+
+    expect(() => restorePolicyExport({
+      ...exported,
+      policy_facts: {
+        ...exported.policy_facts,
+        collection_items: [{ ...email, collection_item_label: 'Phone number' }],
+      },
+    })).toThrow('collection_item_label')
+    expect(() => restorePolicyExport({
+      ...exported,
+      policy_facts: { ...exported.policy_facts, no_collection_attested: true },
+    })).toThrow('no_collection_attested')
+  })
+
+  it('rejects wrong runtime types instead of coercing imported values', () => {
+    const exported = createPolicyExport(readyItems, false, readyFacts)
+
+    expect(() => restorePolicyExport({
+      ...exported,
+      policy_facts: {
+        ...exported.policy_facts,
+        retention: { ...exported.policy_facts.retention, retention_status: 'NONE' },
+      },
+    })).toThrow('retention_status')
+    expect(() => restorePolicyExport({
+      ...exported,
+      policy_facts: {
+        ...exported.policy_facts,
+        service_profile: { ...exported.policy_facts.service_profile, service_name: 42 },
+      },
+    })).toThrow('service_name')
   })
 })
