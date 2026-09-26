@@ -49,10 +49,15 @@ describe('policy draft import UI', () => {
     fireEvent.change(importInput, { target: { files: [file] } })
 
     expect(importInput.matches(':disabled')).toBe(true)
+    expect(importInput.closest('.file-control')?.getAttribute('aria-disabled')).toBe('true')
+    expect(container.querySelector('.save-state')?.getAttribute('aria-live')).toBe('polite')
+    expect(container.querySelector('.save-state')?.textContent).toContain('JSON \uCD08\uC548 \uD655\uC778 \uC911')
     expect(container.querySelector<HTMLInputElement>('input[name="serviceName"]')?.matches(':disabled')).toBe(true)
 
     completeRead(JSON.stringify(exported))
     await waitFor(() => expect(container.querySelector('.document-name')?.textContent).toContain('Restored Portal'))
+    expect(importInput.closest('.file-control')?.getAttribute('aria-disabled')).toBe('false')
+    expect(container.querySelector('.save-state')?.textContent).toContain('\uBE0C\uB77C\uC6B0\uC800 \uC791\uC5C5 \uC911')
     expect(container.querySelector<HTMLInputElement>('input[name="serviceName"]')?.matches(':disabled')).toBe(false)
   })
 
