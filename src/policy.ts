@@ -222,6 +222,151 @@ export type PolicyDraftExport = {
   review_finding_codes: string[]
 }
 
+/** Browser-workspace state restored from a fully validated schema-v1 draft export. */
+export type RestoredPolicyDraft = {
+  items: PolicyItem[]
+  noCollectionAttested: boolean
+  facts: DraftFacts
+}
+
+type JsonRecord = Record<string, unknown>
+
+/** Requires one JSON object with exactly the named schema-v1 properties. */
+function requireRecord(value: unknown, path: string, keys: string[]): JsonRecord {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error(`${path} must be an object`)
+  const record = value as JsonRecord
+  const actualKeys = Object.keys(record).sort()
+  const expectedKeys = [...keys].sort()
+  if (actualKeys.length !== expectedKeys.length || actualKeys.some((key, index) => key !== expectedKeys[index])) {
+    throw new Error(`${path} has unknown or missing fields`)
+  }
+  return record
+}
+
+/** Reads a nullable string without coercing numbers, booleans, arrays, or objects. */
+function requireNullableString(record: JsonRecord, key: string, path: string): string | null {
+  const value = record[key]
+  if (value !== null && typeof value !== 'string') throw new Error(`${path}.${key} must be a string or null`)
+  return value as string | null
+}
+
+/** Reads a nullable closed-vocabulary member without case, whitespace, or type coercion. */
+function requireNullableMember<T extends string>(record: JsonRecord, key: string, path: string, members: readonly T[]): T | null {
+  const value = record[key]
+  if (value !== null && (typeof value !== 'string' || !members.includes(value as T))) {
+    throw new Error(`${path}.${key} is unsupported`)
+  }
+  return value as T | null
+}
+
+/** Restores a schema-v1 draft only after exact-shape, invariant, and derived-evidence validation. */
+export function restorePolicyExport(value: unknown): RestoredPolicyDraft {
+  const root = requireRecord(value, 'root', ['schema_version', 'document_state', 'policy_facts', 'review_finding_codes'])
+  if (root.schema_version !== 1) throw new Error('schema_version must be 1')
+  if (root.document_state !== 'incomplete' && root.document_state !== 'review_ready') throw new Error('document_state is unsupported')
+  if (!Array.isArray(root.review_finding_codes) || root.review_finding_codes.some((code) => typeof code !== 'string')) {
+    throw new Error('review_finding_codes must be a string array')
+  }
+
+  const policyFacts = requireRecord(root.policy_facts, 'policy_facts', [
+    'service_profile',
+    'no_collection_attested',
+    'collection_items',
+    'retention',
+    'third_party_transfer',
+    'international_transfer',
+    'privacy_contact',
+  ])
+  if (typeof policyFacts.no_collection_attested !== 'boolean') throw new Error('policy_facts.no_collection_attested must be boolean')
+  if (!Array.isArray(policyFacts.collection_items)) throw new Error('policy_facts.collection_items must be an array')
+
+  const serviceProfile = requireRecord(policyFacts.service_profile, 'policy_facts.service_profile', ['service_name', 'service_url'])
+  const retention = requireRecord(policyFacts.retention, 'policy_facts.retention', ['retention_status', 'retention_period'])
+  const thirdParty = requireRecord(policyFacts.third_party_transfer, 'policy_facts.third_party_transfer', ['transfer_status', 'recipient_name', 'transfer_purpose'])
+  const international = requireRecord(policyFacts.international_transfer, 'policy_facts.international_transfer', ['transfer_status', 'destination_country', 'recipient_name'])
+  const privacyContact = requireRecord(policyFacts.privacy_contact, 'policy_facts.privacy_contact', ['contact_name', 'contact_email'])
+
+  const serviceName = requireNullableString(serviceProfile, 'service_name', 'policy_facts.service_profile')
+  const serviceUrl = requireNullableString(serviceProfile, 'service_url', 'policy_facts.service_profile')
+  if (serviceUrl !== null && !isWebServiceUrl(serviceUrl)) throw new Error('policy_facts.service_profile.service_url is invalid')
+  const retentionStatus = requireNullableMember(retention, 'retention_status', 'policy_facts.retention', ['applies', 'none'] as const)
+  const retentionPeriod = requireNullableString(retention, 'retention_period', 'policy_facts.retention')
+  if (retentionStatus !== 'applies' && retentionPeriod !== null) throw new Error('policy_facts.retention.retention_period contradicts retention_status')
+  const thirdPartyStatus = requireNullableMember(thirdParty, 'transfer_status', 'policy_facts.third_party_transfer', ['yes', 'no'] as const)
+  const thirdPartyRecipient = requireNullableString(thirdParty, 'recipient_name', 'policy_facts.third_party_transfer')
+  const thirdPartyPurpose = requireNullableString(thirdParty, 'transfer_purpose', 'policy_facts.third_party_transfer')
+  if (thirdPartyStatus !== 'yes' && (thirdPartyRecipient !== null || thirdPartyPurpose !== null)) {
+    throw new Error('policy_facts.third_party_transfer details contradict transfer_status')
+  }
+  const internationalStatus = requireNullableMember(international, 'transfer_status', 'policy_facts.international_transfer', ['yes', 'no'] as const)
+  const internationalCountry = requireNullableString(international, 'destination_country', 'policy_facts.international_transfer')
+  const internationalRecipient = requireNullableString(international, 'recipient_name', 'policy_facts.international_transfer')
+  if (internationalStatus !== 'yes' && (internationalCountry !== null || internationalRecipient !== null)) {
+    throw new Error('policy_facts.international_transfer details contradict transfer_status')
+  }
+
+  const canonicalItems = new Map(initialItems.map((item) => [item.id, item]))
+  const importedItems = new Map<string, PolicyDraftExport['policy_facts']['collection_items'][number]>()
+  for (const [index, candidate] of policyFacts.collection_items.entries()) {
+    const path = `policy_facts.collection_items[${index}]`
+    const record = requireRecord(candidate, path, [
+      'collection_item_key',
+      'collection_item_label',
+      'collection_mode',
+      'collection_path',
+      'processing_purpose',
+    ])
+    if (typeof record.collection_item_key !== 'string' || !canonicalItems.has(record.collection_item_key)) {
+      throw new Error(`${path}.collection_item_key is unknown`)
+    }
+    if (importedItems.has(record.collection_item_key)) throw new Error(`${path}.collection_item_key is duplicate`)
+    const canonical = canonicalItems.get(record.collection_item_key)!
+    if (record.collection_item_label !== canonical.label) throw new Error(`${path}.collection_item_label does not match the catalog`)
+    importedItems.set(record.collection_item_key, {
+      collection_item_key: record.collection_item_key,
+      collection_item_label: canonical.label,
+      collection_mode: requireNullableMember(record, 'collection_mode', path, ['\uD544\uC218', '\uC120\uD0DD'] as const),
+      collection_path: requireNullableString(record, 'collection_path', path),
+      processing_purpose: requireNullableString(record, 'processing_purpose', path),
+    })
+  }
+  if (policyFacts.no_collection_attested && importedItems.size > 0) {
+    throw new Error('policy_facts.no_collection_attested contradicts collection_items')
+  }
+
+  const items: PolicyItem[] = initialItems.map((item) => {
+    const imported = importedItems.get(item.id)
+    return imported ? {
+      ...item,
+      enabled: true,
+      mode: imported.collection_mode ?? '',
+      detail: imported.collection_path ?? '',
+      purpose: imported.processing_purpose ?? '',
+    } : { ...item }
+  })
+  const facts: DraftFacts = {
+    serviceName: serviceName ?? '',
+    serviceUrl: serviceUrl ?? '',
+    retentionStatus: retentionStatus ?? '',
+    retentionPeriod: retentionPeriod ?? '',
+    thirdPartyStatus: thirdPartyStatus ?? '',
+    thirdPartyRecipient: thirdPartyRecipient ?? '',
+    thirdPartyPurpose: thirdPartyPurpose ?? '',
+    internationalStatus: internationalStatus ?? '',
+    internationalCountry: internationalCountry ?? '',
+    internationalRecipient: internationalRecipient ?? '',
+    privacyOfficerName: requireNullableString(privacyContact, 'contact_name', 'policy_facts.privacy_contact') ?? '',
+    privacyOfficerEmail: requireNullableString(privacyContact, 'contact_email', 'policy_facts.privacy_contact') ?? '',
+  }
+  const restored = { items, noCollectionAttested: policyFacts.no_collection_attested, facts }
+  const recalculated = createPolicyExport(restored.items, restored.noCollectionAttested, restored.facts)
+  if (root.document_state !== recalculated.document_state) throw new Error('document_state does not match restored facts')
+  if (JSON.stringify(root.review_finding_codes) !== JSON.stringify(recalculated.review_finding_codes)) {
+    throw new Error('review_finding_codes do not match restored facts')
+  }
+  return restored
+}
+
 /** Creates a deterministic draft export without network access, inferred facts, or credential-bearing service URLs. */
 export function createPolicyExport(items: PolicyItem[], noCollectionAttested: boolean, facts: DraftFacts): PolicyDraftExport {
   /** Normalizes optional human-entered text without inventing a non-empty fact. */
