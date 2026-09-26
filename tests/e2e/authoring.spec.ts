@@ -193,7 +193,7 @@ test('restores a real schema-v1 download and preserves work after invalid input'
 })
 
 test('cancels a pending import and ignores its late browser result', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-chromium', 'One browser profile proves the cancellation lifecycle.')
+  test.skip(testInfo.project.name === 'mobile-chromium', 'Desktop and tablet profiles prove the cancellation lifecycle and pending-state reflow.')
 
   await page.addInitScript(() => {
     const readFile = File.prototype.text
@@ -237,6 +237,10 @@ test('cancels a pending import and ignores its late browser result', async ({ pa
   const cancelImport = page.getByRole('button', { name: 'JSON 가져오기 취소' })
   await cancelImport.focus()
   await expect(cancelImport).toBeFocused()
+  const viewportOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  )
+  expect(viewportOverflow).toBeLessThanOrEqual(0)
   await page.keyboard.press('Enter')
 
   await expect(page.getByLabel('서비스 이름')).toBeEnabled()
