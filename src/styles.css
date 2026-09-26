@@ -52,7 +52,8 @@ button { cursor: pointer; }
   height: calc(100vh - 152px);
   min-height: 630px;
 }
-.editing-lock { display: contents; }
+.editing-lock { min-width: 0; margin: 0; padding: 0; border: 0; overflow: hidden; }
+.editing-lock .form-panel { height: 100%; }
 .rail, .form-panel, .preview { min-width: 0; background: white; }
 .rail { border-right: 1px solid var(--line); padding: 22px 14px 14px; display: flex; flex-direction: column; }
 .progress-copy { display: flex; justify-content: space-between; font-size: 12px; }
