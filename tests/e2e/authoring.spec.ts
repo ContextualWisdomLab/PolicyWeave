@@ -161,6 +161,37 @@ test('downloads a versioned policy draft with real browser payload semantics', a
   expect(exportedDraft.review_finding_codes).toEqual(expect.arrayContaining(['service_url', 'collection_selection']))
 })
 
+test('restores a real schema-v1 download and preserves work after invalid input', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'One browser profile proves local-file round-trip semantics.')
+
+  await page.goto('/')
+  await page.getByLabel('서비스 이름').fill('Round-trip Service')
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: /JSON 내보내기/ }).click()
+  const exportedBytes = await readDownload(await downloadPromise)
+
+  await page.reload()
+  const fileInput = page.getByLabel('JSON 초안 가져오기')
+  await fileInput.focus()
+  await expect(fileInput.locator('..')).toHaveCSS('outline-style', 'solid')
+  await fileInput.setInputFiles({
+    name: 'policyweave-draft.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(exportedBytes),
+  })
+  await expect(page.locator('.document-name')).toContainText('Round-trip Service')
+  await expect(page.locator('output')).toHaveText(/초안을 불러왔습니다/)
+
+  await page.getByLabel('서비스 이름').fill('Preserved Service')
+  await fileInput.setInputFiles({
+    name: 'forged.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from('{"schema_version":1,"document_state":"review_ready"}'),
+  })
+  await expect(page.getByLabel('서비스 이름')).toHaveValue('Preserved Service')
+  await expect(page.locator('output')).toHaveText(/불러오지 못했습니다/)
+})
+
 test('keeps keyboard exports byte-stable and revokes every JSON object URL', async ({ page }) => {
   await installDownloadAudit(page)
   await page.goto('/')
