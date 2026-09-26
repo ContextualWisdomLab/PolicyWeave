@@ -91,7 +91,7 @@ describe('policy draft import UI', () => {
     expect(container.querySelector('output')?.textContent).toContain('\uAC00\uC838\uC624\uAE30\uB97C \uCDE8\uC18C\uD588\uC2B5\uB2C8\uB2E4')
 
     completeRead(JSON.stringify(exported))
-    await waitFor(() => expect(serviceName.value).toBe('Current Work'))
+    await contents
     expect(container.querySelector('.document-name')?.textContent).not.toContain('Late Restore')
     expect(container.querySelector('output')?.textContent).not.toContain('\uCD08\uC548\uC744 \uBD88\uB7EC\uC654\uC2B5\uB2C8\uB2E4')
   })

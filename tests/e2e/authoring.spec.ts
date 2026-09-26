@@ -199,10 +199,16 @@ test('cancels a pending import and ignores its late browser result', async ({ pa
     const readFile = File.prototype.text
     let releaseRead!: () => void
     const readGate = new Promise<void>((resolve) => { releaseRead = resolve })
-    ;(window as typeof window & { __releasePolicyImport?: () => void }).__releasePolicyImport = releaseRead
+    const importAudit = window as typeof window & {
+      __policyImportReadSettled?: boolean
+      __releasePolicyImport?: () => void
+    }
+    importAudit.__policyImportReadSettled = false
+    importAudit.__releasePolicyImport = releaseRead
     File.prototype.text = async function () {
       const contents = await readFile.call(this)
       await readGate
+      importAudit.__policyImportReadSettled = true
       return contents
     }
   })
@@ -237,6 +243,7 @@ test('cancels a pending import and ignores its late browser result', async ({ pa
   await expect(page.getByLabel('서비스 이름')).toHaveValue('Current Work')
   await expect(page.locator('output')).toHaveText(/가져오기를 취소했습니다/)
   await page.evaluate(() => (window as typeof window & { __releasePolicyImport: () => void }).__releasePolicyImport())
+  await page.waitForFunction(() => (window as typeof window & { __policyImportReadSettled?: boolean }).__policyImportReadSettled)
   await expect(page.getByLabel('서비스 이름')).toHaveValue('Current Work')
   await expect(page.locator('.document-name')).not.toContainText('Late Restore')
   await expect(page.locator('output')).not.toHaveText(/초안을 불러왔습니다/)

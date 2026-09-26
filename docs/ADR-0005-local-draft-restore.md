@@ -17,7 +17,7 @@ This decision does not introduce hosted persistence, publication, legal approval
 - Structured operator facts remain authoritative; exported readiness and finding fields are derived evidence.
 - Unknown properties, missing properties, unsupported versions, wrong runtime types, non-canonical strings/URLs, duplicate/unknown collection keys, catalog-label mismatches, and contradictory facts fail closed.
 - Collection, retention, and transfer statuses use exact existing vocabulary without case, whitespace, or type coercion.
-- The browser must not replace current work until the complete file has passed validation, and authoring controls must remain locked while that validation is pending so accepted state cannot overwrite concurrent edits.
+- The browser must not replace current work until the complete file has passed validation. Authoring controls remain locked while validation is pending, but the operator can cancel that attempt; a late success or failure from the invalidated attempt must not replace facts, overwrite the cancellation message, or relock/unlock a newer attempt.
 - Import remains local and bounded to 1 MiB; it performs no network request and adds no dependency.
 - Current Korean catalog labels are identity-checked for schema-v1. Future localized resource releases require a new reviewed compatibility decision rather than weakening this check.
 
@@ -33,7 +33,7 @@ This decision does not introduce hosted persistence, publication, legal approval
 
 `restorePolicyExport(unknown)` validates the exact schema-v1 object graph and reconstructs browser workspace state only from admitted facts. The canonical built-in collection catalog supplies label and description authority; the file may select catalog keys and supply their operator-authored mode, path, and purpose, but may not define new items or rename existing ones.
 
-After reconstruction, PolicyWeave runs `createPolicyExport` again. Imported `document_state` and ordered `review_finding_codes` must match the recomputed result. The UI reads at most one 1 MiB local file, disables the import input and authoring fieldset while reading and validating, applies all state setters only after validation succeeds, unlocks on success or failure, returns to the first authoring step, and reports success or a retry action through the existing live status output.
+After reconstruction, PolicyWeave runs `createPolicyExport` again. Imported `document_state` and ordered `review_finding_codes` must match the recomputed result. The UI reads at most one 1 MiB local file, disables the import input and authoring fieldset while reading and validating, and exposes a keyboard-operable cancel action outside that fieldset. Each attempt owns a monotonically invalidated token. Success, error, and cleanup effects run only for the current token, so cancellation immediately unlocks the unchanged workspace and a late result cannot apply. This logical cancellation does not claim that the browser stopped the underlying file read.
 
 ## User, operations, and failure scenes
 
@@ -43,6 +43,7 @@ After reconstruction, PolicyWeave runs `createPolicyExport` again. Imported `doc
 - A file with an unknown collection key, duplicate key, mismatched label, non-canonical string/URL, uppercase status, extra property, or contradictory no-collection state is rejected with bounded user guidance rather than partially applied.
 - A file larger than 1 MiB is rejected before JSON parsing. The limit bounds local memory/parse work; it is not a general upload or denial-of-service guarantee.
 - While a selected file is still being read, authoring inputs cannot accept changes that a later successful restore would overwrite. A failed read or validation unlocks the unchanged workspace for correction and retry.
+- An operator cancels a stalled read, hears the cancellation through the existing live output, resumes editing immediately, and is not overwritten when the old browser promise later resolves.
 
 ## Evidence
 
@@ -56,6 +57,8 @@ Pending-feedback test-only commit `3e2eba61e7e4f02c5ac8b3f9ee23895d515a37b3` the
 
 Semantic-fieldset test-only commit `52d252a2c0c46b12c6cecdebd3dcc67940322bde` reproduced the remaining accessibility risk by failing while `.editing-lock` used `display: contents`. Implementation `9d540895569ab945a087bed99c7d4906b82ae532` keeps the native disabled/`aria-busy` fieldset as the middle grid item, resets only its user-agent box, and gives the contained editing panel the grid item's height so bounded scrolling remains available. Focused style/import validation passed 10/10 locally; hosted browser and assistive-technology evidence remain separate gates.
 
+Cancellation test-only commit `d442ebd` reproduces the missing cancel action while a controlled `File.text()` promise remains pending and specifies that the current facts, live message, and unlocked controls survive a late valid result. It also adds one desktop Chromium keyboard/live-region contract. Minimal implementation `7684c0e` gives each attempt a ref-backed token, gates success/error/finally effects on that token, and clears the file input when cancellation invalidates it. The focused Vitest import matrix passed 5/5 locally. Chromium execution remains a hosted exact-head gate because the local Playwright browser binary is unavailable.
+
 ## Consequences and follow-up
 
-PolicyWeave now owns a deterministic local export/restore round trip for schema-v1. This closes the missing current-version return path, not version migration. Any schema-v2 work must define explicit migration, loss reporting, compatibility fixtures, and rollback behavior. DB-backed versioned ko/en/ja/zh/vi/es/de/fr resources remain a separate owner contract; schema-v1 catalog-label identity must not be relaxed by embedding a full translation catalog in the browser.
+PolicyWeave now owns a deterministic local export/restore round trip for schema-v1, including cancellation that invalidates stale result effects. This closes the missing current-version return path, not version migration or operating-system-level file-read abortion. Any schema-v2 work must define explicit migration, loss reporting, compatibility fixtures, and rollback behavior. DB-backed versioned ko/en/ja/zh/vi/es/de/fr resources remain a separate owner contract; schema-v1 catalog-label identity must not be relaxed by embedding a full translation catalog in the browser.
