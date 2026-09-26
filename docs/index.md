@@ -16,7 +16,7 @@ PolicyWeave is a local-first privacy-policy fact-authoring workspace for web and
 - [Proposed policy revision ERD](ERD.md) — the normalized persistence relationships and transaction invariants represented by migration `0001`.
 - [Research and legal traceability](research-traceability.md) — authoritative-source, effective-date, and implementation/test traceability for legal and policy decisions.
 - [Product and technical gap baseline](product-technical-gap-baseline.md) — current commercialization gaps and evidence status.
-- [Security](../SECURITY.md) — security policy and reporting boundary.
+- [Security](SECURITY.md) — security policy and reporting boundary.
 - [Changelog](../CHANGELOG.md) — repository change history.
 - [Repository releases](https://github.com/ContextualWisdomLab/PolicyWeave/releases) — published release records when they exist.
 - [Ask DeepWiki](https://deepwiki.com/ContextualWisdomLab/PolicyWeave) — repository-oriented Q&A and navigation.

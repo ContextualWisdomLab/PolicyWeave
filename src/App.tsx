@@ -220,6 +220,7 @@ export default function App() {
   const completedSteps = useMemo(() => getCompletedSteps(items, noCollectionAttested, facts), [items, noCollectionAttested, facts])
   const blockingCount = collectionReview.blockingCount + draftFindings.length
   const [message, setMessage] = useState('')
+  const [isImporting, setIsImporting] = useState(false)
   /** Reports readiness for responsible review without claiming that a publication occurred. */
   function publish() { setMessage(blockingCount ? '필수 확인 항목을 먼저 입력하세요.' : '필수 확인이 완료되었습니다. 현재 검토본을 책임자와 검토하고 필요한 사실을 보완하세요.') }
   /** Downloads the deterministic local export and revokes its object URL after activation. */
@@ -246,6 +247,7 @@ export default function App() {
     const fileInput = event.currentTarget
     const file = fileInput.files?.[0]
     if (!file) return
+    setIsImporting(true)
     try {
       if (file.size > 1024 * 1024) throw new Error('draft exceeds 1 MiB')
       const restored = restorePolicyExport(JSON.parse(await file.text()))
@@ -259,12 +261,13 @@ export default function App() {
         ? 'JSON \uCD08\uC548\uC740 1 MiB \uC774\uD558\uC5EC\uC57C \uD569\uB2C8\uB2E4.'
         : 'JSON \uCD08\uC548\uC744 \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. schema-v1 \uB0B4\uBCF4\uB0B4\uAE30 \uD30C\uC77C\uC778\uC9C0 \uD655\uC778\uD558\uC138\uC694.')
     } finally {
+      setIsImporting(false)
       fileInput.value = ''
     }
   }
   return <div className="app-shell">
-    <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><span className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침</span><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><label className="outline file-control"><Upload size={15} /> JSON 가져오기<input className="sr-only" type="file" accept="application/json,.json" aria-label="JSON 초안 가져오기" onChange={importDraft} /></label><span className="save-state"><Check size={15} /> 브라우저 작업 중</span><button className="outline" onClick={exportDraft}><Save size={15} /> JSON 내보내기</button></header>
-    <div className="workspace" id="top"><StepRail current={current} completedSteps={completedSteps} setCurrent={setCurrent} /><EditingPanel current={current} items={items} setItems={setItems} noCollectionAttested={noCollectionAttested} setNoCollectionAttested={setNoCollectionAttested} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /><DocumentPreview items={items} noCollectionAttested={noCollectionAttested} facts={facts} setCurrent={setCurrent} /></div>
+    <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><span className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침</span><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><label className="outline file-control"><Upload size={15} /> JSON 가져오기<input className="sr-only" type="file" accept="application/json,.json" aria-label="JSON 초안 가져오기" onChange={importDraft} disabled={isImporting} /></label><span className="save-state"><Check size={15} /> 브라우저 작업 중</span><button className="outline" onClick={exportDraft}><Save size={15} /> JSON 내보내기</button></header>
+    <div className="workspace" id="top"><StepRail current={current} completedSteps={completedSteps} setCurrent={setCurrent} /><fieldset className="editing-lock" disabled={isImporting} aria-busy={isImporting}><EditingPanel current={current} items={items} setItems={setItems} noCollectionAttested={noCollectionAttested} setNoCollectionAttested={setNoCollectionAttested} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /></fieldset><DocumentPreview items={items} noCollectionAttested={noCollectionAttested} facts={facts} setCurrent={setCurrent} /></div>
     <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 준비 상태를 확인하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{blockingCount}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{collectionReview.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={blockingCount > 0}><Link size={16} /> 공개 준비 확인</button><output aria-live="polite">{message}</output></footer>
   </div>
 }

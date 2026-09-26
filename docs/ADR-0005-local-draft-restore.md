@@ -17,7 +17,7 @@ This decision does not introduce hosted persistence, publication, legal approval
 - Structured operator facts remain authoritative; exported readiness and finding fields are derived evidence.
 - Unknown properties, missing properties, unsupported versions, wrong runtime types, non-canonical strings/URLs, duplicate/unknown collection keys, catalog-label mismatches, and contradictory facts fail closed.
 - Collection, retention, and transfer statuses use exact existing vocabulary without case, whitespace, or type coercion.
-- The browser must not replace current work until the complete file has passed validation.
+- The browser must not replace current work until the complete file has passed validation, and authoring controls must remain locked while that validation is pending so accepted state cannot overwrite concurrent edits.
 - Import remains local and bounded to 1 MiB; it performs no network request and adds no dependency.
 - Current Korean catalog labels are identity-checked for schema-v1. Future localized resource releases require a new reviewed compatibility decision rather than weakening this check.
 
@@ -33,7 +33,7 @@ This decision does not introduce hosted persistence, publication, legal approval
 
 `restorePolicyExport(unknown)` validates the exact schema-v1 object graph and reconstructs browser workspace state only from admitted facts. The canonical built-in collection catalog supplies label and description authority; the file may select catalog keys and supply their operator-authored mode, path, and purpose, but may not define new items or rename existing ones.
 
-After reconstruction, PolicyWeave runs `createPolicyExport` again. Imported `document_state` and ordered `review_finding_codes` must match the recomputed result. The UI reads at most one 1 MiB local file, applies all state setters only after validation succeeds, returns to the first authoring step, and reports success or a retry action through the existing live status output.
+After reconstruction, PolicyWeave runs `createPolicyExport` again. Imported `document_state` and ordered `review_finding_codes` must match the recomputed result. The UI reads at most one 1 MiB local file, disables the import input and authoring fieldset while reading and validating, applies all state setters only after validation succeeds, unlocks on success or failure, returns to the first authoring step, and reports success or a retry action through the existing live status output.
 
 ## User, operations, and failure scenes
 
@@ -42,6 +42,7 @@ After reconstruction, PolicyWeave runs `createPolicyExport` again. Imported `doc
 - A manipulated file that changes only `document_state` to `review_ready` is rejected and the current workspace remains unchanged.
 - A file with an unknown collection key, duplicate key, mismatched label, non-canonical string/URL, uppercase status, extra property, or contradictory no-collection state is rejected with bounded user guidance rather than partially applied.
 - A file larger than 1 MiB is rejected before JSON parsing. The limit bounds local memory/parse work; it is not a general upload or denial-of-service guarantee.
+- While a selected file is still being read, authoring inputs cannot accept changes that a later successful restore would overwrite. A failed read or validation unlocks the unchanged workspace for correction and retry.
 
 ## Evidence
 
