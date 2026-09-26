@@ -41,6 +41,8 @@ button { cursor: pointer; }
   background: white;
   color: #29302b;
 }
+.file-control { min-height: 44px; cursor: pointer; }
+.file-control:focus-within { outline: 3px solid var(--green); outline-offset: 2px; }
 .primary { background: var(--green); color: white; border-color: var(--green); font-weight: 700; }
 .primary:disabled { background: #aeb8b1; border-color: #aeb8b1; cursor: not-allowed; }
 .workspace {
