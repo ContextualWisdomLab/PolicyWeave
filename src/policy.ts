@@ -247,6 +247,9 @@ function requireRecord(value: unknown, path: string, keys: string[]): JsonRecord
 function requireNullableString(record: JsonRecord, key: string, path: string): string | null {
   const value = record[key]
   if (value !== null && typeof value !== 'string') throw new Error(`${path}.${key} must be a string or null`)
+  if (typeof value === 'string' && (!value || value.trim() !== value)) {
+    throw new Error(`${path}.${key} must be a canonical non-empty string or null`)
+  }
   return value as string | null
 }
 
@@ -288,7 +291,9 @@ export function restorePolicyExport(value: unknown): RestoredPolicyDraft {
 
   const serviceName = requireNullableString(serviceProfile, 'service_name', 'policy_facts.service_profile')
   const serviceUrl = requireNullableString(serviceProfile, 'service_url', 'policy_facts.service_profile')
-  if (serviceUrl !== null && !isWebServiceUrl(serviceUrl)) throw new Error('policy_facts.service_profile.service_url is invalid')
+  if (serviceUrl !== null && normalizeWebServiceUrl(serviceUrl) !== serviceUrl) {
+    throw new Error('policy_facts.service_profile.service_url is invalid or non-canonical')
+  }
   const retentionStatus = requireNullableMember(retention, 'retention_status', 'policy_facts.retention', ['applies', 'none'] as const)
   const retentionPeriod = requireNullableString(retention, 'retention_period', 'policy_facts.retention')
   if (retentionStatus !== 'applies' && retentionPeriod !== null) throw new Error('policy_facts.retention.retention_period contradicts retention_status')
