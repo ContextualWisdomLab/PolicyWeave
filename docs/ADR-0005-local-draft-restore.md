@@ -4,7 +4,7 @@
 - Date: 2026-09-26
 - Owner: Policy Fact Authoring
 - Scope: `src/policy.ts`, `src/App.tsx`, schema-v1 local portability
-- Evidence: RED commits `e1150b2`, `562ccc1`, `20ba914`, and `20820c4`; implementation commits `b691cf3`, `696a1ce`, and `a28aea2`; browser contract commit `a94dbfc`
+- Evidence: RED commits `86d370b1`, `0088d686`, `8be9e8dc`, and `7bedeca1`; implementation commits `d5ab6bd2`, `768e1c85`, and `50afb82b`; browser contract commit `95b34a18`
 
 ## Problem
 
@@ -45,9 +45,9 @@ After reconstruction, PolicyWeave runs `createPolicyExport` again. Imported `doc
 
 ## Evidence
 
-Test-only commit `e1150b2` produced five intended failures while seven existing export tests remained green because the restore function did not exist. Test-only commit `562ccc1` produced three intended UI failures because no import control existed. Implementation `b691cf3` made the focused 15-case domain/UI matrix pass and passed ESLint plus the TypeScript/Vite production build locally. Test-only commit `20ba914` then reproduced silent acceptance of non-canonical strings; implementation `696a1ce` requires exact normalized strings and URL representation. Test-only commit `20820c4` bound visible focus and a 44 px interaction target for the visually hidden file input; `a28aea2` applies the existing high-contrast focus token to its visible label.
+Test-only commit `86d370b1` produced five intended failures while seven existing export tests remained green because the restore function did not exist. Test-only commit `0088d686` produced three intended UI failures because no import control existed. Implementation `d5ab6bd2` made the focused 15-case domain/UI matrix pass and passed ESLint plus the TypeScript/Vite production build locally. Test-only commit `8be9e8dc` then reproduced silent acceptance of non-canonical strings; implementation `768e1c85` requires exact normalized strings and URL representation. Test-only commit `7bedeca1` bound visible focus and a 44 px interaction target for the visually hidden file input; `50afb82b` applies the existing high-contrast focus token to its visible label.
 
-Browser contract `a94dbfc` exercises a real download/restore round trip, visible focus, and invalid-file state preservation. Hosted exact-head CI execution of that contract, security workflows, and independent review remain required after the final integrated head is pushed. Local results do not authorize merge or publication.
+Browser contract `95b34a18` exercises a real download/restore round trip, visible focus, and invalid-file state preservation. Hosted exact-head CI execution of that contract, security workflows, and independent review remain required after the final integrated head is pushed. Local results do not authorize merge or publication.
 
 ## Consequences and follow-up
 
