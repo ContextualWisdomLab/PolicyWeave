@@ -148,7 +148,7 @@ describe('policy JSON import', () => {
     privacyOfficerEmail: 'privacy@example.test',
   }
 
-  it('restores a schema-v1 export without trusting presentation labels', () => {
+  it('restores a schema-v1 export from canonical catalog identity', () => {
     const exported = createPolicyExport(readyItems, false, readyFacts)
 
     const restored = restorePolicyExport(exported)
@@ -233,5 +233,24 @@ describe('policy JSON import', () => {
         service_profile: { ...exported.policy_facts.service_profile, service_name: 42 },
       },
     })).toThrow('service_name')
+  })
+
+  it('rejects non-canonical strings instead of silently rewriting imported facts', () => {
+    const exported = createPolicyExport(readyItems, false, readyFacts)
+
+    expect(() => restorePolicyExport({
+      ...exported,
+      policy_facts: {
+        ...exported.policy_facts,
+        service_profile: { ...exported.policy_facts.service_profile, service_name: ' Buyer Portal ' },
+      },
+    })).toThrow('service_name')
+    expect(() => restorePolicyExport({
+      ...exported,
+      policy_facts: {
+        ...exported.policy_facts,
+        service_profile: { ...exported.policy_facts.service_profile, service_url: 'HTTPS://BUYER.EXAMPLE.TEST/privacy' },
+      },
+    })).toThrow('service_url')
   })
 })
