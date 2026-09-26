@@ -213,7 +213,8 @@ test('cancels a pending import and ignores its late browser result', async ({ pa
     }
   })
   await page.goto('/')
-  await page.getByLabel('서비스 이름').fill('Current Work')
+  const currentServiceName = 'PolicyWeave'.repeat(32)
+  await page.getByLabel('서비스 이름').fill(currentServiceName)
   const exportedDraft = JSON.stringify({
     schema_version: 1,
     document_state: 'review_ready',
@@ -245,11 +246,11 @@ test('cancels a pending import and ignores its late browser result', async ({ pa
 
   await expect(page.getByLabel('서비스 이름')).toBeEnabled()
   await expect(page.getByLabel('서비스 이름')).toBeFocused()
-  await expect(page.getByLabel('서비스 이름')).toHaveValue('Current Work')
+  await expect(page.getByLabel('서비스 이름')).toHaveValue(currentServiceName)
   await expect(page.locator('output')).toHaveText(/가져오기를 취소했습니다/)
   await page.evaluate(() => (window as typeof window & { __releasePolicyImport: () => void }).__releasePolicyImport())
   await page.waitForFunction(() => (window as typeof window & { __policyImportReadSettled?: boolean }).__policyImportReadSettled)
-  await expect(page.getByLabel('서비스 이름')).toHaveValue('Current Work')
+  await expect(page.getByLabel('서비스 이름')).toHaveValue(currentServiceName)
   await expect(page.locator('.document-name')).not.toContainText('Late Restore')
   await expect(page.locator('output')).not.toHaveText(/초안을 불러왔습니다/)
 })
