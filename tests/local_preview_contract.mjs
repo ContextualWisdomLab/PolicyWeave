@@ -11,6 +11,7 @@ import { test } from 'node:test'
 const projectRoot = new URL('../', import.meta.url)
 const packageManifest = JSON.parse(readFileSync(new URL('package.json', projectRoot), 'utf8'))
 const readmeText = readFileSync(new URL('README.md', projectRoot), 'utf8')
+const docsIndexText = readFileSync(new URL('docs/index.md', projectRoot), 'utf8')
 
 /** Require an explicit loopback listener with no later argument overriding it. */
 test('development preview listens on IPv4 loopback by default', () => {
@@ -34,6 +35,15 @@ test('README security guidance points to the repository security document', () =
     .map((linkMatch) => linkMatch[1])
   assert.ok(linkTargets.includes('docs/SECURITY.md'))
   assert.ok(!linkTargets.includes('SECURITY.md'))
+  assert.ok(statSync(new URL('docs/SECURITY.md', projectRoot)).isFile())
+})
+
+/** Keep navigation inside docs/ relative to the document that owns the link. */
+test('documentation index security guidance resolves within docs', () => {
+  const linkTargets = [...docsIndexText.matchAll(/\[[^\]\n]+\]\(([^)\s]+)\)/g)]
+    .map((linkMatch) => linkMatch[1])
+  assert.ok(linkTargets.includes('SECURITY.md'))
+  assert.ok(!linkTargets.includes('../SECURITY.md'))
   assert.ok(statSync(new URL('docs/SECURITY.md', projectRoot)).isFile())
 })
 

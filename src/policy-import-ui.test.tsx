@@ -28,6 +28,34 @@ describe('policy draft import UI', () => {
     expect(container.querySelector('.review-stat.blocking b')?.textContent).toBe('0\uAC74')
   })
 
+  it('locks authoring controls while a selected draft is being read', async () => {
+    const exported = createPolicyExport(initialItems, true, {
+      ...initialFacts,
+      serviceName: 'Restored Portal',
+      serviceUrl: 'https://restored.example.test/privacy',
+      retentionStatus: 'none',
+      thirdPartyStatus: 'no',
+      internationalStatus: 'no',
+      privacyOfficerName: 'Privacy Team',
+      privacyOfficerEmail: 'privacy@example.test',
+    })
+    let completeRead!: (contents: string) => void
+    const contents = new Promise<string>((resolve) => { completeRead = resolve })
+    const file = new File(['pending'], 'policyweave-draft.json', { type: 'application/json' })
+    Object.defineProperty(file, 'text', { value: () => contents })
+    const { container } = render(<App />)
+    const importInput = container.querySelector<HTMLInputElement>('input[aria-label="JSON \uCD08\uC548 \uAC00\uC838\uC624\uAE30"]')!
+
+    fireEvent.change(importInput, { target: { files: [file] } })
+
+    expect(importInput.matches(':disabled')).toBe(true)
+    expect(container.querySelector<HTMLInputElement>('input[name="serviceName"]')?.matches(':disabled')).toBe(true)
+
+    completeRead(JSON.stringify(exported))
+    await waitFor(() => expect(container.querySelector('.document-name')?.textContent).toContain('Restored Portal'))
+    expect(container.querySelector<HTMLInputElement>('input[name="serviceName"]')?.matches(':disabled')).toBe(false)
+  })
+
   it('keeps current facts unchanged when an imported file fails validation', async () => {
     const { container } = render(<App />)
     fireEvent.change(container.querySelector<HTMLInputElement>('input[name="serviceName"]')!, { target: { value: 'Existing Service' } })
@@ -37,6 +65,7 @@ describe('policy draft import UI', () => {
 
     await waitFor(() => expect(container.querySelector('output')?.textContent).toContain('\uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4'))
     expect(container.querySelector<HTMLInputElement>('input[name="serviceName"]')?.value).toBe('Existing Service')
+    expect(container.querySelector<HTMLInputElement>('input[name="serviceName"]')?.matches(':disabled')).toBe(false)
   })
 
   it('rejects draft files larger than one mebibyte before parsing', async () => {
