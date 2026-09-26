@@ -11,6 +11,8 @@ PolicyWeave is a local-first privacy-policy fact-authoring workspace for web and
 - [ADR 0001](ADR-0001-policy-as-data.md) — the policy-as-data decision that makes structured operator facts authoritative over rendered prose.
 - [ADR 0002](ADR-0002-seven-step-authoring-workflow.md) — the Proposed explicit seven-step authoring and fail-closed fact workflow.
 - [ADR 0003](ADR-0003-policy-revision-persistence.md) — the Proposed PostgreSQL revision identity, 3NF fact, consistency, and item-level UPSERT contract.
+- [ADR 0004](ADR-0004-runtime-status-admission.md) — the Proposed closed-vocabulary runtime admission decision for categorical policy facts.
+- [ADR 0005](ADR-0005-local-draft-restore.md) — the Proposed fail-closed schema-v1 local draft restore decision.
 - [Proposed policy revision ERD](ERD.md) — the normalized persistence relationships and transaction invariants represented by migration `0001`.
 - [Research and legal traceability](research-traceability.md) — authoritative-source, effective-date, and implementation/test traceability for legal and policy decisions.
 - [Product and technical gap baseline](product-technical-gap-baseline.md) — current commercialization gaps and evidence status.
