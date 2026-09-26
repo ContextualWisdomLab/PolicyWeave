@@ -50,6 +50,17 @@ describe('responsive review workspace CSS contract', () => {
     expect(css).toContain('.file-control { min-height: 44px; cursor: pointer; }')
   })
 
+  it('keeps the authoring fieldset as a semantic grid item', () => {
+    const editingLock = css.match(/\.editing-lock\s*\{([^}]*)\}/)?.[1]
+    expect(editingLock).toBeDefined()
+    expect(editingLock).not.toContain('display: contents')
+    expect(editingLock).toContain('min-width: 0')
+    expect(editingLock).toContain('margin: 0')
+    expect(editingLock).toContain('padding: 0')
+    expect(editingLock).toContain('border: 0')
+    expect(css).toContain('.editing-lock .form-panel { height: 100%; }')
+  })
+
   it('keeps muted small text above 4.5:1 on every authored surface', () => {
     const muted = css.match(/--muted:\s*(#[0-9a-fA-F]{6});/)?.[1]
     expect(muted).toBeDefined()
