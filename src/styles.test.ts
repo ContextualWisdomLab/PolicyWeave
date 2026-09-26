@@ -43,6 +43,11 @@ describe('responsive review workspace CSS contract', () => {
     expect(contrastRatio(green!, '#ffffff')).toBeGreaterThanOrEqual(3)
     expect(css).toContain(':focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }')
     expect(css).toContain('.check-label input:focus-visible + .box { outline: 3px solid var(--green); outline-offset: 2px; }')
+    expect(css).toContain('.file-control:focus-within { outline: 3px solid var(--green); outline-offset: 2px; }')
+  })
+
+  it('keeps the local-file control visibly interactive and touch-sized', () => {
+    expect(css).toContain('.file-control { min-height: 44px; cursor: pointer; }')
   })
 
   it('keeps muted small text above 4.5:1 on every authored surface', () => {
