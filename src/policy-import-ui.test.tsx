@@ -87,6 +87,7 @@ describe('policy draft import UI', () => {
 
     expect(importInput.matches(':disabled')).toBe(false)
     expect(serviceName.matches(':disabled')).toBe(false)
+    await waitFor(() => expect(document.activeElement).toBe(serviceName))
     expect(serviceName.value).toBe('Current Work')
     expect(container.querySelector('output')?.textContent).toContain('\uAC00\uC838\uC624\uAE30\uB97C \uCDE8\uC18C\uD588\uC2B5\uB2C8\uB2E4')
 

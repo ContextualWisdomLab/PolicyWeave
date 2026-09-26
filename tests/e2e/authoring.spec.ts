@@ -240,6 +240,7 @@ test('cancels a pending import and ignores its late browser result', async ({ pa
   await page.keyboard.press('Enter')
 
   await expect(page.getByLabel('서비스 이름')).toBeEnabled()
+  await expect(page.getByLabel('서비스 이름')).toBeFocused()
   await expect(page.getByLabel('서비스 이름')).toHaveValue('Current Work')
   await expect(page.locator('output')).toHaveText(/가져오기를 취소했습니다/)
   await page.evaluate(() => (window as typeof window & { __releasePolicyImport: () => void }).__releasePolicyImport())
