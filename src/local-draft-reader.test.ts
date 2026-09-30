@@ -10,8 +10,8 @@ describe('local draft reader', () => {
     const encoded = new TextEncoder().encode('{"service_name":"정책"}')
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
-        controller.enqueue(encoded.slice(0, encoded.length - 2))
-        controller.enqueue(encoded.slice(encoded.length - 2))
+        controller.enqueue(encoded.slice(0, encoded.length - 3))
+        controller.enqueue(encoded.slice(encoded.length - 3))
         controller.close()
       },
     })
