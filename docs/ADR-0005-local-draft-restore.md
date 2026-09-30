@@ -3,8 +3,8 @@
 - Status: Proposed
 - Date: 2026-09-26
 - Owner: Policy Fact Authoring
-- Scope: `src/policy.ts`, `src/App.tsx`, schema-v1 local portability
-- Evidence: RED commits `86d370b1`, `0088d686`, `8be9e8dc`, and `7bedeca1`; implementation commits `d5ab6bd2`, `768e1c85`, and `50afb82b`; browser contract commit `95b34a18`
+- Scope: `src/policy.ts`, `src/local-draft-reader.ts`, `src/App.tsx`, schema-v1 local portability
+- Evidence: RED commits `86d370b1`, `0088d686`, `8be9e8dc`, `7bedeca1`, and `4a6e958`; implementation commits `d5ab6bd2`, `768e1c85`, `50afb82b`, and `bc7dd0b`; browser contract commit `95b34a18`
 
 ## Problem
 
@@ -33,7 +33,7 @@ This decision does not introduce hosted persistence, publication, legal approval
 
 `restorePolicyExport(unknown)` validates the exact schema-v1 object graph and reconstructs browser workspace state only from admitted facts. The canonical built-in collection catalog supplies label and description authority; the file may select catalog keys and supply their operator-authored mode, path, and purpose, but may not define new items or rename existing ones.
 
-After reconstruction, PolicyWeave runs `createPolicyExport` again. Imported `document_state` and ordered `review_finding_codes` must match the recomputed result. The UI reads at most one 1 MiB local file, disables the import input and authoring fieldset while reading and validating, and exposes a keyboard-operable cancel action outside that fieldset. Each attempt owns a monotonically invalidated token. Success, error, and cleanup effects run only for the current token, so cancellation immediately unlocks the unchanged workspace, moves focus from the removed cancel button to the current step's first enabled authoring control, and prevents a late result from applying. This logical cancellation does not claim that the browser stopped the underlying file read.
+After reconstruction, PolicyWeave runs `createPolicyExport` again. Imported `document_state` and ordered `review_finding_codes` must match the recomputed result. The UI reads at most one 1 MiB local file through its browser `ReadableStream`, disables the import input and authoring fieldset while reading and validating, and exposes a keyboard-operable cancel action outside that fieldset. Each attempt owns both an `AbortController` and a monotonically invalidated token. Cancellation reaches the active stream reader through `cancel()`, while success, error, and cleanup effects run only for the current token. The two safeguards immediately unlock the unchanged workspace, move focus from the removed cancel button to the current step's first enabled authoring control, release the browser reader lock, and prevent a late result from applying. This contract proves browser stream cancellation; it does not claim operating-system interruption beyond the browser API.
 
 ## User, operations, and failure scenes
 
@@ -44,6 +44,7 @@ After reconstruction, PolicyWeave runs `createPolicyExport` again. Imported `doc
 - A file larger than 1 MiB is rejected before JSON parsing. The limit bounds local memory/parse work; it is not a general upload or denial-of-service guarantee.
 - While a selected file is still being read, authoring inputs cannot accept changes that a later successful restore would overwrite. A failed read or validation unlocks the unchanged workspace for correction and retry.
 - An operator cancels a stalled read, hears the cancellation through the existing live output, resumes editing from the current step's first enabled control instead of losing focus to the document, and is not overwritten when the old browser promise later resolves.
+- A UTF-8 character split across stream chunks is reconstructed by one incremental decoder rather than corrupted at chunk boundaries. Cancellation invokes the underlying browser reader, releases its lock, and still rejects a non-conforming late chunk as an aborted attempt.
 
 ## Evidence
 
@@ -67,4 +68,4 @@ Long-name reflow test-only commit `66ae499b0105359c5bc0faecdd07209e1b2ad475` nar
 
 ## Consequences and follow-up
 
-PolicyWeave now owns a deterministic local export/restore round trip for schema-v1, including cancellation that invalidates stale result effects. This closes the missing current-version return path, not version migration or operating-system-level file-read abortion. Any schema-v2 work must define explicit migration, loss reporting, compatibility fixtures, and rollback behavior. DB-backed versioned ko/en/ja/zh/vi/es/de/fr resources remain a separate owner contract; schema-v1 catalog-label identity must not be relaxed by embedding a full translation catalog in the browser.
+PolicyWeave now owns a deterministic local export/restore round trip for schema-v1, including browser stream cancellation and token-invalidated stale result effects. This closes the missing current-version return path and the bounded underlying browser-reader cancellation gap, not version migration or operating-system-level interruption beyond the browser API. Any schema-v2 work must define explicit migration, loss reporting, compatibility fixtures, and rollback behavior. DB-backed versioned ko/en/ja/zh/vi/es/de/fr resources remain a separate owner contract; schema-v1 catalog-label identity must not be relaxed by embedding a full translation catalog in the browser.
