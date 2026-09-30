@@ -196,20 +196,36 @@ test('cancels a pending import and ignores its late browser result', async ({ pa
   test.skip(testInfo.project.name === 'mobile-chromium', 'Desktop and tablet profiles prove the cancellation lifecycle and pending-state reflow.')
 
   await page.addInitScript(() => {
-    const readFile = File.prototype.text
+    const readFile = File.prototype.stream
     let releaseRead!: () => void
     const readGate = new Promise<void>((resolve) => { releaseRead = resolve })
     const importAudit = window as typeof window & {
+      __policyImportReadCancelled?: boolean
       __policyImportReadSettled?: boolean
       __releasePolicyImport?: () => void
     }
+    importAudit.__policyImportReadCancelled = false
     importAudit.__policyImportReadSettled = false
     importAudit.__releasePolicyImport = releaseRead
-    File.prototype.text = async function () {
-      const contents = await readFile.call(this)
-      await readGate
-      importAudit.__policyImportReadSettled = true
-      return contents
+    File.prototype.stream = function () {
+      const source = readFile.call(this).getReader()
+      let cancelled = false
+      return new ReadableStream<Uint8Array>({
+        async pull(controller) {
+          const result = await source.read()
+          await readGate
+          if (!cancelled) {
+            if (result.done) controller.close()
+            else controller.enqueue(result.value)
+          }
+          importAudit.__policyImportReadSettled = true
+        },
+        async cancel(reason) {
+          cancelled = true
+          importAudit.__policyImportReadCancelled = true
+          await source.cancel(reason)
+        },
+      })
     }
   })
   await page.goto('/')
@@ -248,6 +264,9 @@ test('cancels a pending import and ignores its late browser result', async ({ pa
   await expect(page.getByLabel('서비스 이름')).toBeFocused()
   await expect(page.getByLabel('서비스 이름')).toHaveValue(currentServiceName)
   await expect(page.locator('output')).toHaveText(/가져오기를 취소했습니다/)
+  await expect.poll(() => page.evaluate(() => (
+    window as typeof window & { __policyImportReadCancelled?: boolean }
+  ).__policyImportReadCancelled)).toBe(true)
   await page.evaluate(() => (window as typeof window & { __releasePolicyImport: () => void }).__releasePolicyImport())
   await page.waitForFunction(() => (window as typeof window & { __policyImportReadSettled?: boolean }).__policyImportReadSettled)
   await expect(page.getByLabel('서비스 이름')).toHaveValue(currentServiceName)

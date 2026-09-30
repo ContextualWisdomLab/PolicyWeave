@@ -1,5 +1,6 @@
 import { ChangeEvent, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Check, ChevronDown, ExternalLink, FileText, Link, Save, Upload } from 'lucide-react'
+import { readLocalDraft } from './local-draft-reader'
 import { createPolicyExport, DraftFacts, getCompletedSteps, getDraftReview, getReview, initialFacts, initialItems, isWebServiceUrl, PolicyItem, restorePolicyExport, steps } from './policy'
 
 type FactField = {
@@ -222,6 +223,7 @@ export default function App() {
   const [message, setMessage] = useState('')
   const [isImporting, setIsImporting] = useState(false)
   const importAttempt = useRef(0)
+  const importAbort = useRef<AbortController | null>(null)
   const importInput = useRef<HTMLInputElement>(null)
   const editingLock = useRef<HTMLFieldSetElement>(null)
   /** Reports readiness for responsible review without claiming that a publication occurred. */
@@ -251,10 +253,12 @@ export default function App() {
     const file = fileInput.files?.[0]
     if (!file) return
     const attempt = ++importAttempt.current
+    const abortController = new AbortController()
+    importAbort.current = abortController
     setIsImporting(true)
     try {
       if (file.size > 1024 * 1024) throw new Error('draft exceeds 1 MiB')
-      const restored = restorePolicyExport(JSON.parse(await file.text()))
+      const restored = restorePolicyExport(JSON.parse(await readLocalDraft(file, abortController.signal)))
       if (attempt !== importAttempt.current) return
       setItems(restored.items)
       setNoCollectionAttested(restored.noCollectionAttested)
@@ -268,6 +272,7 @@ export default function App() {
         : 'JSON \uCD08\uC548\uC744 \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. schema-v1 \uB0B4\uBCF4\uB0B4\uAE30 \uD30C\uC77C\uC778\uC9C0 \uD655\uC778\uD558\uC138\uC694.')
     } finally {
       if (attempt === importAttempt.current) {
+        importAbort.current = null
         setIsImporting(false)
         fileInput.value = ''
       }
@@ -276,6 +281,8 @@ export default function App() {
   /** Invalidates a pending local read and restores focus to the active authoring control. */
   function cancelImport() {
     importAttempt.current += 1
+    importAbort.current?.abort('operator cancelled')
+    importAbort.current = null
     if (importInput.current) importInput.current.value = ''
     setIsImporting(false)
     setMessage('JSON \uAC00\uC838\uC624\uAE30\uB97C \uCDE8\uC18C\uD588\uC2B5\uB2C8\uB2E4. \uD604\uC7AC \uC791\uC5C5\uC740 \uC720\uC9C0\uB429\uB2C8\uB2E4.')

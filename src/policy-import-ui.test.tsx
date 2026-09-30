@@ -1,10 +1,48 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { createPolicyExport, initialFacts, initialItems } from './policy'
 
 afterEach(cleanup)
+
+function streamingFile(contents: string, name = 'policyweave-draft.json'): File {
+  const file = new File([contents], name, { type: 'application/json' })
+  Object.defineProperty(file, 'stream', {
+    value: () => new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(contents))
+        controller.close()
+      },
+    }),
+  })
+  return file
+}
+
+function pendingStreamingFile(): {
+  file: File
+  completeRead: (contents: string) => void
+  cancel: ReturnType<typeof vi.fn>
+} {
+  let settleRead!: (result: ReadableStreamReadResult<Uint8Array>) => void
+  let readCount = 0
+  const cancel = vi.fn(() => Promise.resolve())
+  const reader = {
+    read: vi.fn(() => {
+      if (readCount++ > 0) return Promise.resolve({ done: true, value: undefined } as ReadableStreamReadResult<Uint8Array>)
+      return new Promise<ReadableStreamReadResult<Uint8Array>>((resolve) => { settleRead = resolve })
+    }),
+    cancel,
+    releaseLock: vi.fn(),
+  }
+  const file = new File(['pending'], 'policyweave-draft.json', { type: 'application/json' })
+  Object.defineProperty(file, 'stream', { value: () => ({ getReader: () => reader }) })
+  return {
+    file,
+    completeRead: (contents) => settleRead({ done: false, value: new TextEncoder().encode(contents) }),
+    cancel,
+  }
+}
 
 describe('policy draft import UI', () => {
   it('restores a validated schema-v1 draft into the workspace', async () => {
@@ -18,7 +56,7 @@ describe('policy draft import UI', () => {
       privacyOfficerName: 'Privacy Team',
       privacyOfficerEmail: 'privacy@example.test',
     })
-    const file = new File([JSON.stringify(exported)], 'policyweave-draft.json', { type: 'application/json' })
+    const file = streamingFile(JSON.stringify(exported))
     const { container } = render(<App />)
 
     fireEvent.change(container.querySelector<HTMLInputElement>('input[aria-label="JSON \uCD08\uC548 \uAC00\uC838\uC624\uAE30"]')!, { target: { files: [file] } })
@@ -39,10 +77,7 @@ describe('policy draft import UI', () => {
       privacyOfficerName: 'Privacy Team',
       privacyOfficerEmail: 'privacy@example.test',
     })
-    let completeRead!: (contents: string) => void
-    const contents = new Promise<string>((resolve) => { completeRead = resolve })
-    const file = new File(['pending'], 'policyweave-draft.json', { type: 'application/json' })
-    Object.defineProperty(file, 'text', { value: () => contents })
+    const { file, completeRead } = pendingStreamingFile()
     const { container } = render(<App />)
     const importInput = container.querySelector<HTMLInputElement>('input[aria-label="JSON \uCD08\uC548 \uAC00\uC838\uC624\uAE30"]')!
 
@@ -73,10 +108,7 @@ describe('policy draft import UI', () => {
       privacyOfficerName: 'Privacy Team',
       privacyOfficerEmail: 'privacy@example.test',
     })
-    let completeRead!: (contents: string) => void
-    const contents = new Promise<string>((resolve) => { completeRead = resolve })
-    const file = new File(['pending'], 'policyweave-draft.json', { type: 'application/json' })
-    Object.defineProperty(file, 'text', { value: () => contents })
+    const { file, completeRead, cancel } = pendingStreamingFile()
     const { container, getByRole } = render(<App />)
     const serviceName = container.querySelector<HTMLInputElement>('input[name="serviceName"]')!
     const importInput = container.querySelector<HTMLInputElement>('input[aria-label="JSON \uCD08\uC548 \uAC00\uC838\uC624\uAE30"]')!
@@ -90,9 +122,10 @@ describe('policy draft import UI', () => {
     await waitFor(() => expect(document.activeElement).toBe(serviceName))
     expect(serviceName.value).toBe('Current Work')
     expect(container.querySelector('output')?.textContent).toContain('\uAC00\uC838\uC624\uAE30\uB97C \uCDE8\uC18C\uD588\uC2B5\uB2C8\uB2E4')
+    expect(cancel).toHaveBeenCalledOnce()
 
     completeRead(JSON.stringify(exported))
-    await contents
+    await Promise.resolve()
     expect(container.querySelector('.document-name')?.textContent).not.toContain('Late Restore')
     expect(container.querySelector('output')?.textContent).not.toContain('\uCD08\uC548\uC744 \uBD88\uB7EC\uC654\uC2B5\uB2C8\uB2E4')
   })
@@ -100,7 +133,7 @@ describe('policy draft import UI', () => {
   it('keeps current facts unchanged when an imported file fails validation', async () => {
     const { container } = render(<App />)
     fireEvent.change(container.querySelector<HTMLInputElement>('input[name="serviceName"]')!, { target: { value: 'Existing Service' } })
-    const forged = new File(['{"schema_version":1,"document_state":"review_ready"}'], 'forged.json', { type: 'application/json' })
+    const forged = streamingFile('{"schema_version":1,"document_state":"review_ready"}', 'forged.json')
 
     fireEvent.change(container.querySelector<HTMLInputElement>('input[aria-label="JSON \uCD08\uC548 \uAC00\uC838\uC624\uAE30"]')!, { target: { files: [forged] } })
 
