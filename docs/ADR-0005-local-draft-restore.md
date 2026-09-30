@@ -4,7 +4,7 @@
 - Date: 2026-09-26
 - Owner: Policy Fact Authoring
 - Scope: `src/policy.ts`, `src/local-draft-reader.ts`, `src/App.tsx`, schema-v1 local portability
-- Evidence: RED commits `86d370b1`, `0088d686`, `8be9e8dc`, `7bedeca1`, and `4a6e958`; implementation commits `d5ab6bd2`, `768e1c85`, `50afb82b`, and `bc7dd0b`; browser contract commit `95b34a18`
+- Evidence: RED commits `86d370b1`, `0088d686`, `8be9e8dc`, `7bedeca1`, and `80718969`; implementation commits `d5ab6bd2`, `768e1c85`, `50afb82b`, and `5e878b68`; browser contract commit `95b34a18`
 
 ## Problem
 
@@ -65,6 +65,8 @@ CodeRabbit exact-head review finding `4111539873` identified that removing the f
 Pending-state reflow test-only commit `7ea567bdcacb7ab64d24711afc1ef812afecf8aa` exposed that only the <=720 px layout wrapped the topbar even though cancellation adds another transient control. The CSS contract failed 1/7 because the 1300 px media block had no topbar wrap rule. Minimal repair `9623449f35719c0e959f4cdbd8a881fdcf4ad97c` reuses native flex wrapping at that existing breakpoint and extends the real-browser cancellation case to the tablet profile with a document-width overflow assertion. The CSS contract passes 7/7 and the production build succeeds locally. Playwright test discovery reached the tablet case, but local Chromium launch stopped before page execution because the browser binary is unavailable; hosted exact-head execution remains authoritative.
 
 Long-name reflow test-only commit `66ae499b0105359c5bc0faecdd07209e1b2ad475` narrows the preceding claim: flex wrapping alone cannot shrink an automatic-minimum flex item when `service_name` is one long unspaced token. It adds an exact CSS contract and changes the desktop/tablet browser case to a 320-character unbroken name; the CSS contract failed 1/8 before production changed. Minimal repair `803cd609203f3e01d5f4be16a653ef3671143a9a` applies `min-width: 0` and `overflow-wrap: anywhere` only to the document-name item at the existing tablet breakpoint. The CSS contract passes 8/8 and the production build succeeds locally. Actual browser execution remains a hosted exact-head gate because the local Chromium binary is unavailable.
+
+Stream-source RED `807189694322a7620e8c42aa0799e9cfc4957226` failed at module resolution because no abortable reader existed. Minimal implementation `5e878b68824dac8f3be8b56048050a37d66f4734` adds the dependency-free incremental reader, connects one `AbortController` to each UI attempt, and changes the browser contract to observe the underlying stream `cancel()` callback. Local verification passed preview contracts 6/6, Vitest 181/181 across 17 files, ESLint, the TypeScript/Vite production build, Playwright discovery of 39 cases, and diff checking. Local execution of the changed Playwright case stopped before page execution because the Chromium binary is absent; hosted exact-head browser and security results plus independent approval remain merge gates.
 
 ## Consequences and follow-up
 
