@@ -20,6 +20,24 @@ describe('local draft reader', () => {
       .resolves.toBe('{"service_name":"정책"}')
   })
 
+  it('rejects ill-formed UTF-8 instead of replacing corrupted fact bytes', async () => {
+    const prefix = new TextEncoder().encode('{"service_name":"')
+    const suffix = new TextEncoder().encode('uyer"}')
+    const corrupted = new Uint8Array(prefix.length + 2 + suffix.length)
+    corrupted.set(prefix)
+    corrupted.set([0xc3, 0x28], prefix.length)
+    corrupted.set(suffix, prefix.length + 2)
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(corrupted)
+        controller.close()
+      },
+    })
+
+    await expect(readLocalDraft(streamBackedBlob(stream), new AbortController().signal))
+      .rejects.toBeInstanceOf(TypeError)
+  })
+
   it('cancels the underlying browser reader and rejects a pending read', async () => {
     let settleRead!: (result: ReadableStreamReadResult<Uint8Array>) => void
     const cancel = vi.fn(() => {

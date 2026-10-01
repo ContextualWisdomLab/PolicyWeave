@@ -19,6 +19,21 @@ function streamingFile(contents: string, name = 'policyweave-draft.json'): File 
   return file
 }
 
+function byteStreamingFile(contents: Uint8Array, name = 'policyweave-draft.json'): File {
+  const fileBuffer = new ArrayBuffer(contents.byteLength)
+  new Uint8Array(fileBuffer).set(contents)
+  const file = new File([fileBuffer], name, { type: 'application/json' })
+  Object.defineProperty(file, 'stream', {
+    value: () => new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(contents)
+        controller.close()
+      },
+    }),
+  })
+  return file
+}
+
 function pendingStreamingFile(): {
   file: File
   completeRead: (contents: string) => void
@@ -140,6 +155,38 @@ describe('policy draft import UI', () => {
     await waitFor(() => expect(container.querySelector('output')?.textContent).toContain('\uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4'))
     expect(container.querySelector<HTMLInputElement>('input[name="serviceName"]')?.value).toBe('Existing Service')
     expect(container.querySelector<HTMLInputElement>('input[name="serviceName"]')?.matches(':disabled')).toBe(false)
+  })
+
+  it('keeps current facts unchanged when imported fact bytes are not valid UTF-8', async () => {
+    const exported = createPolicyExport(initialItems, true, {
+      ...initialFacts,
+      serviceName: 'Restored Portal',
+      serviceUrl: 'https://restored.example.test/privacy',
+      retentionStatus: 'none',
+      thirdPartyStatus: 'no',
+      internationalStatus: 'no',
+      privacyOfficerName: 'Privacy Team',
+      privacyOfficerEmail: 'privacy@example.test',
+    })
+    const encoded = new TextEncoder().encode(JSON.stringify(exported))
+    const marker = new TextEncoder().encode('Restored Portal')
+    const markerStart = encoded.findIndex((_, index) => marker.every((byte, offset) => encoded[index + offset] === byte))
+    expect(markerStart).toBeGreaterThanOrEqual(0)
+    const corrupted = new Uint8Array(encoded.length + 1)
+    corrupted.set(encoded.slice(0, markerStart))
+    corrupted.set([0xc3, 0x28], markerStart)
+    corrupted.set(encoded.slice(markerStart + 1), markerStart + 2)
+
+    const { container } = render(<App />)
+    const serviceName = container.querySelector<HTMLInputElement>('input[name="serviceName"]')!
+    fireEvent.change(serviceName, { target: { value: 'Existing Service' } })
+    fireEvent.change(container.querySelector<HTMLInputElement>('input[aria-label="JSON \uCD08\uC548 \uAC00\uC838\uC624\uAE30"]')!, {
+      target: { files: [byteStreamingFile(corrupted, 'corrupted.json')] },
+    })
+
+    await waitFor(() => expect(container.querySelector('output')?.textContent).toContain('\uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4'))
+    expect(serviceName.value).toBe('Existing Service')
+    expect(serviceName.matches(':disabled')).toBe(false)
   })
 
   it('rejects draft files larger than one mebibyte before parsing', async () => {

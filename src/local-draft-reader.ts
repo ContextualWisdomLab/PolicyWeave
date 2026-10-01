@@ -1,7 +1,7 @@
 /** Reads a local draft through the browser stream so operator cancellation reaches the source reader. */
 export async function readLocalDraft(file: Blob, signal: AbortSignal): Promise<string> {
   const reader = file.stream().getReader()
-  const decoder = new TextDecoder()
+  const decoder = new TextDecoder('utf-8', { fatal: true })
   let aborted = signal.aborted
   const abortRead = () => {
     aborted = true
