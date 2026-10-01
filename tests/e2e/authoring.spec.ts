@@ -192,6 +192,88 @@ test('restores a real schema-v1 download and preserves work after invalid input'
   await expect(page.locator('output')).toHaveText(/불러오지 못했습니다/)
 })
 
+test('cancels a pending import and ignores its late browser result', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile-chromium', 'Desktop and tablet profiles prove the cancellation lifecycle and pending-state reflow.')
+
+  await page.addInitScript(() => {
+    const readFile = File.prototype.stream
+    let releaseRead!: () => void
+    const readGate = new Promise<void>((resolve) => { releaseRead = resolve })
+    const importAudit = window as typeof window & {
+      __policyImportReadCancelled?: boolean
+      __policyImportReadSettled?: boolean
+      __releasePolicyImport?: () => void
+    }
+    importAudit.__policyImportReadCancelled = false
+    importAudit.__policyImportReadSettled = false
+    importAudit.__releasePolicyImport = releaseRead
+    File.prototype.stream = function () {
+      const source = readFile.call(this).getReader()
+      let cancelled = false
+      return new ReadableStream<Uint8Array>({
+        async pull(controller) {
+          const result = await source.read()
+          await readGate
+          if (!cancelled) {
+            if (result.done) controller.close()
+            else controller.enqueue(result.value)
+          }
+          importAudit.__policyImportReadSettled = true
+        },
+        async cancel(reason) {
+          cancelled = true
+          importAudit.__policyImportReadCancelled = true
+          await source.cancel(reason)
+        },
+      })
+    }
+  })
+  await page.goto('/')
+  const currentServiceName = 'PolicyWeave'.repeat(32)
+  await page.getByLabel('서비스 이름').fill(currentServiceName)
+  const exportedDraft = JSON.stringify({
+    schema_version: 1,
+    document_state: 'review_ready',
+    policy_facts: {
+      service_profile: { service_name: 'Late Restore', service_url: 'https://restored.example.test/privacy' },
+      no_collection_attested: true,
+      collection_items: [],
+      retention: { retention_status: 'none', retention_period: null },
+      third_party_transfer: { transfer_status: 'no', recipient_name: null, transfer_purpose: null },
+      international_transfer: { transfer_status: 'no', destination_country: null, recipient_name: null },
+      privacy_contact: { contact_name: 'Privacy Team', contact_email: 'privacy@example.test' },
+    },
+    review_finding_codes: [],
+  })
+
+  await page.getByLabel('JSON 초안 가져오기').setInputFiles({
+    name: 'pending.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(exportedDraft),
+  })
+  const cancelImport = page.getByRole('button', { name: 'JSON 가져오기 취소' })
+  await cancelImport.focus()
+  await expect(cancelImport).toBeFocused()
+  const viewportOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  )
+  expect(viewportOverflow).toBeLessThanOrEqual(0)
+  await page.keyboard.press('Enter')
+
+  await expect(page.getByLabel('서비스 이름')).toBeEnabled()
+  await expect(page.getByLabel('서비스 이름')).toBeFocused()
+  await expect(page.getByLabel('서비스 이름')).toHaveValue(currentServiceName)
+  await expect(page.locator('output')).toHaveText(/가져오기를 취소했습니다/)
+  await expect.poll(() => page.evaluate(() => (
+    window as typeof window & { __policyImportReadCancelled?: boolean }
+  ).__policyImportReadCancelled)).toBe(true)
+  await page.evaluate(() => (window as typeof window & { __releasePolicyImport: () => void }).__releasePolicyImport())
+  await page.waitForFunction(() => (window as typeof window & { __policyImportReadSettled?: boolean }).__policyImportReadSettled)
+  await expect(page.getByLabel('서비스 이름')).toHaveValue(currentServiceName)
+  await expect(page.locator('.document-name')).not.toContainText('Late Restore')
+  await expect(page.locator('output')).not.toHaveText(/초안을 불러왔습니다/)
+})
+
 test('keeps keyboard exports byte-stable and revokes every JSON object URL', async ({ page }) => {
   await installDownloadAudit(page)
   await page.goto('/')
