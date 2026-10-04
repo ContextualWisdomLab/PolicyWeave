@@ -153,7 +153,7 @@ button { cursor: pointer; }
   .review-bar { grid-template-columns: 1fr 1fr; padding: 12px 14px; }
   .review-bar > div:first-child, .publish { grid-column: 1 / -1; }
   .review-bar output { position: static; grid-column: 1 / -1; text-align: right; }
-  .document-name { max-width: 190px; overflow: hidden; white-space: nowrap; }
+  .document-name { display: block; flex-basis: 100%; min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; overflow: visible; }
   .brand { font-size: 23px; }
   .paper { padding: 18px 14px; }
   .document-warning { flex-wrap: wrap; }

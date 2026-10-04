@@ -16,6 +16,7 @@ type PortabilityAudit = {
   events: AuditEvent[]
   storageCalls: string[]
   pending: boolean
+  active: boolean
   hold: (filename: string) => void
   release: () => void
   restore: () => boolean
@@ -90,6 +91,7 @@ async function installObserver(page: Page) {
     const controller: PortabilityAudit = {
       events, storageCalls,
       get pending() { return releaseRead !== undefined },
+      get active() { return !restored },
       hold: (filename) => { heldFilename = filename },
       release: () => {
         if (!releaseRead) throw new Error('No owned URL portability read is pending')
@@ -124,13 +126,21 @@ async function receipt(info: TestInfo, name: string, data: unknown) {
 }
 async function auditReceipt(page: Page, info: TestInfo, name: string, restore = false) {
   await expect.poll(() => page.evaluate(() => {
-    const events = window.__urlPortabilityAudit.events
+    const observer = window.__urlPortabilityAudit
+    if (!observer?.active) throw new Error('URL portability observer is no longer active')
+    const events = observer.events
     return events.filter(({ kind }) => kind === 'native-create').length - events.filter(({ kind }) => kind === 'native-revoke').length
   })).toBe(0)
-  const audit = await page.evaluate((shouldRestore) => ({
-    events: [...window.__urlPortabilityAudit.events], storageCalls: [...window.__urlPortabilityAudit.storageCalls],
-    restored: shouldRestore ? window.__urlPortabilityAudit.restore() : null,
-  }), restore)
+  const audit = await page.evaluate((shouldRestore) => {
+    const observer = window.__urlPortabilityAudit
+    if (!observer?.active) throw new Error('URL portability observer is no longer active')
+    // Capture admission before restore=true cleanup (the pre-reload receipt).
+    return {
+      active: observer.active,
+      events: [...observer.events], storageCalls: [...observer.storageCalls],
+      restored: shouldRestore ? observer.restore() : null,
+    }
+  }, restore)
   await receipt(info, name, { ...audit, ...observations.get(page) })
   const created = audit.events.filter(({ kind }) => kind === 'native-create')
   expect(audit.events.filter(({ kind }) => kind === 'native-revoke').map(({ url }) => url)).toEqual(created.map(({ url }) => url))

@@ -52,6 +52,18 @@ Based on published session-notice HEAD `2117734f1956b7200bd8b396066e33f800e18436
 
 All historical sections and receipts remain dated evidence, not this candidate's final gate. No hosted persistence/publication, legal sufficiency or protected integration is asserted.
 
+## Mobile document-title successor candidate — 2026-10-05
+
+Based on published PR #26 head `1e662c2f08d4e156b9280ef434bc876c0c77b283`, PRD `US-MOBILE-TITLE-01` selects one presentation gap: the mobile header silently clips a long service-name projection and policy suffix at 190 px. Independent current-browser measurements at 320/390 px show text widths approximately 586/653 px while document overflow is zero; default-name controls pass. One measured URL-warning keyboard path is normal, and intentional horizontal rail scrolling is not admitted as a defect. These actual observations supersede neither dated earlier receipts nor separate hosted gates.
+
+| Gap | Bounded candidate | Required successor evidence |
+| --- | --- | --- |
+| Mobile header title | Normal-flow full-width wrapping row, exact service input/text/suffix and visible sibling controls; mobile CSS rule only | Repository containment RED before production edit, same oracle GREEN, fixed 320/390/720 cohorts, sensitivity controls, screenshots and current full gate |
+| Preservation | No App/domain/focus/import/download/storage/CI/dependency/legal rule change; default/short nonmobile layout retained | Actual predecessor/successor comparison at 721/820/1280, existing seven-step/native/focus regressions and final whole-candidate review |
+| Evidence authority | Two independent whole plans followed by two reviewers receiving both full texts and parent aggregation | Conditional planning is not implementation approval; heterogeneous-model identity unverified; [dated evidence](evidence/mobile-document-title-20261005.md) retains execution classes separately |
+
+Nonmobile extreme names, preview/rail text, AT/manual accessibility and protected integration remain open. Natural vertical scrolling is allowed; there is no input length restriction or blanket all-name/all-screen readability promise. Central Runner PR #2565, separate PR #25 and Issue #12 ownership/gates remain unchanged; no migration adoption, approval, merge or release follows from local evidence.
+
 ## Runtime status admission repair
 
 [ADR-0004](ADR-0004-runtime-status-admission.md) implements the existing PRD/TRD/ADR-0002 explicit-fact requirement in `src/policy.ts`. Review, completed-step derivation and schema-v1 export no longer treat truthy unknown collection/retention/transfer status values as operator confirmations. Only exact existing members are accepted; unsupported statuses retain their owning finding and export as `null`, without coercion, inferred `no`/`none` or source mutation.

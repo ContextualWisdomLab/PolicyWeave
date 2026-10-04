@@ -77,5 +77,11 @@ Two Layer1 independent proposals were followed by two Layer2 reviewers receiving
 
 No law, effective-date snapshot, template authority, legal source, network source or legal-sufficiency rule is added, changed or revalidated. The register and dated retrievals above remain historical evidence; normalized URL withholding is an existing product admission/disclosure boundary, not a new legal rule.
 
+## Mobile document-title trace — 2026-10-05 candidate
+
+PRD `US-MOBILE-TITLE-01` and [the dated evidence](evidence/mobile-document-title-20261005.md) bind a product-UX reflow decision to the current `App.tsx` title projection and mobile stylesheet, not a new law, template or compliance rule. Two independent whole proposals include actual long-name/default controls; each of two next-layer reviewers received both full proposals and conditionally accepted one mobile-title-only plan. This full-proposal transfer is distinct from the summary-fed historical layers above; same/inherited-model roles still do not establish heterogeneous-model execution, benchmark benefit or qualifying GitHub approval.
+
+The proposed native regression compares exact input/text, rendered line geometry and visible sibling layout; clipping, hidden-title and overlap sensitivity and nonmobile preservation remain acceptance requirements. Diagnostics, repository RED, candidate GREEN, visual inspection and final gates are separate evidence classes. No legal register, retrieval/effective date, authoritative-source mapping, readiness rule or ADR-0005/0006 contract is changed or revalidated. Native geometry and screenshots must not be promoted to universal WCAG/AT conformance.
+
 ## Current gap
 The seven-step workspace now captures the product's intended fact categories, including independent explicit retention applicability, but retention-period/legal-basis detail, third-party provision, international transfer, contact/controller information, and legal-basis review still need requirement-level mappings to the authoritative register, deterministic validation, and regression fixtures before PolicyWeave can claim those steps are legally complete. CSS-level focus contrast and deterministic step-focus transfer now have executable regression contracts, but real-browser accessibility evidence remains required before claiming WCAG conformance.
