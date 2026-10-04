@@ -24,6 +24,8 @@ describe('local review summary download UI', () => {
     fireEvent.click(container.querySelectorAll('.rail ol button')[1])
     fireEvent.click(container.querySelector('input[name="noCollectionAttested"]')!)
     const before = container.querySelector('.workspace')!.innerHTML
+    const sessionNotice = container.querySelector('.session-notice')?.textContent
+    expect(sessionNotice).toContain('자동 저장되지 않습니다')
     const failure = new Error('fixture failure')
     if (stage === 'blob') vi.stubGlobal('Blob', class { constructor() { throw failure } })
     if (stage === 'url') allocate.mockImplementationOnce(() => { throw failure })
@@ -34,6 +36,7 @@ describe('local review summary download UI', () => {
     if (stage === 'click') click.mockImplementationOnce(() => { throw failure })
     fireEvent.click(getByRole('button', { name: '검토 요약 다운로드' }))
     expect(container.querySelector('output')?.textContent).toContain('다시 시도하세요')
+    expect(container.querySelector('.session-notice')?.textContent).toBe(sessionNotice)
     expect(container.querySelector('.workspace')!.innerHTML).toBe(before)
     expect(revoke).not.toHaveBeenCalled()
     vi.runAllTimers()
@@ -43,6 +46,7 @@ describe('local review summary download UI', () => {
     vi.stubGlobal('URL', class extends URL { static createObjectURL = allocate; static revokeObjectURL = revoke })
     fireEvent.click(getByRole('button', { name: '검토 요약 다운로드' }))
     expect(container.querySelector('output')?.textContent).toContain('다운로드를 시작했습니다')
+    expect(container.querySelector('.session-notice')?.textContent).toBe(sessionNotice)
     expect(container.querySelector('.workspace')!.innerHTML).toBe(before)
     vi.runAllTimers()
   })

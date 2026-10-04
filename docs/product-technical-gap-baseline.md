@@ -23,6 +23,20 @@ This bounded section does not supersede the dated historical receipts below. Par
 | Integration assurance | Original independent whole-delta local review found no blocking defect. Successor parent gate completed lint/build, 193 Vitest and 51 browser passes with 12 scoped skips; successor independent review pending | Current exact-head hosted workflows, resolved threads and qualifying GitHub approval remain open. Empty-directory npm ci added 243 packages and exercised the predecessor snapshot; fsevents allow-scripts warning is retained, not silently approved. |
 | Mixed-agent provenance | Layered proposals → shared prior outputs/cross-review → parent aggregation receipts exist locally | Heterogeneous model/provider identity is unverified; no benchmark or runtime product-AI claim |
 
+## Memory-only session-notice candidate — 2026-10-05
+
+PRD `US-SESSION-01` reconciles unsupported temporary-save wording with the existing React-memory contract. The uncommitted delta is based on `ee12e3fddefec1c4038e6da333019e3455e6a50f`: shared static notice after each section heading and before inputs across all seven steps, plus explicit app-version labels in header/preview. No automatic storage, unload prompt, dependency, schema, readiness or legal rule is added. JSON is normalized fact portability, not every raw input's backup; TXT cannot restore work. Existing pending-import live status and lock remain.
+
+[The dated evidence record](evidence/session-notice-20261005.md) binds direct source/proposal inspection separately from parent-reported RED→GREEN observations: initial outer timeout is retained as non-passing; completed intended REDs, focused five-case GREEN and local build are bounded reports, not a final-head full gate. Historic 193-unit / 51-browser / 12-scoped-skip totals above remain predecessor receipts and are not promoted to the session candidate. Current full suite and actual browser successor are pending in this documentation handoff; no new CI pass is asserted.
+
+| Gap | Candidate contract | Remaining evidence |
+| --- | --- | --- |
+| Truthful session boundary | One static notice per active editor; app version distinct from fact/report versions; no save claim | Current native browser notice persistence across edit/import/export outcomes; readable normal-flow 320 px text and no clipping; reload-empty / explicit validated restore; current lint/test/build |
+| Integration and ownership | Parent reports Draft consumer PR #26 and separate import-stream/cancellation PR #25; centralized CI migration remains owner work, not duplicated here | Fresh head/base/checkouts and terminal live required checks, resolved threads and qualifying independent approval. Parent-reported old billing failure/central migration is not integrated-ready evidence; do not bypass gates or alter PR #25 |
+| Evidence provenance | Two independent whole proposals followed by summary-fed cross-review and parent synthesis | Same/inherited model identity is unverified heterogeneous; one reviewer explicitly lacked full prior proposal text. Conditional planning agreement is not final implementation approval |
+
+This dated addition preserves all earlier receipts, including the older PR #1 observations; it does not re-fetch or silently relabel them as current remote truth. Source/test assertion presence and local planning do not close legal, accessibility, hosted persistence/publication or Issue #12 gates.
+
 ## Runtime status admission repair
 
 [ADR-0004](ADR-0004-runtime-status-admission.md) implements the existing PRD/TRD/ADR-0002 explicit-fact requirement in `src/policy.ts`. Review, completed-step derivation and schema-v1 export no longer treat truthy unknown collection/retention/transfer status values as operator confirmations. Only exact existing members are accepted; unsupported statuses retain their owning finding and export as `null`, without coercion, inferred `no`/`none` or source mutation.

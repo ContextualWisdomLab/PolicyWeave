@@ -56,6 +56,14 @@ Pending-feedback test-only commit `3e2eba61e7e4f02c5ac8b3f9ee23895d515a37b3` the
 
 Semantic-fieldset test-only commit `52d252a2c0c46b12c6cecdebd3dcc67940322bde` reproduced the remaining accessibility risk by failing while `.editing-lock` used `display: contents`. Implementation `9d540895569ab945a087bed99c7d4906b82ae532` keeps the native disabled/`aria-busy` fieldset as the middle grid item, resets only its user-agent box, and gives the contained editing panel the grid item's height so bounded scrolling remains available. Focused style/import validation passed 10/10 locally; hosted browser and assistive-technology evidence remain separate gates.
 
+## Session-boundary clarification — 2026-10-05
+
+PRD `US-SESSION-01` adds truthful notice of this ADR's existing memory-only portability boundary; it does not revise schema admission, persistence or restore authority. The active editor shows one static paragraph after its heading and before inputs, explaining no automatic saving, reload/tab-close loss and existing JSON export. Header/preview `앱 버전 0.1.0` replaces the unsupported temporary-save label and is independent of JSON `schema_version: 1` and TXT `report_format: v1`. The notice does not replace the import live region, become a focus target, add beforeunload/browser storage or change the semantic input lock.
+
+A valid native JSON download → reload-empty → explicit import journey characterizes existing behavior; it does not establish automatic recovery or a new feature. JSON carries only admitted normalized facts: rejected URLs, inactive/discarded details and every raw input are not guaranteed round-trip backup content. A failed import preserves current state; success retains validated replacement and step-1 navigation. Download initiation is not completed storage, and TXT is not a restore artifact. Existing cancellation/stream work remains separately owned, not implied by this clarification.
+
+[The session evidence record](evidence/session-notice-20261005.md) retains parent-reported focused TDD/build observations separately from direct source inspection, all historic receipts above and unfinished current full/browser/hosted/independent-approval gates. This ADR remains Proposed; no new CI pass, protected integration, release or legal conclusion is asserted.
+
 ## Consequences and follow-up
 
 PolicyWeave now owns a deterministic local export/restore round trip for schema-v1. This closes the missing current-version return path, not version migration. Any schema-v2 work must define explicit migration, loss reporting, compatibility fixtures, and rollback behavior. DB-backed versioned ko/en/ja/zh/vi/es/de/fr resources remain a separate owner contract; schema-v1 catalog-label identity must not be relaxed by embedding a full translation catalog in the browser.

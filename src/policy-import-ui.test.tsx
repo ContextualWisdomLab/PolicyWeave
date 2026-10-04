@@ -44,6 +44,8 @@ describe('policy draft import UI', () => {
     const file = new File(['pending'], 'policyweave-draft.json', { type: 'application/json' })
     Object.defineProperty(file, 'text', { value: () => contents })
     const { container } = render(<App />)
+    const sessionNotice = container.querySelector('.session-notice')?.textContent
+    expect(sessionNotice).toContain('자동 저장되지 않습니다')
     const importInput = container.querySelector<HTMLInputElement>('input[aria-label="JSON \uCD08\uC548 \uAC00\uC838\uC624\uAE30"]')!
 
     fireEvent.change(importInput, { target: { files: [file] } })
@@ -55,8 +57,10 @@ describe('policy draft import UI', () => {
     expect(container.querySelector('.save-state')?.textContent).toContain('JSON \uCD08\uC548 \uD655\uC778 \uC911')
     expect(container.querySelector<HTMLInputElement>('input[name="serviceName"]')?.matches(':disabled')).toBe(true)
 
+    expect(container.querySelector('.session-notice')?.textContent).toBe(sessionNotice)
     completeRead(JSON.stringify(exported))
     await waitFor(() => expect(container.querySelector('.document-name')?.textContent).toContain('Restored Portal'))
+    expect(container.querySelector('.session-notice')?.textContent).toBe(sessionNotice)
     expect(importInput.closest('.file-control')?.getAttribute('aria-disabled')).toBe('false')
     expect(container.querySelector('.save-state')?.textContent).toContain('\uBE0C\uB77C\uC6B0\uC800 \uC791\uC5C5 \uC911')
     expect(container.querySelector<HTMLInputElement>('input[name="serviceName"]')?.matches(':disabled')).toBe(false)
@@ -70,6 +74,8 @@ describe('policy draft import UI', () => {
     fireEvent.change(container.querySelector<HTMLInputElement>('input[aria-label="JSON \uCD08\uC548 \uAC00\uC838\uC624\uAE30"]')!, { target: { files: [forged] } })
 
     await waitFor(() => expect(container.querySelector('output')?.textContent).toContain('\uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4'))
+    expect(container.querySelector('.session-notice')?.textContent).toContain('자동 저장되지 않습니다')
+    expect(container.querySelector('.topbar')?.textContent).not.toContain('임시저장')
     expect(container.querySelector<HTMLInputElement>('input[name="serviceName"]')?.value).toBe('Existing Service')
     expect(container.querySelector<HTMLInputElement>('input[name="serviceName"]')?.matches(':disabled')).toBe(false)
   })
