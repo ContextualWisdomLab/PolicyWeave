@@ -1,5 +1,6 @@
 import { ChangeEvent, useMemo, useState } from 'react'
 import { AlertTriangle, Check, ChevronDown, ExternalLink, FileText, Link, Save, Upload } from 'lucide-react'
+import { createPolicyReviewText } from './policy-review-report'
 import { createPolicyExport, DraftFacts, getCompletedSteps, getDraftReview, getReview, initialFacts, initialItems, isWebServiceUrl, PolicyItem, restorePolicyExport, steps } from './policy'
 
 type FactField = {
@@ -177,12 +178,13 @@ function EditingPanel({ current, items, setItems, noCollectionAttested, setNoCol
 }
 
 /** Projects verified authoring facts and deterministic readiness findings into the review draft. */
-function DocumentPreview({ items, noCollectionAttested, facts, setCurrent }: { items: PolicyItem[]; noCollectionAttested: boolean; facts: DraftFacts; setCurrent: (step: number) => void }) {
+function DocumentPreview({ items, noCollectionAttested, facts, setCurrent, exportReview, isImporting }: { items: PolicyItem[]; noCollectionAttested: boolean; facts: DraftFacts; setCurrent: (step: number) => void; exportReview: () => void; isImporting: boolean }) {
   const review = useMemo(() => getReview(items, noCollectionAttested), [items, noCollectionAttested])
   const draftFindings = useMemo(() => getDraftReview(facts, noCollectionAttested), [facts, noCollectionAttested])
   const blockingCount = review.blockingCount + draftFindings.length
   return <section className="preview" aria-label="개인정보처리방침 미리보기" tabIndex={-1}>
     <div className="preview-title"><h2>개인정보처리방침 미리보기</h2><button className="outline" onClick={() => window.print()}>인쇄 미리보기 <ExternalLink size={14} /></button></div>
+    <button className="outline review-download" onClick={exportReview} disabled={isImporting}>검토 요약 다운로드</button>
     <div className="meta"><span>근거 법령 <b>개인정보 보호법</b></span><span className={blockingCount ? 'warn-tag' : 'ok-tag'}>{blockingCount ? `검토 필요 ${blockingCount}` : '필수 확인 완료'}</span><span>버전 0.1.0</span></div>
     <article className="paper">
       <h2>{facts.serviceName || '개인정보처리방침'} (검토본)</h2>
@@ -242,6 +244,26 @@ export default function App() {
       }
     }
   }
+  /** Starts a local TXT review-summary download without changing authoring facts or claiming file storage. */
+  function exportReview() {
+    if (isImporting) return
+    let fileUrl: string | null = null
+    try {
+      fileUrl = URL.createObjectURL(new Blob([createPolicyReviewText(items, noCollectionAttested, facts)], { type: 'text/plain;charset=utf-8' }))
+      const downloadLink = document.createElement('a')
+      downloadLink.href = fileUrl
+      downloadLink.download = 'policyweave-review.txt'
+      downloadLink.click()
+      setMessage('검토 요약 다운로드를 시작했습니다. 파일 보관 및 전달 범위를 확인하세요.')
+    } catch {
+      setMessage('검토 요약을 내보내지 못했습니다. 다시 시도하세요.')
+    } finally {
+      if (fileUrl) {
+        const disposableFileUrl = fileUrl
+        setTimeout(() => URL.revokeObjectURL(disposableFileUrl), 0)
+      }
+    }
+  }
   /** Restores a bounded schema-v1 local draft without trusting embedded readiness evidence. */
   async function importDraft(event: ChangeEvent<HTMLInputElement>) {
     const fileInput = event.currentTarget
@@ -267,7 +289,7 @@ export default function App() {
   }
   return <div className="app-shell">
     <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><span className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침</span><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><label className="outline file-control" aria-disabled={isImporting}><Upload size={15} /> JSON 가져오기<input className="sr-only" type="file" accept="application/json,.json" aria-label="JSON 초안 가져오기" onChange={importDraft} disabled={isImporting} /></label><span className="save-state" aria-live="polite">{isImporting ? <Upload size={15} /> : <Check size={15} />} {isImporting ? 'JSON 초안 확인 중' : '브라우저 작업 중'}</span><button className="outline" onClick={exportDraft}><Save size={15} /> JSON 내보내기</button></header>
-    <div className="workspace" id="top"><StepRail current={current} completedSteps={completedSteps} setCurrent={setCurrent} /><fieldset className="editing-lock" disabled={isImporting} aria-busy={isImporting}><EditingPanel current={current} items={items} setItems={setItems} noCollectionAttested={noCollectionAttested} setNoCollectionAttested={setNoCollectionAttested} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /></fieldset><DocumentPreview items={items} noCollectionAttested={noCollectionAttested} facts={facts} setCurrent={setCurrent} /></div>
+    <div className="workspace" id="top"><StepRail current={current} completedSteps={completedSteps} setCurrent={setCurrent} /><fieldset className="editing-lock" disabled={isImporting} aria-busy={isImporting}><EditingPanel current={current} items={items} setItems={setItems} noCollectionAttested={noCollectionAttested} setNoCollectionAttested={setNoCollectionAttested} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /></fieldset><DocumentPreview items={items} noCollectionAttested={noCollectionAttested} facts={facts} setCurrent={setCurrent} exportReview={exportReview} isImporting={isImporting} /></div>
     <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 준비 상태를 확인하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{blockingCount}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{collectionReview.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={blockingCount > 0}><Link size={16} /> 공개 준비 확인</button><output aria-live="polite">{message}</output></footer>
   </div>
 }

@@ -41,6 +41,8 @@ button { cursor: pointer; }
   background: white;
   color: #29302b;
 }
+.review-download { min-height: 48px; margin-bottom: 12px; }
+.review-download:disabled { cursor: not-allowed; color: var(--muted); background: #f4f5f4; }
 .file-control { min-height: 44px; cursor: pointer; }
 .file-control[aria-disabled="true"] { background: #f4f5f4; color: var(--muted); cursor: not-allowed; }
 .file-control:focus-within { outline: 3px solid var(--green); outline-offset: 2px; }

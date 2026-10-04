@@ -10,6 +10,19 @@ Fresh inspection still finds protected `main@52f4fd6bb68f870d0519cf11dd471573a2f
 
 A check receipt must bind repository, PR, source head, base, actual checkout SHA, run/attempt/job and artifact identity. An associated PR run that checks out a synthetic merge commit is integration evidence, not automatically a literal head checkout. Re-fetch final candidate evidence after every head or base movement. No queued, skipped, cancelled, predecessor or comment-only result constitutes approval or passing required Checks. Ready is review admission, not merge authorization.
 
+## Local minimal review-summary candidate — 2026-10-03
+
+The branch-local delta based on `60fd7fb` implements PRD `US-REVIEW-01`, not hosted approval/publication. [ADR-0006](ADR-0006-local-review-summary.md) chooses minimal TXT over full-facts Markdown. [The local evidence record](evidence/mixed-agents-review-summary.md) preserves two independent proposals, a second layer where both receive both proposals and the parent aggregate, and final conditional aggregation. Role-separated same/inherited-model delegation is not verified heterogeneous-model execution.
+
+This bounded section does not supersede the dated historical receipts below. Parent-observed live state places Draft PR #1 at `60fd7fb5c3177984a993102742bb16e36a909e2d` and separate Draft PR #25 at `af8c0da17cdfb4786867f4e85401dbbb811b581e`, owning import cancellation/stream work. This summary feature neither duplicates that work nor cancels workflow runs. Issue #12 remains open: Dependency Review HTTP 403 and qualifying independent approval remain unresolved. Re-fetch remote head/base/checks before integration; no new exact-head hosted receipt is asserted here.
+
+| Gap | Candidate delta | Evidence still required |
+| --- | --- | --- |
+| Portable review aid | Minimal deterministic `policyweave-review.txt`; canonical identity/state/ordered blocker rows, seven-step completion, separate recommendations; no detailed operational/contact facts | Clean-installed baseline test/lint/build recovered. Parent successor gate: 193 unit/UI passes, six pretests, lint/build, isolated guard positive/negative and 51 browser passes with 12 existing scoped skips; 24 new native-boundary cases are included. Historical mobile summary control visually readable; header/step clipping and broader visual/AT acceptance remain open |
+| Legal/publication authority | Existing product-readiness expressions only; report-format v1 and facts-schema v1 are not an approval/publication version | Versioned legal-source/rule mappings, authenticated review and immutable publication remain open |
+| Integration assurance | Original independent whole-delta local review found no blocking defect. Successor parent gate completed lint/build, 193 Vitest and 51 browser passes with 12 scoped skips; successor independent review pending | Current exact-head hosted workflows, resolved threads and qualifying GitHub approval remain open. Empty-directory npm ci added 243 packages and exercised the predecessor snapshot; fsevents allow-scripts warning is retained, not silently approved. |
+| Mixed-agent provenance | Layered proposals → shared prior outputs/cross-review → parent aggregation receipts exist locally | Heterogeneous model/provider identity is unverified; no benchmark or runtime product-AI claim |
+
 ## Runtime status admission repair
 
 [ADR-0004](ADR-0004-runtime-status-admission.md) implements the existing PRD/TRD/ADR-0002 explicit-fact requirement in `src/policy.ts`. Review, completed-step derivation and schema-v1 export no longer treat truthy unknown collection/retention/transfer status values as operator confirmations. Only exact existing members are accepted; unsupported statuses retain their owning finding and export as `null`, without coercion, inferred `no`/`none` or source mutation.
