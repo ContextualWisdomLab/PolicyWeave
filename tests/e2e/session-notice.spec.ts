@@ -116,31 +116,112 @@ test.afterEach(async ({ page }, info) => {
   expect(audit.storageCalls).toEqual([])
   expect(errors).toEqual([])
 })
+// One read-only DOM observation per poll, retaining every original contract.
+// Visibility mirrors installed Playwright 1.63 Chromium computeBox, including
+// display:contents text ranges. Opacity and viewport intersection are not gates.
+function noticeSnapshot(mobile: boolean) {
+  function visible(element: Element): boolean {
+    const style = element.ownerDocument.defaultView?.getComputedStyle(element)
+    if (!style) return true
+    if (style.display === 'contents') {
+      for (let child = element.firstChild; child; child = child.nextSibling) {
+        if (child.nodeType === Node.ELEMENT_NODE && visible(child as Element)) return true
+        if (child.nodeType === Node.TEXT_NODE) {
+          const range = child.ownerDocument!.createRange()
+          range.selectNode(child)
+          const rect = range.getBoundingClientRect()
+          if (rect.width > 0 && rect.height > 0) return true
+        }
+      }
+      return false
+    }
+    if (!element.checkVisibility() || style.visibility !== 'visible') return false
+    const rect = element.getBoundingClientRect()
+    return rect.width > 0 && rect.height > 0
+  }
+  const normalize = (text: string) => text.replace(/[\u200b\u00ad]/g, '').trim().replace(/\s+/g, ' ')
+  // Both hasText and default toHaveText/toContainText use elementText.full.
+  function fullText(root: Element | ShadowRoot): string {
+    if (root.nodeName === 'SCRIPT' || root.nodeName === 'NOSCRIPT' || root.nodeName === 'STYLE' || document.head.contains(root)) return ''
+    if (root instanceof HTMLInputElement && ['submit', 'button', 'reset'].includes(root.type)) return root.value
+    let text = ''
+    for (const child of root.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE) text += child.nodeValue ?? ''
+      else if (child.nodeType === Node.ELEMENT_NODE) text += fullText(child as Element)
+    }
+    if (root instanceof Element && root.shadowRoot) text += fullText(root.shadowRoot)
+    return text
+  }
+  // Only the four original CSS inventories: simple compounds and descendants.
+  // Match Playwright _queryCSS root order and parentElementOrShadowHost ancestry.
+  function inventory(selector: '.session-notice' | '.topbar' | '.topbar .version' | '.preview .meta span'): Element[] {
+    const parts = selector.split(' ')
+    const candidates: Element[] = []
+    function query(root: Document | ShadowRoot) {
+      candidates.push(...root.querySelectorAll(parts.at(-1)!))
+      for (const element of root.querySelectorAll('*')) {
+        if (element.shadowRoot) query(element.shadowRoot)
+      }
+    }
+    query(document)
+    return candidates.filter((element) => {
+      let ancestor: Element | null = element
+      for (let index = parts.length - 2; index >= 0; index--) {
+        do {
+          const root: Node | null | undefined = ancestor?.parentNode
+          ancestor = ancestor?.parentElement ?? (root instanceof ShadowRoot ? root.host : null)
+        } while (ancestor && !ancestor.matches(parts[index]))
+        if (!ancestor) return false
+      }
+      return true
+    })
+  }
+  const paragraphs = inventory('.session-notice')
+  const element = paragraphs[0]
+  const heading = document.querySelector('.section-head')
+  const topbars = inventory('.topbar')
+  const topVersions = inventory('.topbar .version')
+  const previewVersions = inventory('.preview .meta span').filter((span) => normalize(fullText(span)).toLowerCase().includes('앱 버전'))
+  return {
+    noticeCount: paragraphs.length,
+    noticeText: element ? normalize(fullText(element)) : null,
+    noticeVisible: !!element && visible(element),
+    semantics: element ? {
+      tag: element.tagName,
+      liveAncestor: !!element.closest('[aria-live], [role="alert"], [role="status"], [role="log"]'),
+      afterHeading: !!heading && !!(heading.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING),
+      beforeControls: [...document.querySelectorAll('.form-panel input, .form-panel select, .form-panel textarea')].every((control) => !!(element.compareDocumentPosition(control) & Node.DOCUMENT_POSITION_FOLLOWING)),
+      nextNotice: element.nextElementSibling?.classList.contains('notice'),
+    } : null,
+    topbarCount: topbars.length,
+    topbarHasTemporarySave: topbars.some((topbar) => /임시\s*저장/.test(fullText(topbar))),
+    topVersionCount: topVersions.length,
+    topVersionTexts: topVersions.map((version) => normalize(fullText(version))),
+    topVersionVisibility: topVersions.map((version) => visible(version)),
+    previewVersionCount: previewVersions.length,
+    previewVersionTexts: previewVersions.map((version) => normalize(fullText(version))),
+    previewVersionVisibility: previewVersions.map((version) => visible(version)),
+    mobile,
+  }
+}
+function noticeExpected(text: string, mobile: boolean) {
+  return {
+    noticeCount: 1, noticeText: text, noticeVisible: true,
+    semantics: { tag: 'P', liveAncestor: false, afterHeading: true, beforeControls: true, nextNotice: true },
+    topbarCount: 1, topbarHasTemporarySave: false,
+    topVersionCount: 1, topVersionTexts: ['앱 버전 0.1.0'], topVersionVisibility: [!mobile],
+    previewVersionCount: 1, previewVersionTexts: ['앱 버전 0.1.0'], previewVersionVisibility: [true],
+    mobile,
+  }
+}
 async function notice(page: Page) {
-  const paragraph = page.locator('.session-notice')
-  await expect(paragraph).toHaveCount(1)
-  await expect(paragraph).toHaveText(noticeText)
-  await expect(paragraph).toBeVisible()
-  const semantics = await paragraph.evaluate((element) => ({
-    tag: element.tagName,
-    liveAncestor: !!element.closest('[aria-live], [role="alert"], [role="status"], [role="log"]'),
-    afterHeading: !!document.querySelector('.section-head') && !!(document.querySelector('.section-head')!.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING),
-    beforeControls: [...document.querySelectorAll('.form-panel input, .form-panel select, .form-panel textarea')].every((control) => !!(element.compareDocumentPosition(control) & Node.DOCUMENT_POSITION_FOLLOWING)),
-    nextNotice: element.nextElementSibling?.classList.contains('notice'),
-  }))
-  expect(semantics).toEqual({ tag: 'P', liveAncestor: false, afterHeading: true, beforeControls: true, nextNotice: true })
-  await expect(page.locator('.topbar')).not.toContainText(/임시\s*저장/)
-  const topVersion = page.locator('.topbar .version')
-  const previewVersion = page.locator('.preview .meta span').filter({ hasText: '앱 버전' })
-  await expect(topVersion).toHaveText('앱 버전 0.1.0')
-  await expect(previewVersion).toHaveCount(1)
-  await expect(previewVersion).toHaveText('앱 버전 0.1.0')
-  await expect(previewVersion).toBeVisible()
-  // The phone stylesheet intentionally hides the topbar version; require its
-  // DOM identity everywhere, and visual identity where the stylesheet exposes it.
-  if (page.viewportSize()!.width > 720) await expect(topVersion).toBeVisible()
-  else await expect(topVersion).toBeHidden()
-  return semantics
+  const mobile = page.viewportSize()!.width <= 720
+  let snapshot: ReturnType<typeof noticeSnapshot> | undefined
+  await expect.poll(async () => {
+    snapshot = await page.evaluate(noticeSnapshot, mobile)
+    return snapshot
+  }, { timeout: 5000 }).toEqual(noticeExpected(noticeText, mobile))
+  return snapshot!.semantics!
 }
 async function step(page: Page, number: number) {
   // Native activation of the public rail, not a private state/testing API. The

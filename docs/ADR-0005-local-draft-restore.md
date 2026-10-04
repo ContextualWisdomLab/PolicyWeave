@@ -37,7 +37,7 @@ After reconstruction, PolicyWeave runs `createPolicyExport` again. Imported `doc
 
 ## User, operations, and failure scenes
 
-- An operator exports an incomplete draft, later selects that file, and resumes with the same unresolved findings. Blank values do not become negative attestations.
+- An operator exports an incomplete draft, later selects that file, and resumes with the same unresolved findings recomputed from admitted normalized facts, not every discarded raw diagnostic. Blank values do not become negative attestations.
 - A complete no-collection draft restores with zero blockers only when every independent retention, transfer, service, and contact fact still satisfies current rules.
 - A manipulated file that changes only `document_state` to `review_ready` is rejected and the current workspace remains unchanged.
 - A file with an unknown collection key, duplicate key, mismatched label, non-canonical string/URL, uppercase status, extra property, or contradictory no-collection state is rejected with bounded user guidance rather than partially applied.
@@ -64,6 +64,14 @@ A valid native JSON download → reload-empty → explicit import journey charac
 
 [The session evidence record](evidence/session-notice-20261005.md) retains parent-reported focused TDD/build observations separately from direct source inspection, all historic receipts above and unfinished current full/browser/hosted/independent-approval gates. This ADR remains Proposed; no new CI pass, protected integration, release or legal conclusion is asserted.
 
+## Canonical URL evidence clarification — 2026-10-05 successor candidate
+
+"Same unresolved findings" applies to admitted normalized facts and their exact recomputed evidence. It does not promise a full raw-input backup or recovery of discarded diagnostics. The live editor keeps `service_url_format` for nonblank rejected URL correction; JSON withholds the rejected URL as `null` and derives canonical `service_url`. Restore reconstructs the empty sentinel, remains incomplete and retains service-information step-1 ownership. The canonical TXT projection uses the same URL/code boundary; TXT is still not a restore artifact.
+
+`schema_version: 1`, exact object/catalog/status validation, reconstruction and ordered finding/readiness equality remain unchanged. Historical producer-inconsistent `null` + `service_url_format` files remain rejected, with no grandfathering, dual-code exception, trusted file evidence, automatic repair or migration. Existing blank/valid JSON/TXT bytes must be preserved, but frozen predecessor-fixture verification was pending at the initial checkpoint. Parent 03:18 KST successor confirms retained-source blank/valid JSON direct-export and restore/re-export byte equality plus withheld strict denial; frozen TXT comparison remains unverified. The producer repair is not a schema revision; any future schema revision still requires explicit migration/loss/compatibility treatment.
+
+[The successor evidence](evidence/url-portability-20261005.md) preserves independent Layer1 proposals and frozen native RED, summary-fed Layer2 conditional reviews, parent synthesis and intermediate native 2-RED/3-control → 5-GREEN plus related 35-pass/lint/build observations. Current full/browser, whole prior-PR union independent review and hosted/qualifying-approval gates are pending. Parent 03:18 KST successor reports 65 focused cases plus lint/build against the owned source/test freeze, still not full-suite acceptance. This ADR remains Proposed; no protected shipment or legal conclusion is asserted, and separate PR #25 cancellation/stream ownership is unchanged.
+
 ## Consequences and follow-up
 
-PolicyWeave now owns a deterministic local export/restore round trip for schema-v1. This closes the missing current-version return path, not version migration. Any schema-v2 work must define explicit migration, loss reporting, compatibility fixtures, and rollback behavior. DB-backed versioned ko/en/ja/zh/vi/es/de/fr resources remain a separate owner contract; schema-v1 catalog-label identity must not be relaxed by embedding a full translation catalog in the browser.
+PolicyWeave owns a deterministic local export/restore round trip for admitted normalized schema-v1 facts with consistent recomputed evidence, not every historical producer-inconsistent file or discarded raw value. This closes the missing current-version return path, not version migration. Any schema-v2 work must define explicit migration, loss reporting, compatibility fixtures, and rollback behavior. DB-backed versioned ko/en/ja/zh/vi/es/de/fr resources remain a separate owner contract; schema-v1 catalog-label identity must not be relaxed by embedding a full translation catalog in the browser.

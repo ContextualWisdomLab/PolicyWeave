@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import { createPolicyExport, initialFacts, initialItems, restorePolicyExport } from './policy'
+import { createPolicyExport, getDraftReview, initialFacts, initialItems, restorePolicyExport } from './policy'
 
 describe('policy JSON export', () => {
   it('projects normalized operator facts into a deterministic versioned draft', () => {
@@ -100,7 +100,8 @@ describe('policy JSON export', () => {
       const exported = createPolicyExport(initialItems, false, { ...initialFacts, serviceUrl })
 
       expect(exported.policy_facts.service_profile.service_url).toBeNull()
-      expect(exported.review_finding_codes).toContain('service_url_format')
+      expect(exported.review_finding_codes).toContain('service_url')
+      expect(getDraftReview({ ...initialFacts, serviceUrl }).map((finding) => finding.code)).toContain('service_url_format')
     }
 
     const secretExport = createPolicyExport(initialItems, false, {
@@ -128,7 +129,9 @@ describe('policy JSON export', () => {
     })
 
     expect(exported.policy_facts.service_profile.service_url).toBeNull()
-    expect(exported.review_finding_codes).toContain('service_url_format')
+    expect(exported.review_finding_codes).toContain('service_url')
+    expect(getDraftReview({ ...initialFacts, serviceUrl: 'https://operator:secret@example.test' }).map((finding) => finding.code))
+      .toContain('service_url_format')
     expect(JSON.stringify(exported)).not.toContain('operator:secret')
   })
 })

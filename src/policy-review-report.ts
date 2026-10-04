@@ -25,6 +25,7 @@ export function formatReviewFinding(code: string, items: PolicyItem[], facts: Dr
 /** Projects the current authoring state into a local review summary, never a publication receipt. */
 export function createPolicyReviewText(items: PolicyItem[], noCollectionAttested: boolean, facts: DraftFacts): string {
   const exported = createPolicyExport(items, noCollectionAttested, facts)
+  const projectionFacts = { ...facts, serviceUrl: exported.policy_facts.service_profile.service_url ?? '' }
   const completed = getCompletedSteps(items, noCollectionAttested, facts)
   const recommended = getReview(items, noCollectionAttested).recommended
   return [
@@ -38,7 +39,7 @@ export function createPolicyReviewText(items: PolicyItem[], noCollectionAttested
     `서비스 URL: ${exported.policy_facts.service_profile.service_url === null ? '미확인' : quoteText(exported.policy_facts.service_profile.service_url)}`,
     `필수 확인: ${exported.review_finding_codes.length}건`,
     ...steps.map((step, index) => `${index + 1}. ${step}: ${completed.has(index + 1) ? '제품 정의 입력 확인됨' : '확인 필요'}`),
-    ...exported.review_finding_codes.map((code) => formatReviewFinding(code, items, facts)),
+    ...exported.review_finding_codes.map((code) => formatReviewFinding(code, items, projectionFacts)),
     `권장 검토: ${recommended.length}건`,
     ...recommended.map((item) => `권장 항목: ${quoteText(item.label)}`),
     '법률 자문·준법 보장·승인·발행·자동 저장의 증거가 아닙니다. 공개 전 책임자 검토가 필요합니다.',

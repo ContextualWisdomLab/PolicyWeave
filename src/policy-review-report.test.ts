@@ -139,7 +139,7 @@ describe('local review summary', () => {
     for (const [index, step] of steps.entries()) expect(complete).toContain(`${index + 1}. ${step}: 제품 정의 입력 확인됨`)
   })
 
-  it('projects every current raw draft finding including invalid categories and conditional details', () => {
+  it('projects canonical draft findings while preserving raw invalid-URL guidance separately', () => {
     const cases: DraftFacts[] = [
       { ...initialFacts, serviceName: ' \t ', serviceUrl: ' \n ', privacyOfficerName: '\t', privacyOfficerEmail: ' ' },
       { ...completeFacts, retentionStatus: 'invalid', thirdPartyStatus: 'invalid', internationalStatus: 'invalid' } as unknown as DraftFacts,
@@ -147,8 +147,12 @@ describe('local review summary', () => {
     ]
     for (const facts of cases) {
       const text = report.createPolicyReviewText(initialItems, true, facts)
-      const findings = getDraftReview(facts, true)
-      expect(findingCodes(text)).toEqual(createPolicyExport(initialItems, true, facts).review_finding_codes)
+      const exported = createPolicyExport(initialItems, true, facts)
+      const rawFindings = getDraftReview(facts, true)
+      const findings = getDraftReview({ ...facts, serviceUrl: exported.policy_facts.service_profile.service_url ?? '' }, true)
+      expect(rawFindings.map((finding) => finding.code === 'service_url_format' ? 'service_url' : finding.code))
+        .toEqual(findings.map((finding) => finding.code))
+      expect(findingCodes(text)).toEqual(exported.review_finding_codes)
       expect(text).toContain(`필수 확인: ${findings.length}건`)
       for (const finding of findings) {
         expect(text).toContain(`필수 항목: ${JSON.stringify(finding.code)} | ${finding.step}단계 ${JSON.stringify(steps[finding.step - 1])} | ${JSON.stringify(finding.label)}`)

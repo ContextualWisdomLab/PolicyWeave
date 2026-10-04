@@ -28,6 +28,17 @@ PolicyWeave는 법률 문장을 임의로 창작하는 도구가 아니다. 운�
 - 검증이 실패하면 현재 작업공간을 보존하며, 1 MiB를 초과한 파일은 파싱 전에 거부한다.
 - 복원 경로는 브라우저 로컬에 한정하고 네트워크 전송·공개·호스팅 영속화를 주장하지 않는다.
 
+## US-PORTABILITY-01: 정규화된 URL 사실의 로컬 이동성 — 2026-10-05 후속 후보
+
+1. 원시 작성값이 비어 있지 않지만 허용 URL이 아니면 live `getDraftReview`는 기존 `service_url_format` 수정 안내를 유지한다. 다운로드는 원시 작성값·완료 판정을 변경하지 않는다.
+2. JSON은 허용된 정규화 사실의 이동성 파일이다. 거부된 URL은 계속 `service_url: null`로 제외하고, 내보낸 발견사항은 그 제외 이후의 사실에서 `service_url`로 계산한다. `incomplete`와 서비스 정보 1단계 책임을 유지하며 자격정보·query·fragment를 다른 목적지로 고쳐 쓰거나 파일에 남기지 않는다.
+3. TXT는 같은 canonical JSON 코드의 순서·개수와 URL의 1단계 `서비스 URL` 라벨을 유지한다. live 원시 형식 진단을 보존하는 파일은 아니다. 공개 helper `formatReviewFinding`의 원시 사실 해석은 그대로이고, 보고서 호출이 정규화 URL 사실을 전달한다. `단계 미상`은 그 helper가 주어진 사실에서 해석하지 못한 코드의 보존 경계이며 canonical URL 코드가 그 경계로 빠져서는 안 된다.
+4. `schema_version: 1`과 `report_format: v1`, 정확한 객체/카탈로그/상태 검증, 재계산 후 ordered 코드·readiness 일치 검증은 변경하지 않는다. 과거 `null` URL + `service_url_format` 파일은 여전히 거부한다. 호환성 예외·자동 수정·migration을 도입하지 않는다.
+5. 빈 URL·유효 URL의 기존 JSON/TXT 바이트는 유지해야 한다. 후속 함수 round trip과 과거 frozen fixture 간 바이트 비교는 서로 다른 증거이며, 초기 문서 checkpoint에서는 frozen fixture 검증이 미완료였다. 03:18 KST 후속 parent 보고와 freeze manifest는 실제 보존된 선행 소스로 생성한 blank/valid JSON fixture의 direct export·restore/re-export byte equality 및 withheld fixture의 strict denial을 확인한다. 이는 TXT frozen 바이트 비교나 전체 suite 완료를 뜻하지 않는다. 거부된 원시 URL/폐기된 상세값/원시 진단 전체의 백업은 보장하지 않는다.
+6. 실제 JSON 다운로드 → 새로고침 후 빈 상태 → 명시적 파일 복원 → byte-equal 재내보내기, TXT 라벨·순서·비밀값 비노출, 원시 상태 불변, 조작된 코드/readiness 거부를 현재 소스에 묶어 확인해야 한다. 현재 전체 suite·실제 브라우저·이전 PR 전체 union 독립 검토·exact-head hosted/승인 게이트는 미완료이며 집중 GREEN만으로 수락하지 않는다.
+
+[후속 결정·증거 범위](evidence/url-portability-20261005.md). 이는 기존 정규화 사실 계약의 producer 일관성 수정 후보이지 새 법률 규칙, 네트워크/자동 저장 기능 또는 출시 증거가 아니다.
+
 ## US-REVIEW-01: 로컬 최소 검토 요약
 
 운영자로서 현재 작성 상태와 다음 확인 책임을 책임자와 검토하기 위해, 전체 처리 상세를 다시 복제하지 않는 로컬 TXT 요약을 다운로드하고 싶다.

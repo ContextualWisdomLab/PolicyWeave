@@ -37,6 +37,21 @@ PRD `US-SESSION-01` reconciles unsupported temporary-save wording with the exist
 
 This dated addition preserves all earlier receipts, including the older PR #1 observations; it does not re-fetch or silently relabel them as current remote truth. Source/test assertion presence and local planning do not close legal, accessibility, hosted persistence/publication or Issue #12 gates.
 
+## Canonical URL portability successor candidate — 2026-10-05
+
+Based on published session-notice HEAD `2117734f1956b7200bd8b396066e33f800e18436`, this bounded successor repairs producer evidence after URL withholding, not strict schema admission. Live raw rejected URLs still produce `service_url_format`; canonical JSON/TXT use `service_url` for the admitted `null`, retain incomplete step-1 ownership and never retain or rewrite rejected URLs. Schema 1/report v1 and exact importer recomputation stay unchanged. Old null+format producer files remain rejected: no compatibility exception or migration, and no full raw-input/diagnostic backup promise.
+
+[The dated successor record](evidence/url-portability-20261005.md) distinguishes two Layer1 independent proposals (including the actual frozen-source 30-case matrix: 18 rejected own exports / 12 positive round trips) from two summary-fed Layer2 conditional reviews and parent synthesis. Roles were independent; same/inherited model execution is not verified heterogeneous-model/provider execution. Planning conditions are not final implementation approval.
+
+| Gap | Candidate contract / bounded observation | Remaining evidence |
+| --- | --- | --- |
+| Normalized URL portability | JSON derives findings after URL admission; TXT supplies admitted URL to unchanged raw helper, preserving ordered one-row-per-code and step-1 label | Current native download/reload/file restore/re-export; invalid variants and all nullable controls; raw-state preservation and secret-free JSON/TXT |
+| Compatibility boundary | Strict ordered-code/readiness recomputation; old null+format rejected; existing blank/valid bytes must not change | Initial checkpoint pending; parent 03:18 KST confirms retained-source blank/valid JSON fixture direct/export-restore byte equality and withheld strict denial. Frozen TXT comparison remains unverified; no migration or raw-backup acceptance |
+| TDD and integration assurance | Parent native JSON/TXT 2 intended RED + 3 controls, then 5 GREEN; related 35-case pass and lint/build reported at 03:10 KST are intermediate. Parent 03:18 KST successor: 65 focused cases plus lint/build against the owned freeze; still not a full suite | Current full suite/browser, independent whole prior-PR union review, exact-head required hosted checks, resolved threads and qualifying approval; no final PASS |
+| Ownership and provenance | No UI/autosave/network/dependency/legal-source/rule change; PR #25 stream/cancellation and central workflow owners unchanged | Parent-reported exact CI `37220990288` billing failure before job execution and central `.github` Draft PR #2565 `ab0c865` are not passing or protected shipment; fresh remote evidence remains owner work |
+
+All historical sections and receipts remain dated evidence, not this candidate's final gate. No hosted persistence/publication, legal sufficiency or protected integration is asserted.
+
 ## Runtime status admission repair
 
 [ADR-0004](ADR-0004-runtime-status-admission.md) implements the existing PRD/TRD/ADR-0002 explicit-fact requirement in `src/policy.ts`. Review, completed-step derivation and schema-v1 export no longer treat truthy unknown collection/retention/transfer status values as operator confirmations. Only exact existing members are accepted; unsupported statuses retain their owning finding and export as `null`, without coercion, inferred `no`/`none` or source mutation.
