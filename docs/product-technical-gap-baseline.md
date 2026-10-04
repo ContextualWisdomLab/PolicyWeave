@@ -64,6 +64,18 @@ Based on published PR #26 head `1e662c2f08d4e156b9280ef434bc876c0c77b283`, PRD `
 
 Nonmobile extreme names, preview/rail text, AT/manual accessibility and protected integration remain open. Natural vertical scrolling is allowed; there is no input length restriction or blanket all-name/all-screen readability promise. Central Runner PR #2565, separate PR #25 and Issue #12 ownership/gates remain unchanged; no migration adoption, approval, merge or release follows from local evidence.
 
+## Mobile import-feedback successor candidate — 2026-10-05
+
+Published baseline is PR #26 head `a51669c91f579f94019ae1714554eb74db5a9366`. Independent native probes reproduce hidden pending `.save-state` text at 320/390 px while existing busy/disabled prerequisites and byte-equal valid release work; 820 px is a positive exposure control. [Dated evidence](evidence/mobile-import-feedback-20261005.md) records five within-journey byte-equal pairs, not cross-fixture equality or actual AT speech. Each Layer2 reviewer read both complete proposals; role separation is not verified heterogeneous-model identity.
+
+| Gap | Selected bounded repair | Required successor evidence |
+| --- | --- | --- |
+| Mobile pending reason | Existing polite region visible as wrapping row; idle copy also intentionally visible | Actual repository intended visual/AX RED then same GREEN; live-owner identity/descendant paths, line/clipping/nonoverlap and rail geometry; 720 boundary and 721/820/1280 preservation |
+| Existing restore ownership | No App/domain/format change; fieldset/import/TXT locks, static notice and validated state replacement retained | Native saved-path byte equality, invalid JSON/schema/read-rejection preservation, oversize before-read zero calls, cleanup descriptors and current seven-step/TXT regressions |
+| Candidate acceptance | CSS-only production scope; no duplicate live/status, busy ancestry or new storage/config/dependency | Current lint/test/build, configured native suite, visual inspection and independent whole-source review; exact-head hosted checks/threads/qualifying approval separate |
+
+Implementation and final gates remain incomplete at this checkpoint. Historical receipts remain dated. PR #25, central Runner ownership and Issue #12 are not closed or bypassed by this candidate.
+
 ## Runtime status admission repair
 
 [ADR-0004](ADR-0004-runtime-status-admission.md) implements the existing PRD/TRD/ADR-0002 explicit-fact requirement in `src/policy.ts`. Review, completed-step derivation and schema-v1 export no longer treat truthy unknown collection/retention/transfer status values as operator confirmations. Only exact existing members are accepted; unsupported statuses retain their owning finding and export as `null`, without coercion, inferred `no`/`none` or source mutation.

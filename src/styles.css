@@ -138,7 +138,8 @@ button { cursor: pointer; }
 
 @media (max-width: 720px) {
   .topbar { height: auto; flex-wrap: wrap; padding: 10px 14px; gap: 9px; }
-  .version, .save-state { display: none; }
+  .version { display: none; }
+  .save-state { flex-basis: 100%; min-width: 0; max-width: 100%; margin-left: 0; white-space: normal; overflow-wrap: anywhere; }
   .workspace { display: block; height: auto; min-height: 0; }
   .rail { border-right: 0; border-bottom: 1px solid var(--line); padding: 12px; }
   .rail ol { display: flex; overflow-x: auto; gap: 6px; }

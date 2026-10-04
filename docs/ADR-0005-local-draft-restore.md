@@ -72,6 +72,12 @@ A valid native JSON download → reload-empty → explicit import journey charac
 
 [The successor evidence](evidence/url-portability-20261005.md) preserves independent Layer1 proposals and frozen native RED, summary-fed Layer2 conditional reviews, parent synthesis and intermediate native 2-RED/3-control → 5-GREEN plus related 35-pass/lint/build observations. Current full/browser, whole prior-PR union independent review and hosted/qualifying-approval gates are pending. Parent 03:18 KST successor reports 65 focused cases plus lint/build against the owned source/test freeze, still not full-suite acceptance. This ADR remains Proposed; no protected shipment or legal conclusion is asserted, and separate PR #25 cancellation/stream ownership is unchanged.
 
+## Mobile pending-feedback clarification — 2026-10-05 candidate
+
+PRD `US-IMPORT-FEEDBACK-01` selects a CSS-only mobile exposure repair for this ADR's existing polite status. Pending `JSON 초안 확인 중` and idle `브라우저 작업 중` reuse the same region and App state; idle is not saved work or continuing validation. Fieldset busy remains separate from the live region and its ancestors. No duplicate live output, static-notice promotion, new lock/cancellation, schema change, raw-backup promise or persistence authority is introduced.
+
+[The dated evidence](evidence/mobile-import-feedback-20261005.md) records actual mobile invisibility despite working native lock/release, conditional full-proposal cross-reviews and required repository TDD/final gates. Valid replacement/step-1 behavior, invalid/read-failure preservation, oversize rejection before read and exact file bytes remain acceptance boundaries. AX exposure is not actual AT speech. This clarification does not complete current hosted/approval gates or alter Proposed status and separate PR #25 ownership.
+
 ## Consequences and follow-up
 
 PolicyWeave owns a deterministic local export/restore round trip for admitted normalized schema-v1 facts with consistent recomputed evidence, not every historical producer-inconsistent file or discarded raw value. This closes the missing current-version return path, not version migration. Any schema-v2 work must define explicit migration, loss reporting, compatibility fixtures, and rollback behavior. DB-backed versioned ko/en/ja/zh/vi/es/de/fr resources remain a separate owner contract; schema-v1 catalog-label identity must not be relaxed by embedding a full translation catalog in the browser.
