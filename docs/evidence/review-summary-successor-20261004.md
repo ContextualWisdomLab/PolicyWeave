@@ -18,7 +18,7 @@ Delegated model/provider identities are not verified heterogeneous. Role separat
 
 ## Clean installation recovery
 
-A previously dependency-empty owned directory at `/Users/seonghobae/.hermes/cache/scratch/policyweave-clean-install-20261004` ran `NODE_ENV=development npm ci --include=dev --no-audit --no-fund --prefer-offline --fetch-retries=0 --fetch-timeout=20000`: exit 0, 243 packages added. Lock bytes match the candidate. npm reported an allow-scripts warning for `fsevents@2.3.3`; no install-script approval or policy change was performed. This is installed-toolchain evidence, not a fresh vulnerability scan or cross-platform guarantee.
+A previously dependency-empty owned directory at `<local-scratch-root>/policyweave-clean-install-20261004` (a placeholder for the historical installation scratch location, not a public link or new execution record) ran `NODE_ENV=development npm ci --include=dev --no-audit --no-fund --prefer-offline --fetch-retries=0 --fetch-timeout=20000`: exit 0, 243 packages added. Lock bytes match the candidate. npm reported an allow-scripts warning for `fsevents@2.3.3`; no install-script approval or policy change was performed. This is installed-toolchain evidence, not a fresh vulnerability scan or cross-platform guarantee.
 
 The preserved candidate was materialized with its verified patch and exercised using those clean-installed dependencies: six pretests, 193 Vitest cases across 18 files, lint and production build completed with exit 0 (`proc_d1d5cc33cf18`). Those totals describe the predecessor source snapshot only; later contract additions require fresh final-candidate execution.
 
