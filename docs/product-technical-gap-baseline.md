@@ -76,6 +76,18 @@ Published baseline is PR #26 head `a51669c91f579f94019ae1714554eb74db5a9366`. In
 
 Implementation and final gates remain incomplete at this checkpoint. Historical receipts remain dated. PR #25, central Runner ownership and Issue #12 are not closed or bypassed by this candidate.
 
+## Screen preview reflow convenience candidate — 2026-10-05
+
+Published baseline is PR #26 head `2ff4fc6819578fbfadd27ebbdaa22ae97647ea5c`. Current preview scrolling reaches tested facts and warnings navigate normally; no permanent fact loss or broken warning path was demonstrated. Parent admits `US-PREVIEW-REFLOW-01` as a new bounded screen-reading contract to reduce measured long-token horizontal movement up to 4,180 px and purpose-table expansion. [Dated evidence](evidence/preview-text-reflow-20261005.md) retains independent proposals, errors/excluded viewport results, actual reachability and 44 within-journey native byte pairs; these are not successor acceptance.
+
+| Gap | Selected bounded candidate | Required successor evidence |
+| --- | --- | --- |
+| Long-fact reading burden | Screen-only direct h2/p and table th/td wrapping; existing valid scroll path acknowledged | Official new-contract table/text containment RED before CSS, identical oracle GREEN, local content bounds and scroll-aware sensitivity |
+| Presentation preservation | Exact facts/suffix/rows, warning controls/header/status, existing vertical scroll and print-rule exclusion | Default/short predecessor comparison at seven fixed widths including 1440, print-emulated scope, native bytes/restore and existing seven-step/focus/lock regressions |
+| Evidence authority | Both cross-reviewers read both full plans; conditional agreement, no heterogeneous-model proof | Current lint/test/build/configured browser, wrapped-table visual inspection and independent whole-candidate review; exact-head hosted/approval separate |
+
+The screen-only repository implementation has actual RED/GREEN, complete 41-path source review and unchanged-source local workload recovery: pretests 6, unit/UI 230, browser 225 passed with 12 existing profile-scoped skips, plus separately executed contracts/lint/build. The original browser failure/flaky history remains retained. All recovery workload commands exited zero, but the supervisor exited 1 on its immediate strict-port check; a separate later strict bind succeeded without rewriting that result. Final documentation review and publication remain pending; hosted checks, qualifying approval, integration and release are not established by this local evidence. No global overflow hiding, text truncation, new fact normalization, legal rule, hosted adapter or dependency/CI change is admitted. PR #25, central Runner ownership and Issue #12 remain separate.
+
 ## Runtime status admission repair
 
 [ADR-0004](ADR-0004-runtime-status-admission.md) implements the existing PRD/TRD/ADR-0002 explicit-fact requirement in `src/policy.ts`. Review, completed-step derivation and schema-v1 export no longer treat truthy unknown collection/retention/transfer status values as operator confirmations. Only exact existing members are accepted; unsupported statuses retain their owning finding and export as `null`, without coercion, inferred `no`/`none` or source mutation.

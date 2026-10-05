@@ -45,6 +45,10 @@ Fact `schema_version: 1` and presentation `report_format: v1` are unchanged. Str
 
 [The successor evidence](evidence/url-portability-20261005.md) binds the Layer1 runtime/contract proposals, summary-fed Layer2 conditional reviews and parent synthesis separately from intermediate parent native 2 RED + 3 controls then 5 GREEN and related 35-case/lint/build reports. Earlier local full/browser receipts above remain historical; current successor full/browser/whole prior-PR union review/hosted/qualifying approval gates remain pending. Parent 03:18 KST successor reports 65 focused cases plus lint/build against the owned source/test freeze, still not full-suite acceptance. This Proposed ADR and planning agreement are not final implementation or release approval.
 
+## Screen presentation clarification — 2026-10-05 candidate
+
+PRD `US-PREVIEW-REFLOW-01` selects screen-only wrapping of existing paper fact text as a bounded reading-width convenience contract. It does not broaden this ADR's minimal TXT contents or change `createPolicyReviewText`, escaping, code ordering, report v1, fixed filename/MIME or pending handler guard. Same-state native JSON/TXT byte preservation remains required; diagnostic before/after pairs are not production-successor acceptance. The candidate leaves warning buttons and print media outside its new rule and does not claim physical printing or AT acceptance. [Dated evidence](evidence/preview-text-reflow-20261005.md) keeps current repository/final gates pending separately from historical receipts. This ADR remains Proposed; no new legal, schema or publication authority is introduced.
+
 ## Consequences
 
 TXT aids review without duplicating the entire fact export; JSON remains the current-version restore artifact. Future summary format changes require reviewed presentation compatibility, while fact-schema migration remains ADR-0005's separate contract. Hosted review/publication still requires tenant authorization, immutable revision/audit, encryption and source/rule evidence. The MoA-inspired development workflow does not add product AI or satisfy GitHub independent approval.
