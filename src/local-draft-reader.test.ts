@@ -8,10 +8,11 @@ function streamBackedBlob(stream: ReadableStream<Uint8Array>): Blob {
 describe('local draft reader', () => {
   it('preserves UTF-8 characters split across browser stream chunks', async () => {
     const encoded = new TextEncoder().encode('{"service_name":"정책"}')
+    const splitInsideJeong = new TextEncoder().encode('{"service_name":"정').length - 1
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
-        controller.enqueue(encoded.slice(0, encoded.length - 3))
-        controller.enqueue(encoded.slice(encoded.length - 3))
+        controller.enqueue(encoded.slice(0, splitInsideJeong))
+        controller.enqueue(encoded.slice(splitInsideJeong))
         controller.close()
       },
     })
