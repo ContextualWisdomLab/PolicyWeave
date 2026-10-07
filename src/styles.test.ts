@@ -32,6 +32,16 @@ describe('responsive review workspace CSS contract', () => {
     expect(tablet).toContain('.preview { display: block;')
   })
 
+  it('wraps pending import controls before the tablet breakpoint can overflow', () => {
+    const tablet = mediaBlock(1300)
+    expect(tablet).toContain('.topbar { flex-wrap: wrap;')
+  })
+
+  it('lets an unbroken document name shrink within the tablet topbar', () => {
+    const tablet = mediaBlock(1300)
+    expect(tablet).toContain('.document-name { min-width: 0; overflow-wrap: anywhere;')
+  })
+
   it('places mobile publish output in normal flow across the full review bar', () => {
     const mobile = mediaBlock(720)
     expect(mobile).toContain('.review-bar output { position: static; grid-column: 1 / -1;')

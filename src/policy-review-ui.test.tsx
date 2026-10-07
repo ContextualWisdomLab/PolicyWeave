@@ -16,6 +16,22 @@ function mount() {
   return { ...view, click }
 }
 
+function pendingStreamingFile(): { file: File; finish: (contents: string) => void } {
+  let settleRead!: (result: ReadableStreamReadResult<Uint8Array>) => void
+  let readCount = 0
+  const reader = {
+    read: vi.fn(() => {
+      if (readCount++ > 0) return Promise.resolve({ done: true, value: undefined } as ReadableStreamReadResult<Uint8Array>)
+      return new Promise<ReadableStreamReadResult<Uint8Array>>((resolve) => { settleRead = resolve })
+    }),
+    cancel: vi.fn(() => Promise.resolve()),
+    releaseLock: vi.fn(),
+  }
+  const file = new File(['pending'], 'draft.json', { type: 'application/json' })
+  Object.defineProperty(file, 'stream', { value: () => ({ getReader: () => reader }) })
+  return { file, finish: (contents) => settleRead({ done: false, value: new TextEncoder().encode(contents) }) }
+}
+
 describe('local review summary download UI', () => {
   it.each(['blob', 'url', 'anchor', 'click'])('preserves the complete workspace and retries after %s failure', (stage) => {
     vi.useFakeTimers()
@@ -53,9 +69,7 @@ describe('local review summary download UI', () => {
 
   it.each(['valid', 'invalid'])('blocks summary allocation during import and recovers after %s completion', async (outcome) => {
     const { getByRole, container } = mount()
-    let finish!: (text: string) => void
-    const file = new File(['pending'], 'draft.json', { type: 'application/json' })
-    Object.defineProperty(file, 'text', { value: () => new Promise<string>((resolve) => { finish = resolve }) })
+    const { file, finish } = pendingStreamingFile()
     fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } })
     const button = getByRole('button', { name: '검토 요약 다운로드' }) as HTMLButtonElement
     expect(button.disabled).toBe(true)

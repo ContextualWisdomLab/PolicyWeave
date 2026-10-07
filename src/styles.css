@@ -135,6 +135,8 @@ button { cursor: pointer; }
 }
 
 @media (max-width: 1300px) {
+  .topbar { flex-wrap: wrap; }
+  .document-name { min-width: 0; overflow-wrap: anywhere; }
   .workspace { grid-template-columns: 210px minmax(0, 1fr); height: auto; min-height: 630px; }
   .preview { display: block; grid-column: 1 / -1; border-top: 1px solid var(--line); max-height: 720px; }
   .review-bar { grid-template-columns: 1fr 150px 150px 240px; }
