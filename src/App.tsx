@@ -1,5 +1,6 @@
-import { ChangeEvent, useMemo, useState } from 'react'
+import { ChangeEvent, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Check, ChevronDown, ExternalLink, FileText, Link, Save, Upload } from 'lucide-react'
+import { readLocalDraft } from './local-draft-reader'
 import { createPolicyExport, DraftFacts, getCompletedSteps, getDraftReview, getReview, initialFacts, initialItems, isWebServiceUrl, PolicyItem, restorePolicyExport, steps } from './policy'
 
 type FactField = {
@@ -221,6 +222,10 @@ export default function App() {
   const blockingCount = collectionReview.blockingCount + draftFindings.length
   const [message, setMessage] = useState('')
   const [isImporting, setIsImporting] = useState(false)
+  const importAttempt = useRef(0)
+  const importAbort = useRef<AbortController | null>(null)
+  const importInput = useRef<HTMLInputElement>(null)
+  const editingLock = useRef<HTMLFieldSetElement>(null)
   /** Reports readiness for responsible review without claiming that a publication occurred. */
   function publish() { setMessage(blockingCount ? '필수 확인 항목을 먼저 입력하세요.' : '필수 확인이 완료되었습니다. 현재 검토본을 책임자와 검토하고 필요한 사실을 보완하세요.') }
   /** Downloads the deterministic local export and revokes its object URL after activation. */
@@ -247,27 +252,45 @@ export default function App() {
     const fileInput = event.currentTarget
     const file = fileInput.files?.[0]
     if (!file) return
+    const attempt = ++importAttempt.current
+    const abortController = new AbortController()
+    importAbort.current = abortController
     setIsImporting(true)
     try {
       if (file.size > 1024 * 1024) throw new Error('draft exceeds 1 MiB')
-      const restored = restorePolicyExport(JSON.parse(await file.text()))
+      const restored = restorePolicyExport(JSON.parse(await readLocalDraft(file, abortController.signal)))
+      if (attempt !== importAttempt.current) return
       setItems(restored.items)
       setNoCollectionAttested(restored.noCollectionAttested)
       setFacts(restored.facts)
       setCurrent(1)
       setMessage('\uCD08\uC548\uC744 \uBD88\uB7EC\uC654\uC2B5\uB2C8\uB2E4. \uD655\uC778\uD558\uC9C0 \uC54A\uC740 \uC0AC\uC2E4\uC744 \uB2E4\uC2DC \uAC80\uD1A0\uD558\uC138\uC694.')
     } catch (error) {
+      if (attempt !== importAttempt.current) return
       setMessage(error instanceof Error && error.message.includes('1 MiB')
         ? 'JSON \uCD08\uC548\uC740 1 MiB \uC774\uD558\uC5EC\uC57C \uD569\uB2C8\uB2E4.'
         : 'JSON \uCD08\uC548\uC744 \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. schema-v1 \uB0B4\uBCF4\uB0B4\uAE30 \uD30C\uC77C\uC778\uC9C0 \uD655\uC778\uD558\uC138\uC694.')
     } finally {
-      setIsImporting(false)
-      fileInput.value = ''
+      if (attempt === importAttempt.current) {
+        importAbort.current = null
+        setIsImporting(false)
+        fileInput.value = ''
+      }
     }
   }
+  /** Invalidates a pending local read and restores focus to the active authoring control. */
+  function cancelImport() {
+    importAttempt.current += 1
+    importAbort.current?.abort('operator cancelled')
+    importAbort.current = null
+    if (importInput.current) importInput.current.value = ''
+    setIsImporting(false)
+    setMessage('JSON \uAC00\uC838\uC624\uAE30\uB97C \uCDE8\uC18C\uD588\uC2B5\uB2C8\uB2E4. \uD604\uC7AC \uC791\uC5C5\uC740 \uC720\uC9C0\uB429\uB2C8\uB2E4.')
+    window.setTimeout(() => editingLock.current?.querySelector<HTMLElement>('input:not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)')?.focus(), 0)
+  }
   return <div className="app-shell">
-    <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><span className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침</span><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><label className="outline file-control" aria-disabled={isImporting}><Upload size={15} /> JSON 가져오기<input className="sr-only" type="file" accept="application/json,.json" aria-label="JSON 초안 가져오기" onChange={importDraft} disabled={isImporting} /></label><span className="save-state" aria-live="polite">{isImporting ? <Upload size={15} /> : <Check size={15} />} {isImporting ? 'JSON 초안 확인 중' : '브라우저 작업 중'}</span><button className="outline" onClick={exportDraft}><Save size={15} /> JSON 내보내기</button></header>
-    <div className="workspace" id="top"><StepRail current={current} completedSteps={completedSteps} setCurrent={setCurrent} /><fieldset className="editing-lock" disabled={isImporting} aria-busy={isImporting}><EditingPanel current={current} items={items} setItems={setItems} noCollectionAttested={noCollectionAttested} setNoCollectionAttested={setNoCollectionAttested} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /></fieldset><DocumentPreview items={items} noCollectionAttested={noCollectionAttested} facts={facts} setCurrent={setCurrent} /></div>
+    <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><span className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침</span><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><label className="outline file-control" aria-disabled={isImporting}><Upload size={15} /> JSON 가져오기<input ref={importInput} className="sr-only" type="file" accept="application/json,.json" aria-label="JSON 초안 가져오기" onChange={importDraft} disabled={isImporting} /></label>{isImporting && <button className="outline" onClick={cancelImport}>JSON 가져오기 취소</button>}<span className="save-state" aria-live="polite">{isImporting ? <Upload size={15} /> : <Check size={15} />} {isImporting ? 'JSON 초안 확인 중' : '브라우저 작업 중'}</span><button className="outline" onClick={exportDraft}><Save size={15} /> JSON 내보내기</button></header>
+    <div className="workspace" id="top"><StepRail current={current} completedSteps={completedSteps} setCurrent={setCurrent} /><fieldset ref={editingLock} className="editing-lock" disabled={isImporting} aria-busy={isImporting}><EditingPanel current={current} items={items} setItems={setItems} noCollectionAttested={noCollectionAttested} setNoCollectionAttested={setNoCollectionAttested} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /></fieldset><DocumentPreview items={items} noCollectionAttested={noCollectionAttested} facts={facts} setCurrent={setCurrent} /></div>
     <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 준비 상태를 확인하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{blockingCount}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{collectionReview.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={blockingCount > 0}><Link size={16} /> 공개 준비 확인</button><output aria-live="polite">{message}</output></footer>
   </div>
 }
