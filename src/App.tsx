@@ -1,6 +1,7 @@
 import { ChangeEvent, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Check, ChevronDown, ExternalLink, FileText, Link, Save, Upload } from 'lucide-react'
 import { readLocalDraft } from './local-draft-reader'
+import { createPolicyReviewText } from './policy-review-report'
 import { createPolicyExport, DraftFacts, getCompletedSteps, getDraftReview, getReview, initialFacts, initialItems, isWebServiceUrl, PolicyItem, restorePolicyExport, steps } from './policy'
 
 type FactField = {
@@ -39,6 +40,11 @@ function StepActions({ current, setCurrent }: { current: number; setCurrent: (st
   </div>
 }
 
+/** Explains the browser-memory boundary before operator input without adding a live announcement. */
+function SessionNotice() {
+  return <p className="session-notice">자동 저장되지 않습니다. 새로고침하거나 탭을 닫으면 작성 내용이 사라집니다. 보관하려면 JSON 내보내기를 사용하세요.</p>
+}
+
 /** Renders a scalar-fact authoring step backed by the current draft facts. */
 function FactStep({ current, title, description, fields, facts, setFacts, setCurrent }: {
   current: number
@@ -65,6 +71,7 @@ function FactStep({ current, title, description, fields, facts, setFacts, setCur
   }
   return <main className="form-panel">
     <header className="section-head"><h1>{current}. {title}</h1><p>{description}</p></header>
+    <SessionNotice />
     <div className="notice"><strong>사실 기반 입력</strong><span>운영 중인 서비스와 계약·처리 흐름에서 확인한 사실만 입력하세요. 확인되지 않은 내용은 비워 두고 검토 대상으로 남깁니다.</span></div>
     <h2>확인 정보</h2>
     <div className="conditional">{fields.filter((field) => !field.visibleWhen || facts[field.visibleWhen.key] === field.visibleWhen.equals).map((field) => <label key={field.key}>{field.label}{field.type === 'select'
@@ -91,6 +98,7 @@ function CollectionForm({ items, setItems, noCollectionAttested, setNoCollection
   }
   return <main className="form-panel">
     <header className="section-head"><h1>2. 수집 항목</h1><p>서비스에서 실제로 수집하는 개인정보만 선택하세요. 선택한 항목에 따라 다음 단계가 달라집니다.</p></header>
+    <SessionNotice />
     <div className="notice"><strong>입력 원칙</strong><span>서비스 코드와 운영 절차에서 확인한 항목만 반영하세요. 추정으로 선택하지 않습니다.</span></div>
     <h2>수집 여부</h2>
     <label className="attestation-label"><input name="noCollectionAttested" type="checkbox" checked={noCollectionAttested} onChange={(event) => setNoCollection(event.target.checked)} /> 개인정보를 수집하지 않음으로 확인</label>
@@ -118,6 +126,7 @@ function PurposeForm({ items, setItems, noCollectionAttested, setCurrent }: { it
   const updatePurpose = (id: string, purpose: string) => setItems(items.map((item) => item.id === id ? { ...item, purpose } : item))
   return <main className="form-panel">
     <header className="section-head"><h1>3. 처리 목적</h1><p>선택한 개인정보 항목마다 실제 처리 목적을 연결합니다. 목적이 없는 항목은 공개 검토를 통과할 수 없습니다.</p></header>
+    <SessionNotice />
     <div className="notice"><strong>검토 원칙</strong><span>포괄적인 문구를 새로 만들기보다 실제 기능·업무 목적과 연결하세요.</span></div>
     <h2>항목별 처리 목적</h2>
     {noCollectionAttested ? <p>개인정보를 수집하지 않음으로 확인되었습니다. 수집 항목을 추가하려면 수집 항목 단계에서 이 확인을 해제하세요.</p> : enabled.length === 0 ? <p>수집 항목 단계에서 실제 수집 항목을 먼저 선택하세요.</p> : <div className="item-list purpose-list">{enabled.map((item) => <div className="item" key={item.id}><div className="conditional"><label>{item.label} 처리 목적<input name={`purpose-${item.id}`} value={item.purpose} onChange={(event) => updatePurpose(item.id, event.target.value)} placeholder={`${item.label}을 처리하는 실제 목적`} /></label><label>수집 경로<input value={item.detail ?? ''} readOnly placeholder="수집 항목 단계에서 입력" /></label></div></div>)}</div>}
@@ -178,13 +187,14 @@ function EditingPanel({ current, items, setItems, noCollectionAttested, setNoCol
 }
 
 /** Projects verified authoring facts and deterministic readiness findings into the review draft. */
-function DocumentPreview({ items, noCollectionAttested, facts, setCurrent }: { items: PolicyItem[]; noCollectionAttested: boolean; facts: DraftFacts; setCurrent: (step: number) => void }) {
+function DocumentPreview({ items, noCollectionAttested, facts, setCurrent, exportReview, isImporting }: { items: PolicyItem[]; noCollectionAttested: boolean; facts: DraftFacts; setCurrent: (step: number) => void; exportReview: () => void; isImporting: boolean }) {
   const review = useMemo(() => getReview(items, noCollectionAttested), [items, noCollectionAttested])
   const draftFindings = useMemo(() => getDraftReview(facts, noCollectionAttested), [facts, noCollectionAttested])
   const blockingCount = review.blockingCount + draftFindings.length
   return <section className="preview" aria-label="개인정보처리방침 미리보기" tabIndex={-1}>
     <div className="preview-title"><h2>개인정보처리방침 미리보기</h2><button className="outline" onClick={() => window.print()}>인쇄 미리보기 <ExternalLink size={14} /></button></div>
-    <div className="meta"><span>근거 법령 <b>개인정보 보호법</b></span><span className={blockingCount ? 'warn-tag' : 'ok-tag'}>{blockingCount ? `검토 필요 ${blockingCount}` : '필수 확인 완료'}</span><span>버전 0.1.0</span></div>
+    <button className="outline review-download" onClick={exportReview} disabled={isImporting}>검토 요약 다운로드</button>
+    <div className="meta"><span>근거 법령 <b>개인정보 보호법</b></span><span className={blockingCount ? 'warn-tag' : 'ok-tag'}>{blockingCount ? `검토 필요 ${blockingCount}` : '필수 확인 완료'}</span><span>앱 버전 0.1.0</span></div>
     <article className="paper">
       <h2>{facts.serviceName || '개인정보처리방침'} (검토본)</h2>
       {isWebServiceUrl(facts.serviceUrl.trim()) && <p>적용 서비스: {facts.serviceUrl.trim()}</p>}
@@ -247,6 +257,26 @@ export default function App() {
       }
     }
   }
+  /** Starts a local TXT review-summary download without changing authoring facts or claiming file storage. */
+  function exportReview() {
+    if (isImporting) return
+    let fileUrl: string | null = null
+    try {
+      fileUrl = URL.createObjectURL(new Blob([createPolicyReviewText(items, noCollectionAttested, facts)], { type: 'text/plain;charset=utf-8' }))
+      const downloadLink = document.createElement('a')
+      downloadLink.href = fileUrl
+      downloadLink.download = 'policyweave-review.txt'
+      downloadLink.click()
+      setMessage('검토 요약 다운로드를 시작했습니다. 파일 보관 및 전달 범위를 확인하세요.')
+    } catch {
+      setMessage('검토 요약을 내보내지 못했습니다. 다시 시도하세요.')
+    } finally {
+      if (fileUrl) {
+        const disposableFileUrl = fileUrl
+        setTimeout(() => URL.revokeObjectURL(disposableFileUrl), 0)
+      }
+    }
+  }
   /** Restores a bounded schema-v1 local draft without trusting embedded readiness evidence. */
   async function importDraft(event: ChangeEvent<HTMLInputElement>) {
     const fileInput = event.currentTarget
@@ -289,8 +319,8 @@ export default function App() {
     window.setTimeout(() => editingLock.current?.querySelector<HTMLElement>('input:not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)')?.focus(), 0)
   }
   return <div className="app-shell">
-    <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><span className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침</span><span className="status">작성 중</span><span className="version">버전 0.1.0 (임시저장)</span><label className="outline file-control" aria-disabled={isImporting}><Upload size={15} /> JSON 가져오기<input ref={importInput} className="sr-only" type="file" accept="application/json,.json" aria-label="JSON 초안 가져오기" onChange={importDraft} disabled={isImporting} /></label>{isImporting && <button className="outline" onClick={cancelImport}>JSON 가져오기 취소</button>}<span className="save-state" aria-live="polite">{isImporting ? <Upload size={15} /> : <Check size={15} />} {isImporting ? 'JSON 초안 확인 중' : '브라우저 작업 중'}</span><button className="outline" onClick={exportDraft}><Save size={15} /> JSON 내보내기</button></header>
-    <div className="workspace" id="top"><StepRail current={current} completedSteps={completedSteps} setCurrent={setCurrent} /><fieldset ref={editingLock} className="editing-lock" disabled={isImporting} aria-busy={isImporting}><EditingPanel current={current} items={items} setItems={setItems} noCollectionAttested={noCollectionAttested} setNoCollectionAttested={setNoCollectionAttested} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /></fieldset><DocumentPreview items={items} noCollectionAttested={noCollectionAttested} facts={facts} setCurrent={setCurrent} /></div>
+    <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><span className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침</span><span className="status">작성 중</span><span className="version">앱 버전 0.1.0</span><label className="outline file-control" aria-disabled={isImporting}><Upload size={15} /> JSON 가져오기<input ref={importInput} className="sr-only" type="file" accept="application/json,.json" aria-label="JSON 초안 가져오기" onChange={importDraft} disabled={isImporting} /></label>{isImporting && <button className="outline" onClick={cancelImport}>JSON 가져오기 취소</button>}<span className="save-state" aria-live="polite">{isImporting ? <Upload size={15} /> : <Check size={15} />} {isImporting ? 'JSON 초안 확인 중' : '브라우저 작업 중'}</span><button className="outline" onClick={exportDraft}><Save size={15} /> JSON 내보내기</button></header>
+    <div className="workspace" id="top"><StepRail current={current} completedSteps={completedSteps} setCurrent={setCurrent} /><fieldset ref={editingLock} className="editing-lock" disabled={isImporting} aria-busy={isImporting}><EditingPanel current={current} items={items} setItems={setItems} noCollectionAttested={noCollectionAttested} setNoCollectionAttested={setNoCollectionAttested} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /></fieldset><DocumentPreview items={items} noCollectionAttested={noCollectionAttested} facts={facts} setCurrent={setCurrent} exportReview={exportReview} isImporting={isImporting} /></div>
     <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 준비 상태를 확인하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{blockingCount}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{collectionReview.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={blockingCount > 0}><Link size={16} /> 공개 준비 확인</button><output aria-live="polite">{message}</output></footer>
   </div>
 }

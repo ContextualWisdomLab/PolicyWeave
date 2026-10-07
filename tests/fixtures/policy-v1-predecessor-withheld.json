@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "document_state": "incomplete",
+  "policy_facts": {
+    "service_profile": {
+      "service_name": "Example Portal",
+      "service_url": null
+    },
+    "no_collection_attested": true,
+    "collection_items": [],
+    "retention": {
+      "retention_status": "none",
+      "retention_period": null
+    },
+    "third_party_transfer": {
+      "transfer_status": "no",
+      "recipient_name": null,
+      "transfer_purpose": null
+    },
+    "international_transfer": {
+      "transfer_status": "no",
+      "destination_country": null,
+      "recipient_name": null
+    },
+    "privacy_contact": {
+      "contact_name": "Example Privacy Team",
+      "contact_email": "privacy@example.test"
+    }
+  },
+  "review_finding_codes": [
+    "service_url_format"
+  ]
+}

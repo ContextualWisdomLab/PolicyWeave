@@ -377,15 +377,15 @@ export function createPolicyExport(items: PolicyItem[], noCollectionAttested: bo
   /** Normalizes optional human-entered text without inventing a non-empty fact. */
   const trimOrNull = (value: string) => value.trim() || null
   const collectionReview = getReview(items, noCollectionAttested)
+  const serviceUrl = normalizeWebServiceUrl(facts.serviceUrl.trim())
   const reviewFindingCodes = [
     ...(collectionReview.selectionMissing ? ['collection_selection'] : []),
     ...(collectionReview.collectionContradiction ? ['collection_contradiction'] : []),
     ...collectionReview.modeBlocking.map((item) => `collection_mode:${item.id}`),
     ...collectionReview.pathBlocking.map((item) => `collection_path:${item.id}`),
     ...collectionReview.blocking.map((item) => `processing_purpose:${item.id}`),
-    ...getDraftReview(facts, noCollectionAttested).map((finding) => finding.code),
+    ...getDraftReview({ ...facts, serviceUrl: serviceUrl ?? '' }, noCollectionAttested).map((finding) => finding.code),
   ]
-  const serviceUrl = facts.serviceUrl.trim()
 
   return {
     schema_version: 1,
@@ -393,7 +393,7 @@ export function createPolicyExport(items: PolicyItem[], noCollectionAttested: bo
     policy_facts: {
       service_profile: {
         service_name: trimOrNull(facts.serviceName),
-        service_url: normalizeWebServiceUrl(serviceUrl),
+        service_url: serviceUrl,
       },
       no_collection_attested: noCollectionAttested,
       collection_items: collectionReview.enabled.map((item) => ({
