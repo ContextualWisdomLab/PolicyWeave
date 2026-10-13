@@ -20,6 +20,7 @@ type BoundaryController = {
   hold: () => void
   release: (reject: boolean) => void
   fileReads: Array<{ name: string; native: boolean }>
+  settle: () => Promise<void>
   restore: () => boolean
 }
 declare global {
@@ -38,7 +39,9 @@ async function installBoundaryObserver(page: Page) {
     const nativeClick = HTMLAnchorElement.prototype.click
     const nativeElement = Document.prototype.createElement
     const nativeTimeout = window.setTimeout
-    const nativeText = File.prototype.text
+    const nativeStream = File.prototype.stream
+    const ownedReads: Promise<void>[] = []
+    const ownedAborts = new Set<() => void>()
     const pending = new Map<string, { type: string; sameTask: boolean }>()
     let failure: FailureStage | null = null
     let holdFile = false
@@ -107,22 +110,64 @@ async function installBoundaryObserver(page: Page) {
         try { return Reflect.apply(handler, this, callbackArgs) } finally { cleanupTask = previous }
       }, timeout, ...args])
     })
-    replace(File.prototype, 'text', function (this: File, ...args: []) {
-      if (!holdFile || !this.name.startsWith('test-fixture')) return Reflect.apply(nativeText, this, args)
+    replace(File.prototype, 'stream', function (this: File, ...args: []) {
+      if (!(this instanceof File)) return Reflect.apply(nativeStream, this, args)
+      if (!holdFile || !this.name?.startsWith('test-fixture')) return Reflect.apply(nativeStream, this, args)
       holdFile = false
-      const record = { name: this.name, native: false }
+      const file = this
+      const record = { name: file.name, native: false }
       fileReads.push(record)
-      return new Promise<string>((resolve, reject) => {
-        releaseFile = (readFailure) => {
-          releaseFile = undefined
-          if (readFailure) {
-            reject(new Error('test-fixture injected File.text rejection'))
-          } else {
-            // Valid and invalid JSON both traverse the native File.text method.
+      let cancelled = false
+      let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
+      let releaseBarrier!: (reject: boolean) => void
+      const barrier = new Promise<boolean>((resolve) => { releaseBarrier = resolve })
+      releaseFile = (reject) => { releaseFile = undefined; releaseBarrier(reject) }
+      let finished!: () => void
+      const completion = new Promise<void>((resolve) => { finished = resolve })
+      ownedReads.push(completion)
+      let target: ReadableStreamDefaultController<Uint8Array> | undefined
+      let done = false
+      // Restoration/pagehide is fail-closed: never acquire native bytes after the
+      // observer stops, cancel an acquired native reader, and end the consumer.
+      const abort = () => {
+        if (done || cancelled) return
+        cancelled = true
+        if (releaseFile) { releaseFile = undefined; releaseBarrier(false) }
+        try { target?.close() } catch { /* already closed or errored */ }
+        if (reader) void reader.cancel('observer restored').catch(() => undefined)
+      }
+      ownedAborts.add(abort)
+      return new ReadableStream<Uint8Array>({
+        async start(stream) {
+          target = stream
+          try {
+            const reject = await barrier
+            if (cancelled) return
+            if (reject) throw new Error('test-fixture injected File.stream rejection')
+            // Valid and invalid JSON consume the original file's native bytes.
+            reader = Reflect.apply(nativeStream, file, args).getReader()
             record.native = true
-            try { resolve(Reflect.apply(nativeText, this, args)) } catch (error) { reject(error) }
+            while (!cancelled) {
+              const chunk = await reader.read()
+              if (cancelled) return
+              if (chunk.done) { stream.close(); return }
+              stream.enqueue(chunk.value)
+            }
+          } catch (error) {
+            if (!cancelled) stream.error(error)
+          } finally {
+            done = true
+            ownedAborts.delete(abort)
+            reader?.releaseLock()
+            finished()
           }
-        }
+        },
+        async cancel(reason) {
+          cancelled = true
+          if (releaseFile) { releaseFile = undefined; releaseBarrier(false) }
+          if (reader) await reader.cancel(reason).catch(() => undefined)
+          await completion
+        },
       })
     })
     const controller: BoundaryController = {
@@ -130,11 +175,18 @@ async function installBoundaryObserver(page: Page) {
       arm: (stage) => { failure = stage },
       hold: () => { holdFile = true },
       release: (reject) => {
-        if (!releaseFile) throw new Error('No owned test-fixture File.text read is pending')
+        if (!releaseFile) throw new Error('No owned test-fixture File.stream read is pending')
         releaseFile(reject)
+      },
+      settle: async () => {
+        releaseFile?.(false)
+        await Promise.all(ownedReads)
       },
       restore: () => {
         if (!restored) {
+          releaseFile?.(false)
+          // Settle owned streams before restoration; no native acquisition after stop.
+          for (const abort of [...ownedAborts]) abort()
           for (const { owner, key, descriptor } of saved.toReversed()) {
             if (descriptor) Object.defineProperty(owner, key, descriptor)
             else Reflect.deleteProperty(owner, key)
@@ -161,7 +213,43 @@ async function installBoundaryObserver(page: Page) {
 test.setTimeout(60_000)
 test.beforeEach(async ({ page }) => { await installBoundaryObserver(page) })
 test.afterEach(async ({ page }) => {
-  if (!page.isClosed()) expect(await page.evaluate(() => window.__reviewBoundary?.restore() ?? true)).toBe(true)
+  if (!page.isClosed()) {
+    await page.evaluate(() => window.__reviewBoundary.settle())
+    expect(await page.evaluate(() => window.__reviewBoundary.restore())).toBe(true)
+  }
+})
+
+test('owned stream pre-acquisition cancellation settles without native read and restores the inherited descriptor', async ({ page }) => {
+  await page.goto('/')
+  const result = await page.evaluate(async () => {
+    const observer = window.__reviewBoundary
+    observer.hold()
+    const stream = new File(['synthetic stream lifecycle'], 'test-fixture-cancel.json').stream()
+    const reader = stream.getReader()
+    const pending = reader.read()
+    await reader.cancel('owned lifecycle cancellation')
+    const cancelled = await pending
+    reader.releaseLock()
+    await observer.settle()
+    return { done: cancelled.done, records: observer.fileReads, restored: observer.restore() }
+  })
+  expect(result).toEqual({ done: true, records: [{ name: 'test-fixture-cancel.json', native: false }], restored: true })
+})
+
+test('owned stream cleanup releases native bytes and wrong-name reads remain transparent', async ({ page }) => {
+  await page.goto('/')
+  const result = await page.evaluate(async () => {
+    const observer = window.__reviewBoundary
+    observer.hold()
+    const wrong = await new Response(new File(['unowned bytes'], 'ordinary.json').stream()).text()
+    const before = [...observer.fileReads]
+    const stream = new File(['synthetic 한국어 bytes'], 'test-fixture-cleanup.json').stream()
+    const consumed = new Response(stream).text()
+    await observer.settle()
+    const restored = observer.restore()
+    return { wrong, before, bytes: await consumed, records: observer.fileReads, restored }
+  })
+  expect(result).toEqual({ wrong: 'unowned bytes', before: [], bytes: 'synthetic 한국어 bytes', records: [{ name: 'test-fixture-cleanup.json', native: true }], restored: true })
 })
 
 async function actualDownload(page: Page, filename: string, activate: () => Promise<unknown>) {
@@ -361,7 +449,7 @@ for (const stage of ['blob', 'url', 'anchor', 'click'] as const) {
 }
 
 for (const outcome of ['valid', 'invalid', 'read-rejection'] as const) {
-  test(`pending owned File.text ${outcome}: zero summary allocation, recovery and observable preservation`, async ({ page }, testInfo) => {
+  test(`pending owned File.stream ${outcome}: zero summary allocation, recovery and observable preservation`, async ({ page }, testInfo) => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await seedWorkspace(page, true)

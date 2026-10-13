@@ -14,51 +14,105 @@ type ReadGate = {
 }
 declare global { interface Window { importFeedbackGate: ReadGate } }
 
-// Only this exact fixture's first read changes Promise/timing; every other call
-// retains the native receiver, arguments, Promise and synchronous throws.
+// Only this exact fixture's first stream changes delivery timing; every other call
+// retains the native receiver, arguments, stream and synchronous throws.
 async function installGate(page: Page, name: string, rejectRead = false) {
   await page.evaluate(({ name, rejectRead }) => {
     const proto = File.prototype
-    const original = Object.getOwnPropertyDescriptor(proto, 'text')
-    const native = proto.text
+    const original = Object.getOwnPropertyDescriptor(proto, 'stream')
+    const native = proto.stream
     let release!: () => void
     const barrier = new Promise<void>((resolve) => { release = resolve })
     let used = false
+    let nativeReader: ReadableStreamDefaultReader<Uint8Array> | null = null
+    let cancelled = false
+    let controller: ReadableStreamDefaultController<Uint8Array> | null = null
     const gate: ReadGate = {
       active: true, calls: [], nativeContents: null, settled: false, release,
       restore() {
+        // Fail closed for a stalled native read: cancel it and end the consumer.
+        // A fully read source keeps the documented release-with-native-bytes path.
+        if (nativeReader && !cancelled) {
+          cancelled = true
+          void nativeReader.cancel('observer restored').catch(() => undefined)
+          try { controller?.close() } catch { /* already closed or errored */ }
+        }
         release()
         if (gate.active) {
-          if (original) Object.defineProperty(proto, 'text', original)
-          else delete (proto as Partial<File>).text
+          if (original) Object.defineProperty(proto, 'stream', original)
+          else delete (proto as Partial<File>).stream
           gate.active = false
           window.removeEventListener('pagehide', onHide)
         }
-        const now = Object.getOwnPropertyDescriptor(proto, 'text')
+        const now = Object.getOwnPropertyDescriptor(proto, 'stream')
         return {
           exactDescriptor: original ? !!now && now.value === original.value && now.get === original.get && now.set === original.set && now.writable === original.writable && now.enumerable === original.enumerable && now.configurable === original.configurable : now === undefined,
-          lookupEqual: proto.text === native,
-          ownShadowDeleted: original !== undefined || !Object.hasOwn(proto, 'text'),
+          lookupEqual: proto.stream === native,
+          ownShadowDeleted: original !== undefined || !Object.hasOwn(proto, 'stream'),
         }
       },
     }
     const onHide = () => gate.restore()
-    Object.defineProperty(proto, 'text', {
+    Object.defineProperty(proto, 'stream', {
       configurable: true, writable: true, enumerable: original?.enumerable ?? false,
       value: function (this: File, ...args: []) {
-        const result = Reflect.apply(native, this, args) as Promise<string>
-        if (!gate.active) return result
+        // Forward first so invalid receivers retain the native synchronous throw.
+        const source = Reflect.apply(native, this, args) as ReadableStream<Uint8Array>
+        if (!gate.active) return source
+        if (!(this instanceof File)) return source
         gate.calls.push(this.name)
-        if (used || this.name !== name) return result
+        if (used || this.name !== name) return source
         used = true
-        return result.then(async (contents) => {
-          gate.nativeContents = contents
+        let completion: Promise<void>
+        const held = new ReadableStream<Uint8Array>({
+          start(target) { controller = target },
+          async cancel(reason) {
+            cancelled = true
+            release()
+            try { await nativeReader?.cancel(reason) }
+            finally { await completion }
+          },
+        })
+        completion = (async () => {
+          const chunks: Uint8Array[] = []
+          const decoder = new TextDecoder('utf-8', { fatal: true })
+          let decoded = ''
           try {
+            const reader = source.getReader()
+            nativeReader = reader
+            try {
+              while (!cancelled) {
+                const { done, value } = await reader.read()
+                if (cancelled) return
+                if (done) break
+                chunks.push(value)
+                decoded += decoder.decode(value, { stream: true })
+              }
+              decoded += decoder.decode()
+              gate.nativeContents = decoded
+            } catch (error) {
+              await reader.cancel(error)
+              throw error
+            } finally {
+              reader.releaseLock()
+              nativeReader = null
+            }
             await barrier
-            if (rejectRead) throw new Error('owned fixture read rejection')
-            return contents
+            if (cancelled) return
+            if (rejectRead) {
+              controller?.error(new Error('owned fixture read rejection'))
+              return
+            }
+            for (const chunk of chunks) {
+              if (cancelled) return
+              controller?.enqueue(chunk)
+            }
+            if (!cancelled) controller?.close()
+          } catch (error) {
+            if (!cancelled) controller?.error(error)
           } finally { gate.settled = true }
-        }, (error: unknown) => { gate.settled = true; throw error })
+        })()
+        return held
       },
     })
     window.importFeedbackGate = gate
@@ -287,6 +341,79 @@ test('held native read settles on pagehide cleanup with exact inherited restorat
     await expect.poll(() => page.evaluate(() => window.importFeedbackGate.settled)).toBe(true)
     expect(await page.evaluate(() => window.importFeedbackGate.active)).toBe(false)
     await expect(page.locator('output')).toContainText('초안을 불러왔습니다')
+  } finally { await restoreGate(page, info) }
+})
+
+test('stream gate leaves wrong-name reads and invalid receivers native', async ({ page }, info) => {
+  await page.goto('/')
+  await installGate(page, 'held.json')
+  try {
+    const receipt = await page.evaluate(async () => {
+      const file = new File(['Synthetic UTF-8 확인 🌊'], 'transparent.json')
+      const stream = file.stream()
+      const reader = stream.getReader()
+      const decoder = new TextDecoder('utf-8', { fatal: true })
+      let contents = ''
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          contents += decoder.decode(value, { stream: true })
+        }
+        contents += decoder.decode()
+      } finally { reader.releaseLock() }
+      let synchronousTypeError = false
+      try { Reflect.apply(File.prototype.stream, { name: 'not-held.json' }, []) }
+      catch (error) { synchronousTypeError = error instanceof TypeError }
+      return { contents, synchronousTypeError, locked: stream.locked, active: window.importFeedbackGate.active, calls: window.importFeedbackGate.calls, nativeContents: window.importFeedbackGate.nativeContents, settled: window.importFeedbackGate.settled }
+    })
+    expect(receipt).toEqual({ contents: 'Synthetic UTF-8 확인 🌊', synchronousTypeError: true, locked: false, active: true, calls: ['transparent.json'], nativeContents: null, settled: false })
+  } finally { await restoreGate(page, info) }
+})
+
+test('stream gate cancellation settles and prevents later delivery', async ({ page }, info) => {
+  await page.goto('/')
+  await installGate(page, 'cancelled.json')
+  try {
+    const receipt = await page.evaluate(async () => {
+      const reader = new File(['Synthetic cancelled bytes'], 'cancelled.json').stream().getReader()
+      try {
+        const pending = reader.read()
+        await reader.cancel('owned fixture cancellation')
+        const first = await pending
+        window.importFeedbackGate.release()
+        const later = await reader.read()
+        return { firstDone: first.done, firstEmpty: first.value === undefined, laterDone: later.done, laterEmpty: later.value === undefined, settled: window.importFeedbackGate.settled, active: window.importFeedbackGate.active, calls: window.importFeedbackGate.calls }
+      } finally { reader.releaseLock() }
+    })
+    expect(receipt).toEqual({ firstDone: true, firstEmpty: true, laterDone: true, laterEmpty: true, settled: true, active: true, calls: ['cancelled.json'] })
+  } finally { await restoreGate(page, info) }
+})
+
+test('stream gate explicit restoration releases a held read with native bytes', async ({ page }, info) => {
+  await page.goto('/')
+  await installGate(page, 'cleanup.json')
+  try {
+    const receipt = await page.evaluate(async () => {
+      const reader = new File(['Synthetic cleanup 확인 🌊'], 'cleanup.json').stream().getReader()
+      const pending = reader.read()
+      // Restore after the native source is fully read: held native bytes are released.
+      // (Restoring during a pending native read cancels it; see the stalled-source probe.)
+      while (window.importFeedbackGate.nativeContents === null) await new Promise((resolve) => setTimeout(resolve, 0))
+      const restoration = window.importFeedbackGate.restore()
+      const decoder = new TextDecoder('utf-8', { fatal: true })
+      let contents = ''
+      try {
+        let result = await pending
+        while (!result.done) {
+          contents += decoder.decode(result.value, { stream: true })
+          result = await reader.read()
+        }
+        contents += decoder.decode()
+      } finally { reader.releaseLock() }
+      return { restoration, contents, nativeContents: window.importFeedbackGate.nativeContents, settled: window.importFeedbackGate.settled, active: window.importFeedbackGate.active, calls: window.importFeedbackGate.calls }
+    })
+    expect(receipt).toEqual({ restoration: { exactDescriptor: true, lookupEqual: true, ownShadowDeleted: true }, contents: 'Synthetic cleanup 확인 🌊', nativeContents: 'Synthetic cleanup 확인 🌊', settled: true, active: false, calls: ['cleanup.json'] })
   } finally { await restoreGate(page, info) }
 })
 

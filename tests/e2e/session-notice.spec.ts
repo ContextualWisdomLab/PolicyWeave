@@ -17,7 +17,7 @@ const pageErrors = new WeakMap<Page, string[]>()
 
 // No storage initialization, export replacement, acceleration, or React access.
 // Preserve native descriptors, method receivers, results and exceptions; the
-// inherited File.text shadow is deleted on restoration, not redefined undefined.
+// inherited File.stream shadow is deleted on restoration, not redefined undefined.
 async function installObserver(page: Page) {
   await page.addInitScript(() => {
     const events: SessionAudit['events'] = []
@@ -53,10 +53,10 @@ async function installObserver(page: Page) {
       events.push({ kind: 'native-click', filename: this.download, url: this.href })
       return result
     })
-    const nativeText = File.prototype.text
-    replace(File.prototype, 'text', function (this: File) {
-      const result = Reflect.apply(nativeText, this, [])
-      events.push({ kind: 'native-file-text', filename: this.name })
+    const nativeStream = File.prototype.stream
+    replace(File.prototype, 'stream', function (this: File, ...args: unknown[]) {
+      const result = Reflect.apply(nativeStream, this, args)
+      events.push({ kind: 'native-file-stream', filename: this.name })
       return result
     })
     for (const key of ['getItem', 'setItem', 'removeItem', 'clear', 'key'] as const) {
@@ -370,6 +370,7 @@ test('US-SESSION-01 native JSON file: UI 7/7, reload empty 0/7, file restore to 
   expect(restored.active).toBe(1)
   const reexport = await download(page, info, 'policyweave-draft.json', 'restored-draft.json')
   expect(reexport.bytes.equals(exported.bytes)).toBe(true)
+  expect(await page.evaluate(() => window.__sessionNoticeAudit.events.filter(({ kind }) => kind === 'native-file-stream').map(({ filename }) => filename))).toEqual(['original-draft.json'])
   await receipt(info, 'reload-and-restore.json', { before, empty, restored, actualFilePath: exported.savedPath })
 })
 test('US-SESSION-01 actual TXT and invalid native-file import retain known facts and notice', async ({ page }, info) => {
@@ -389,6 +390,7 @@ test('US-SESSION-01 actual TXT and invalid native-file import retain known facts
   expect(await survey(page)).toEqual(before)
   const after = await download(page, info, 'policyweave-draft.json', 'after-invalid.json')
   expect(after.bytes.equals(original.bytes)).toBe(true)
+  expect(await page.evaluate(() => window.__sessionNoticeAudit.events.filter(({ kind }) => kind === 'native-file-stream').map(({ filename }) => filename))).toEqual(['test-fixture-invalid.json'])
   await receipt(info, 'invalid-preservation.json', { before, invalidPath })
 })
 for (const filename of ['policyweave-draft.json', 'policyweave-review.txt']) {

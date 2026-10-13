@@ -33,6 +33,7 @@ async function installObserver(page: Page) {
     const saved: Array<{ owner: object; key: string; descriptor: PropertyDescriptor | undefined }> = []
     let heldFilename: string | undefined
     let releaseRead: (() => void) | undefined
+    const cleanupReads = new Set<() => void>()
     let restored = false
     function replace(owner: object, key: string, value: unknown) {
       const descriptor = Object.getOwnPropertyDescriptor(owner, key)
@@ -57,21 +58,72 @@ async function installObserver(page: Page) {
       events.push({ kind: 'native-click', url: this.href, filename: this.download })
       return result
     })
-    const text = File.prototype.text
-    replace(File.prototype, 'text', function (this: File) {
-      const read = () => {
-        const result = Reflect.apply(text, this, [])
-        events.push({ kind: 'native-file-text', filename: this.name })
+    const nativeStream = File.prototype.stream
+    replace(File.prototype, 'stream', function (this: File, ...args: unknown[]) {
+      if (!(this instanceof File)) return Reflect.apply(nativeStream, this, args)
+      const read = (): ReadableStream<Uint8Array> => {
+        const result = Reflect.apply(nativeStream, this, args)
+        events.push({ kind: 'native-file-stream', filename: this.name })
         return result
       }
-      if (heldFilename !== this.name) return read()
+      // Preserve native identity, synchronous acquisition and receiver errors.
+      if (heldFilename === undefined || heldFilename !== this.name) return read()
       heldFilename = undefined
       events.push({ kind: 'held-owned-file', filename: this.name })
-      return new Promise<string>((resolve, reject) => {
-        releaseRead = () => {
-          releaseRead = undefined
-          try { resolve(read()) } catch (error) { reject(error) }
-        }
+      let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
+      let stopped = false
+      let wake!: () => void
+      const released = new Promise<void>((resolve) => { wake = resolve })
+      const release = () => {
+        if (releaseRead === release) releaseRead = undefined
+        wake()
+      }
+      let streamController: ReadableStreamDefaultController<Uint8Array>
+      const cancelOwned = (reason?: unknown) => {
+        stopped = true
+        release()
+        return reader ? reader.cancel(reason) : Promise.resolve()
+      }
+      const cleanup = () => {
+        // Settle held reads before restoring inherited/own descriptors. Never
+        // acquire a source merely to tear down an unreleased owned read.
+        if (stopped) return
+        const cancellation = cancelOwned()
+        streamController.close()
+        void cancellation.catch(() => {})
+      }
+      return new ReadableStream<Uint8Array>({
+        start(controller) {
+          streamController = controller
+          releaseRead = release
+          cleanupReads.add(cleanup)
+          void (async () => {
+            try {
+              await released
+              if (stopped) return
+              reader = read().getReader()
+              while (!stopped) {
+                const chunk = await reader.read()
+                if (stopped) return
+                if (chunk.done) {
+                  stopped = true
+                  controller.close()
+                  return
+                }
+                controller.enqueue(chunk.value)
+              }
+            } catch (error) {
+              if (!stopped) {
+                stopped = true
+                controller.error(error)
+              }
+            } finally {
+              reader?.releaseLock()
+              cleanupReads.delete(cleanup)
+            }
+          })()
+        },
+        cancel(reason) { return cancelOwned(reason) },
       })
     })
     for (const key of ['getItem', 'setItem', 'removeItem', 'clear', 'key'] as const) {
@@ -99,8 +151,8 @@ async function installObserver(page: Page) {
       },
       restore: () => {
         if (!restored) {
-          // Release a held native read even when a test assertion fails.
-          releaseRead?.()
+          // Settle owned streams even when a test assertion fails/page hides.
+          for (const cleanup of cleanupReads) cleanup()
           for (const { owner, key, descriptor } of saved.toReversed()) {
             if (descriptor) Object.defineProperty(owner, key, descriptor)
             else Reflect.deleteProperty(owner, key)
@@ -119,6 +171,120 @@ async function installObserver(page: Page) {
     window.addEventListener('pagehide', onPageHide, { once: true })
   })
 }
+// Test-only lifecycle characterization; these do not replace native saved-file
+// journeys or claim that the previous observer caused a product behavior RED.
+test('URL stream seam: cancel before release and pagehide settle without native acquisition', async ({ page }, info) => {
+  await page.goto('/')
+  const result = await page.evaluate(async () => {
+    const audit = window.__urlPortabilityAudit
+    audit.hold('seam-cancel-before.json')
+    const stream = new File(['synthetic seam bytes'], 'seam-cancel-before.json').stream()
+    const reader = stream.getReader()
+    const reading = reader.read()
+    const pendingBefore = audit.pending
+    const nativeBefore = audit.events.filter(({ kind }) => kind === 'native-file-stream')
+    await reader.cancel('synthetic pre-acquisition cancellation')
+    const cancelledRead = await reading
+    reader.releaseLock()
+    const pendingAfterCancel = audit.pending
+    const nativeAfterCancel = audit.events.filter(({ kind }) => kind === 'native-file-stream')
+    // Wrong-name reads must remain synchronous native streams, even while held.
+    audit.hold('seam-pagehide.json')
+    const unheld = new File(['unchanged native bytes'], 'seam-unheld.json').stream()
+    const unheldIsStream = unheld instanceof ReadableStream
+    const unheldBytes = await new Response(unheld).text()
+    const held = new File(['never acquired'], 'seam-pagehide.json').stream().getReader()
+    const pendingRead = held.read()
+    const pendingBeforeHide = audit.pending
+    window.dispatchEvent(new Event('pagehide'))
+    const hiddenRead = await pendingRead
+    held.releaseLock()
+    return {
+      pendingBefore, nativeBefore, cancelledRead, pendingAfterCancel, nativeAfterCancel,
+      unheldIsStream, unheldBytes, pendingBeforeHide, hiddenRead,
+      pendingAfterHide: audit.pending, activeAfterHide: audit.active,
+      restored: audit.restore(),
+      events: audit.events.filter(({ kind }) => kind === 'native-file-stream'),
+      ownsStreamShadow: Object.hasOwn(File.prototype, 'stream'),
+    }
+  })
+  await receipt(info, 'stream-pre-acquisition-lifecycle.json', result)
+  expect(result.pendingBefore).toBe(true)
+  expect(result.nativeBefore).toEqual([])
+  expect(result.cancelledRead).toEqual({ done: true, value: undefined })
+  expect(result.pendingAfterCancel).toBe(false)
+  expect(result.nativeAfterCancel).toEqual([])
+  expect(result.unheldIsStream).toBe(true)
+  expect(result.unheldBytes).toBe('unchanged native bytes')
+  expect(result.pendingBeforeHide).toBe(true)
+  expect(result.hiddenRead).toEqual({ done: true, value: undefined })
+  expect(result.pendingAfterHide).toBe(false)
+  expect(result.activeAfterHide).toBe(false)
+  expect(result.restored).toBe(true)
+  expect(result.events).toEqual([{ kind: 'native-file-stream', filename: 'seam-unheld.json' }])
+  expect(result.ownsStreamShadow).toBe(false)
+  await expect(auditReceipt(page, info, 'inactive-stream-observer.json')).rejects.toThrow('URL portability observer is no longer active')
+})
+
+test('URL stream seam: cancellation after release reaches native reader and releases its lock', async ({ page }, info) => {
+  await page.goto('/')
+  const result = await page.evaluate(async () => {
+    const audit = window.__urlPortabilityAudit
+    const nativeGetReader = ReadableStream.prototype.getReader
+    const nativeCancel = ReadableStreamDefaultReader.prototype.cancel
+    const getReaderDescriptor = Object.getOwnPropertyDescriptor(ReadableStream.prototype, 'getReader')!
+    const cancelDescriptor = Object.getOwnPropertyDescriptor(ReadableStreamDefaultReader.prototype, 'cancel')!
+    const acquisitions: Array<{ stream: ReadableStream; reader: ReadableStreamDefaultReader }> = []
+    const cancellations: Array<{ reader: ReadableStreamDefaultReader; reason: unknown }> = []
+    try {
+      Object.defineProperty(ReadableStream.prototype, 'getReader', { ...getReaderDescriptor, value: function (this: ReadableStream, ...args: unknown[]) {
+        const reader = Reflect.apply(nativeGetReader, this, args)
+        acquisitions.push({ stream: this, reader })
+        return reader
+      } })
+      Object.defineProperty(ReadableStreamDefaultReader.prototype, 'cancel', { ...cancelDescriptor, value: function (this: ReadableStreamDefaultReader, ...args: unknown[]) {
+        cancellations.push({ reader: this, reason: args[0] })
+        return Reflect.apply(nativeCancel, this, args)
+      } })
+      audit.hold('seam-cancel-after.json')
+      const stream = new File(['synthetic acquired bytes'], 'seam-cancel-after.json').stream()
+      const outer = stream.getReader()
+      const reading = outer.read()
+      const pendingBefore = audit.pending
+      audit.release()
+      // The released pump acquires the native reader before this continuation.
+      await Promise.resolve()
+      const source = acquisitions.find(({ stream: acquired }) => acquired !== stream)
+      await outer.cancel('synthetic post-acquisition cancellation')
+      await reading
+      await Promise.resolve()
+      outer.releaseLock()
+      const acquisitionCount = acquisitions.length
+      const remaining = stream.getReader()
+      const remainingRead = await remaining.read()
+      remaining.releaseLock()
+      return {
+        pendingBefore, pendingAfter: audit.pending,
+        acquisitions: acquisitionCount,
+        nativeCancelled: !!source && cancellations.some(({ reader, reason }) => reader === source.reader && reason === 'synthetic post-acquisition cancellation'),
+        nativeUnlocked: !!source && !source.stream.locked,
+        remainingRead,
+        events: audit.events.filter(({ kind }) => kind === 'native-file-stream'),
+      }
+    } finally {
+      Object.defineProperty(ReadableStream.prototype, 'getReader', getReaderDescriptor)
+      Object.defineProperty(ReadableStreamDefaultReader.prototype, 'cancel', cancelDescriptor)
+    }
+  })
+  await receipt(info, 'stream-post-acquisition-lifecycle.json', result)
+  expect(result.pendingBefore).toBe(true)
+  expect(result.pendingAfter).toBe(false)
+  expect(result.acquisitions).toBe(2)
+  expect(result.nativeCancelled).toBe(true)
+  expect(result.nativeUnlocked).toBe(true)
+  expect(result.remainingRead).toEqual({ done: true, value: undefined })
+  expect(result.events).toEqual([{ kind: 'native-file-stream', filename: 'seam-cancel-after.json' }])
+})
 async function receipt(info: TestInfo, name: string, data: unknown) {
   const path = info.outputPath(name)
   await writeFile(path, `${JSON.stringify(data, null, 2)}\n`)
@@ -316,7 +482,7 @@ for (const noCollection of [false, true]) {
     await blocked(page, missingWarning)
     await page.screenshot({ path: info.outputPath('restored-missing-blocker.png'), fullPage: true })
     const audit = await auditReceipt(page, info, 'after-restore-observer.json')
-    expect(audit.events.filter(({ kind }) => kind === 'native-file-text').map(({ filename }) => filename)).toEqual(['actual-original.json'])
+    expect(audit.events.filter(({ kind }) => kind === 'native-file-stream').map(({ filename }) => filename)).toEqual(['actual-original.json'])
     await receipt(info, 'native-roundtrip.json', { noCollection, before, blank, restored, actualSavedFile: original.savedPath, repeated })
   })
 }
@@ -407,5 +573,5 @@ test('pending actual saved native file: editor/import/TXT lock with no storage, 
   const after = await download(page, info, 'json', 'pending-restored-native.json')
   expect(after.bytes.equals(saved.bytes)).toBe(true)
   const audit = await auditReceipt(page, info, 'pending-release-observer.json')
-  expect(audit.events.filter(({ kind }) => kind === 'native-file-text').map(({ filename }) => filename)).toEqual(['owned-pending-native.json'])
+  expect(audit.events.filter(({ kind }) => kind === 'native-file-stream').map(({ filename }) => filename)).toEqual(['owned-pending-native.json'])
 })

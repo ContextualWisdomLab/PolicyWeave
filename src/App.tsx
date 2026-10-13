@@ -186,6 +186,9 @@ function EditingPanel({ current, items, setItems, noCollectionAttested, setNoCol
   return <FactStep current={current} title={config.title} description={config.description} fields={config.fields} facts={facts} setFacts={setFacts} setCurrent={setCurrent} />
 }
 
+/** Readiness copy shown only while the confirmed facts remain the current facts; it is not a publication claim. */
+const readinessConfirmedMessage = '필수 확인이 완료되었습니다. 현재 검토본을 책임자와 검토하고 필요한 사실을 보완하세요.'
+
 /** Projects verified authoring facts and deterministic readiness findings into the review draft. */
 function DocumentPreview({ items, noCollectionAttested, facts, setCurrent, exportReview, isImporting }: { items: PolicyItem[]; noCollectionAttested: boolean; facts: DraftFacts; setCurrent: (step: number) => void; exportReview: () => void; isImporting: boolean }) {
   const review = useMemo(() => getReview(items, noCollectionAttested), [items, noCollectionAttested])
@@ -203,7 +206,8 @@ function DocumentPreview({ items, noCollectionAttested, facts, setCurrent, expor
       {noCollectionAttested ? <p>운영자는 현재 서비스에서 개인정보를 수집하지 않음으로 확인했습니다.</p> : <p>아래 목적은 작성자가 확인한 운영 사실을 기준으로 표시됩니다.</p>}
       <table><thead><tr><th>수집 항목</th><th>처리 목적</th><th>검토 상태</th></tr></thead><tbody>{review.enabled.map((item) => {
         const hasPurpose = item.purpose.trim().length > 0
-        return <tr key={item.id}><td>{item.label}</td><td className={!hasPurpose ? 'missing' : ''}>{hasPurpose ? item.purpose : '처리 목적 입력 필요'}</td><td>{hasPurpose ? '입력됨' : '확인 필요'}</td></tr>
+        const itemConfirmed = !review.collectionContradiction && ![review.blocking, review.modeBlocking, review.pathBlocking].some((open) => open.includes(item))
+        return <tr key={item.id}><td>{item.label}</td><td className={!hasPurpose ? 'missing' : ''}>{hasPurpose ? item.purpose : '처리 목적 입력 필요'}</td><td>{itemConfirmed ? '입력됨' : '확인 필요'}</td></tr>
       })}</tbody></table>
       {review.selectionMissing && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>실제 수집 항목 또는 개인정보를 수집하지 않는다는 운영 사실이 아직 확인되지 않았습니다.<button className="outline" onClick={() => setCurrent(2)}>수집 항목 확인</button></span></div>}
       {review.collectionContradiction && <div className="document-warning"><AlertTriangle size={18} /><span><b>공개 전 확인</b>수집하지 않음 확인과 선택된 수집 항목이 동시에 존재합니다.<button className="outline" onClick={() => setCurrent(2)}>수집 여부 확인</button></span></div>}
@@ -236,8 +240,19 @@ export default function App() {
   const importAbort = useRef<AbortController | null>(null)
   const importInput = useRef<HTMLInputElement>(null)
   const editingLock = useRef<HTMLFieldSetElement>(null)
-  /** Reports readiness for responsible review without claiming that a publication occurred. */
-  function publish() { setMessage(blockingCount ? '필수 확인 항목을 먼저 입력하세요.' : '필수 확인이 완료되었습니다. 현재 검토본을 책임자와 검토하고 필요한 사실을 보완하세요.') }
+  const [confirmedFacts, setConfirmedFacts] = useState<{ items: PolicyItem[]; noCollectionAttested: boolean; facts: DraftFacts } | null>(null)
+  const readinessConfirmed = message === readinessConfirmedMessage
+  const confirmationCurrent = confirmedFacts !== null && blockingCount === 0 && confirmedFacts.items === items && confirmedFacts.noCollectionAttested === noCollectionAttested && confirmedFacts.facts === facts
+  const visibleMessage = readinessConfirmed && !confirmationCurrent ? '' : message
+  /** Reports readiness for the exact facts confirmed now; any later authoring change retracts it without claiming publication. */
+  function publish() {
+    if (blockingCount) {
+      setMessage('필수 확인 항목을 먼저 입력하세요.')
+      return
+    }
+    setConfirmedFacts({ items, noCollectionAttested, facts })
+    setMessage(readinessConfirmedMessage)
+  }
   /** Downloads the deterministic local export and revokes its object URL after activation. */
   function exportDraft() {
     let fileUrl: string | null = null
@@ -321,6 +336,6 @@ export default function App() {
   return <div className="app-shell">
     <header className="topbar"><a className="brand" href="#top">PolicyWeave</a><span className="document-name">{facts.serviceName || '내 서비스'} 개인정보처리방침</span><span className="status">작성 중</span><span className="version">앱 버전 0.1.0</span><label className="outline file-control" aria-disabled={isImporting}><Upload size={15} /> JSON 가져오기<input ref={importInput} className="sr-only" type="file" accept="application/json,.json" aria-label="JSON 초안 가져오기" onChange={importDraft} disabled={isImporting} /></label>{isImporting && <button className="outline" onClick={cancelImport}>JSON 가져오기 취소</button>}<span className="save-state" aria-live="polite">{isImporting ? <Upload size={15} /> : <Check size={15} />} {isImporting ? 'JSON 초안 확인 중' : '브라우저 작업 중'}</span><button className="outline" onClick={exportDraft}><Save size={15} /> JSON 내보내기</button></header>
     <div className="workspace" id="top"><StepRail current={current} completedSteps={completedSteps} setCurrent={setCurrent} /><fieldset ref={editingLock} className="editing-lock" disabled={isImporting} aria-busy={isImporting}><EditingPanel current={current} items={items} setItems={setItems} noCollectionAttested={noCollectionAttested} setNoCollectionAttested={setNoCollectionAttested} facts={facts} setFacts={setFacts} setCurrent={setCurrent} /></fieldset><DocumentPreview items={items} noCollectionAttested={noCollectionAttested} facts={facts} setCurrent={setCurrent} exportReview={exportReview} isImporting={isImporting} /></div>
-    <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 준비 상태를 확인하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{blockingCount}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{collectionReview.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={blockingCount > 0}><Link size={16} /> 공개 준비 확인</button><output aria-live="polite">{message}</output></footer>
+    <footer className="review-bar"><div><b>검토 요약</b><small>확인을 마친 뒤 공개 준비 상태를 확인하세요.</small></div><div className="review-stat blocking"><AlertTriangle size={21} /><span>필수 확인 <b>{blockingCount}건</b></span></div><div className="review-stat"><Check size={21} /><span>권장 검토 <b>{collectionReview.recommended.length}건</b></span></div><button className="primary publish" onClick={publish} disabled={blockingCount > 0}><Link size={16} /> 공개 준비 확인</button><output aria-live="polite">{visibleMessage}</output></footer>
   </div>
 }
