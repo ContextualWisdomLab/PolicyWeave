@@ -23,8 +23,8 @@ describe('PostgreSQL runtime evidence contract', () => {
     expect(runtimeTest).toContain('0001_policy_revision.down.sql')
     expect(runtimeTest).toMatch(/server_version_num[^\n]*180000/)
     expect(runtimeTest).toMatch(/upsert_collection_item[\s\S]*count\(\*\)/)
-    expect(runtimeTest).toContain("stored_mode <> 'optional'")
-    expect(runtimeTest).toContain("stored_path <> 'Account profile form'")
+    expect(runtimeTest).toContain("stored_mode is distinct from 'optional'")
+    expect(runtimeTest).toContain("stored_path is distinct from 'Account profile form'")
     expect(runtimeTest).toContain(
       "expect_failure no_collection_conflict 'no-collection confirmation conflicts with collection items'",
     )
@@ -35,6 +35,20 @@ describe('PostgreSQL runtime evidence contract', () => {
       "expect_failure revision_owner_change 'revision-owned facts cannot move between policy revisions'",
     )
     expect(runtimeTest).toMatch(/grep -F -- "\$expected_message" "\$failure_log"/)
+  })
+
+  it('keeps every UPSERT result comparison NULL-safe inside the actual assertion', () => {
+    const assertion = runtimeTest.match(/do \$runtime_assertion\$[\s\S]*?\$runtime_assertion\$;/)?.[0]
+    expect(assertion).toBeDefined()
+    for (const comparison of [
+      'stored_count is distinct from 1',
+      "stored_label is distinct from 'Account contact email'",
+      "stored_mode is distinct from 'optional'",
+      "stored_path is distinct from 'Account profile form'",
+    ]) {
+      expect(assertion).toContain(comparison)
+    }
+    expect(assertion).not.toContain('<>')
   })
 
   it('removes every migration-owned object during rollback', () => {
