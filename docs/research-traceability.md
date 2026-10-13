@@ -1,0 +1,103 @@
+# Legal and research traceability
+
+Last reconciled: 2026-09-02
+
+PolicyWeave treats legal and regulatory material as versioned evidence, not as implicit knowledge embedded in UI copy. The current MVP does not yet implement a legal/rule engine; this ledger therefore records source authority and the product capability that still needs to be derived and tested.
+
+## Authoritative source register
+
+| Source | Current evidence on 2026-09-02 | Product use | Implementation status |
+| --- | --- | --- | --- |
+| Republic of Korea, Personal Information Protection Act (개인정보 보호법), National Law Information Center | Current law: Act No. 20897, effective 2025-10-02. Enacted amendment: Act No. 21445, promulgated 2026-03-10. Its general amended provisions take effect 2026-09-11, while Article 32-2(1) proviso and Article 75(2)(15) take effect separately on 2027-07-01. Retrieved 2026-09-02 from the National Law Information Center; canonical amendment identifier: Act No. 21445 / legal-information sequence 283839. https://www.law.go.kr/LSW/lsInfoP.do?ancNo=21445&ancYd=20260310&efYd=20260911&lsiSeq=283839 | Statutory authority and provision-level effective-date anchor for rule derivation | Registry only; no article-level rules are encoded yet. Future rule snapshots must bind each provision to its own effective date. |
+| Republic of Korea, Personal Information Protection Commission, Standard Personal Information Protection Guidelines (표준 개인정보 보호지침) | PIPC Notice No. 2025-4, effective 2025-04-11. Article 2 defines `처리` as including collection, generation, linkage, recording, storage, retention, use, provision, disclosure, destruction, and similar acts. Retrieved 2026-09-02 from the National Law Information Center; canonical administrative-rule sequence 2100000257592. https://www.law.go.kr/LSW/admRulInfoP.do?admRulSeq=2100000257592&chrClsCd=010201 | Terminology boundary: collection is one form of personal-information processing; absence of collection alone cannot establish absence of storage/retention or other processing | Bound to the retention-applicability repair: PolicyWeave requires a separate explicit retention status and does not infer it from no-collection. |
+| Republic of Korea, Enforcement Decree of the Personal Information Protection Act (개인정보 보호법 시행령), National Law Information Center | Presidential Decree No. 36121, promulgated 2026-02-19 and effective 2026-08-20. Retrieved 2026-09-02; canonical National Law Information Center legal-information sequence 283503. https://www.law.go.kr/LSW/lsSideInfoP.do?docCls=jo&joNo=0032&lsiSeq=283503 | Subordinate-rule authority/effective-date anchor | Registry only; no decree-level rules are encoded yet. Future mappings must record the exact decree article and effective-date snapshot. |
+| Personal Information Protection Commission. (2026, April 23). 개인정보 처리방침 작성지침(2026.4. 개정) [Guideline for writing privacy policies, April 2026 revision]. | PIPC marks this as the current guide. Retrieved 2026-09-02. https://pipc.go.kr/np/cop/bbs/selectBoardList.do?bbsId=BS217&mCode=D010030000 | Authoring/review guidance and template requirement discovery | Source registered; requirement-by-requirement mapping still required |
+
+## Source re-verification (2026-09-09)
+
+The National Law Information Center page for the PIPA amendment (Act No. 21445) was re-fetched on 2026-09-09 and still heads the text `개인정보 보호법 [시행 2026. 9. 11.] [법률 제21445호, 2026. 3. 10., 일부개정]`. The register above is therefore unchanged: the general amended provisions remain future-effective until 2026-09-11, and no article-level rule is encoded yet. Next check on or after the effective date; this note records retrieval only and states no legal conclusion.
+
+## Retention applicability correction
+
+An intermediate product repair attempted to treat explicit `개인정보를 수집하지 않음` as sufficient evidence that retention was inapplicable. That implication was rejected before merge evidence because the authoritative PIPC terminology defines `처리` broadly and lists collection, storage, and retention as distinct included acts. Therefore no-collection cannot safely prove no-retention. Test-first commits `734a3d603761fd851f7d8dfc9434d92626518de6`, `dc4f9ad1079f90efb27165099f5dce13ddb4f637`, and `e0f25c0a003df46b487ae564d8fc4995581fbfca` establish the corrected contract: collection state and retention state are independent operator facts. Production commits `6207729b651f259f0c87cab3680bad207a60beda` and `25a75ad3ee5ded8b0e605c2fb551cc93b11ad568` add explicit unresolved/`보유함`/`보유하지 않음` retention status, require a retention period only for `보유함`, clear stale period data when moving away from that state, and project the explicit status without inferring it from no-collection. This remains a product authoring-completeness rule, not a legal-sufficiency conclusion.
+
+## Accessibility standards traceability
+
+W3C's WCAG 2.2 guidance states that authored visual focus indicators are subject to the Level AA non-text contrast requirement, and its Focus Visible guidance explicitly points focus indication to Success Criterion 1.4.11. The previous PolicyWeave focus color `#8eb59e` was approximately 2.27:1 against white, so it did not provide the 3:1 contrast expected for an authored focus indicator. Test-first commit `e5b77f1897ab13dd4f27ccd8b7fa724ba3e74bb0` required the high-contrast product token; production commit `e9e7dcc5c4160a70a9c483574fb651125589392d` moved generic and custom-checkbox focus outlines to `--green` (`#174f35`, approximately 9.52:1 against white); regression commit `ee73bc24e80b32851dcc6f519a457ca9d5efed56` computes the token contrast and enforces a minimum 3:1 ratio rather than relying only on literal CSS text.
+
+WCAG 2.2 Success Criterion 2.4.3 requires sequential focus navigation to preserve meaning and operability; W3C's understanding guidance also recognizes programmatically moving focus to non-interactive content when that content provides the logical next context. PolicyWeave changed the visible authoring surface after step-rail, previous/next, and review-warning activation while leaving focus on the triggering control. Test-first commit `e9ff9cd49532560b28d970236d4f64fa03f21d25` specifies that the newly active step heading receives programmatic focus. Production commits `960432e7557c55d13ab83106970f1e9bc93b415f` and `2ec1e10d44a04332d223e1be42a3fde9c28c7f40` implement and activate that bounded transition while excluding ordinary editing controls and the dedicated preview shortcut. These jsdom regressions establish logical focus-transition behavior only; real-browser keyboard traversal, Success Criterion 2.4.11 focus-not-obscured evidence, zoom, screen-reader behavior, and responsive screenshots remain open, so PolicyWeave does not claim full WCAG conformance from these repairs.
+
+## APA 7 references
+
+Personal Information Protection Commission. (2025). *표준 개인정보 보호지침* [Standard Personal Information Protection Guidelines] (Notice No. 2025-4, effective April 11, 2025). National Law Information Center. https://www.law.go.kr/LSW/admRulInfoP.do?admRulSeq=2100000257592&chrClsCd=010201
+
+Personal Information Protection Commission. (2026, April 23). *개인정보 처리방침 작성지침(2026.4. 개정)* [Guideline for writing privacy policies, April 2026 revision]. https://pipc.go.kr/np/cop/bbs/selectBoardList.do?bbsId=BS217&mCode=D010030000
+
+Republic of Korea. (2025). *개인정보 보호법* [Personal Information Protection Act] (Act No. 20897, effective October 2, 2025). National Law Information Center. https://www.law.go.kr/unSc.do?query=%EA%B0%9C%EC%9D%B8%EC%A0%95%EB%B3%B4%EB%B3%B4%ED%98%B8%EB%B2%95
+
+Republic of Korea. (2026). *개인정보 보호법 일부개정법률* [Amendment to the Personal Information Protection Act] (Act No. 21445, promulgated March 10, 2026; general effective date September 11, 2026; Article 32-2(1) proviso and Article 75(2)(15) effective July 1, 2027). National Law Information Center. https://www.law.go.kr/LSW/lsInfoP.do?ancNo=21445&ancYd=20260310&efYd=20260911&lsiSeq=283839
+
+Republic of Korea. (2026). *개인정보 보호법 시행령* [Enforcement Decree of the Personal Information Protection Act] (Presidential Decree No. 36121, promulgated February 19, 2026, effective August 20, 2026; legal-information sequence 283503). National Law Information Center. https://www.law.go.kr/LSW/lsSideInfoP.do?docCls=jo&joNo=0032&lsiSeq=283503
+
+World Wide Web Consortium. (2025). *Understanding Success Criterion 1.4.11: Non-text contrast*. Web Accessibility Initiative. https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html
+
+World Wide Web Consortium. (2025). *Understanding Success Criterion 2.4.3: Focus order*. Web Accessibility Initiative. https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html
+
+World Wide Web Consortium. (2025). *Understanding Success Criterion 2.4.7: Focus visible*. Web Accessibility Initiative. https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html
+
+## Traceability rules
+1. Every future legal/rule/template implementation records source identifier, article/section where applicable, effective date, source revision or retrieval timestamp/digest, implementation symbol, and tests.
+2. Future-effective law is never silently treated as already-effective law. A rule set declares the jurisdiction/effective-date snapshot it evaluates; provisions with distinct commencement dates remain distinct entries rather than inheriting a statute-level date.
+3. Guidance is not promoted to statute, and product copy does not claim that following a guide guarantees compliance.
+4. A source revision creates an explicit evaluation event against existing draft/published revisions; it does not mutate historical publication evidence.
+5. LLM output, if later used to explain or propose wording, is never an authoritative legal source and cannot change review/publication state.
+6. Collection absence is not evidence of absence of other processing acts such as storage or retention; applicability decisions require their own explicit source fact unless an authoritative rule proves a dependency.
+
+## Local review-summary trace — 2026-10-03
+
+PRD `US-REVIEW-01` and [ADR-0006](ADR-0006-local-review-summary.md) add only a deterministic local TXT expression of the existing product-readiness contracts. `createPolicyReviewText` consumes `createPolicyExport`, `getCompletedSteps` and `getReview`; the report/domain and UI regression files trace ordered blocker identity, recommendations, seven-step ownership, text escaping, identity admission and download failure/state-preservation boundaries. Test source is not passing execution evidence; [the local evidence record](evidence/mixed-agents-review-summary.md) labels earlier bounded observations separately from completed local full-suite/browser successor evidence and unresolved visual inspection, exact-head hosted and qualifying-approval gates.
+
+No legal source, effective-date snapshot, legal rule, template authority or legal-sufficiency conclusion is changed by this feature. The legal register and dated retrievals above remain historical evidence, not revalidated current law. TXT omission of contact and detailed operational facts is a product disclosure-minimization choice, not a legal anonymization decision.
+
+The development workflow is MoA-inspired: independent proposals, a second layer receiving both prior proposals plus the parent aggregate, then parent aggregation. The methodology source metadata is Wang et al. (2024), *Mixture-of-Agents Enhances Large Language Model Capabilities*, arXiv:2406.04692 v1 (June 7, 2024); its retrieved source citation and local delegation receipt identifiers are recorded in the evidence document. This is not a runtime LLM feature, verified heterogeneous-model ensemble, benchmark reproduction or substitute for independent GitHub approval.
+
+## Memory-only session-notice trace — 2026-10-05
+
+PRD `US-SESSION-01` exposes the existing memory-only boundary through `SessionNotice` in `FactStep`, `CollectionForm` and `PurposeForm`; `src/initial-workspace.test.tsx` traces all-step placement/static semantics and explicit app-version wording. Existing import and export contracts retain pending feedback, validation, derived evidence and failure-state ownership. [The dated evidence record](evidence/session-notice-20261005.md) preserves directly inspected sources and local delegation manifests, parent-reported bounded RED→GREEN/build observations, historic suite receipts and pending current browser/full/hosted/approval gates separately. Test source alone is not execution evidence.
+
+Wang et al. (2024), *Mixture-of-Agents Enhances Large Language Model Capabilities*, arXiv:2406.04692v1 (June 7, 2024), supplies methodology only: prior-layer outputs inform next-layer agents. Version-v1 metadata/abstract was retrieved again on 2026-10-05; source and exact scope are in the evidence record. Here two independent whole proposals were followed by reviewers receiving summaries plus the parent aggregate; one reviewer reported not finding full proposal text. This is MoA-inspired, not verified full-output-transfer reproduction, heterogeneous-model execution, runtime product AI, benchmark benefit or qualifying GitHub approval.
+
+No law, source effective date, template authority or legal-sufficiency rule is changed or revalidated by session copy. The legal register and dated retrievals above remain historical. Guidance to export JSON is a product portability choice, not a legal retention/backup guarantee.
+
+## Canonical URL normalized-portability trace — 2026-10-05
+
+PRD `US-PORTABILITY-01` and [the source-bounded evidence](evidence/url-portability-20261005.md) trace an existing normalized-fact producer consistency repair. `createPolicyExport` derives URL evidence after admission/redaction; `createPolicyReviewText` passes that admitted URL to the unchanged `formatReviewFinding` helper. Live raw `service_url_format` remains correction guidance; canonical null URL uses `service_url` and step-1 ownership. [ADR-0005](ADR-0005-local-draft-restore.md) keeps exact schema-v1 reconstruction/recomputation and rejects historical null+format evidence without compatibility exception or migration; [ADR-0006](ADR-0006-local-review-summary.md) preserves ordered TXT cardinality/labels and helper fallback scope. This is admitted-fact portability, not full raw-input/diagnostic backup.
+
+Two Layer1 independent proposals were followed by two Layer2 reviewers receiving both proposal summaries and parent aggregation, not verified full raw transcripts; parent reports both reviews conditional on all controls. Same/inherited model execution and unverified heterogeneous provider identity are stated honestly. The MoA-inspired methodology uses the prior cited research only; no new external retrieval, benchmark inference, runtime product AI or qualifying GitHub approval is claimed. Frozen-source runtime RED (30 URL cases, 18 own-export rejections and 12 positives), parent native 2 RED + 3 controls then 5 GREEN and related 35/lint/build intermediate signals remain dated intermediate receipts. At 03:18 KST the parent reports 65 focused passes/lint/build and actual retained-source blank/valid JSON fixture direct-export and restore/re-export equality plus withheld strict denial; frozen TXT bytes and current full/browser/whole-union review/hosted acceptance remain unverified.
+
+No law, effective-date snapshot, template authority, legal source, network source or legal-sufficiency rule is added, changed or revalidated. The register and dated retrievals above remain historical evidence; normalized URL withholding is an existing product admission/disclosure boundary, not a new legal rule.
+
+## Mobile document-title trace — 2026-10-05 candidate
+
+PRD `US-MOBILE-TITLE-01` and [the dated evidence](evidence/mobile-document-title-20261005.md) bind a product-UX reflow decision to the current `App.tsx` title projection and mobile stylesheet, not a new law, template or compliance rule. Two independent whole proposals include actual long-name/default controls; each of two next-layer reviewers received both full proposals and conditionally accepted one mobile-title-only plan. This full-proposal transfer is distinct from the summary-fed historical layers above; same/inherited-model roles still do not establish heterogeneous-model execution, benchmark benefit or qualifying GitHub approval.
+
+The proposed native regression compares exact input/text, rendered line geometry and visible sibling layout; clipping, hidden-title and overlap sensitivity and nonmobile preservation remain acceptance requirements. Diagnostics, repository RED, candidate GREEN, visual inspection and final gates are separate evidence classes. No legal register, retrieval/effective date, authoritative-source mapping, readiness rule or ADR-0005/0006 contract is changed or revalidated. Native geometry and screenshots must not be promoted to universal WCAG/AT conformance.
+
+## Mobile import-feedback trace — 2026-10-05 candidate
+
+PRD `US-IMPORT-FEEDBACK-01` and [dated evidence](evidence/mobile-import-feedback-20261005.md) trace existing import-status presentation in `App.tsx` to mobile stylesheet exposure and proposed native-browser regression. Two independent full proposals include actual saved-file/held-read observations; each next-layer reviewer read both full texts. Parent aggregation selects one existing-region mobile row. Full-output transfer and role separation do not prove heterogeneous-model execution, benchmark benefit, runtime product AI or qualifying GitHub approval.
+
+Native geometry and a backend-identity-bound Chromium AX descendant path establish distinct visual/tree exposure properties, not actual screen-reader speech or blanket WCAG compliance. Static memory-only notice, fieldset busy, strict schema-v1 authority and file formats remain unchanged. Baseline diagnostics, repository intended RED, same-oracle GREEN and final gates are separate evidence classes. No new external retrieval, legal register/effective date, template or readiness rule is added or revalidated; historical legal citations remain historical.
+
+## Screen preview reflow trace — 2026-10-05 candidate
+
+PRD `US-PREVIEW-REFLOW-01` and [dated evidence](evidence/preview-text-reflow-20261005.md) trace a new bounded screen-reading convenience decision, not a legal rule or repair of proved fact loss. Existing App plain-text projection and scroll access remain authoritative; one screen-only stylesheet declaration targets direct fact headings/paragraphs and table cells without extending to warning controls or print media. Both Layer2 reviewers read both complete Layer1 proposals and conditionally accepted narrow ownership. Role separation does not prove heterogeneous-provider execution, runtime AI, benchmark benefit or qualifying GitHub approval.
+
+Actual diagnostic reachability/native bytes, new-contract repository RED/GREEN, candidate full gates and complete source review remain separate. Geometry and print emulation do not certify human meaning readability, AT speech, WCAG or physical printing/pagination. No legal register, retrieval/effective date, template or readiness rule is added or revalidated. ADR-0005/0006 normalized-fact portability/minimal TXT boundaries remain unchanged and historical legal citations remain historical.
+
+## Readiness projection trace — 2026-10-06 candidate
+
+PRD `US-READINESS-PROJECTION-01` and [dated evidence](evidence/readiness-projection-20261006.md) trace a projection-consistency repair, not a legal rule. `src/readiness-projection.test.tsx` drives public controls and checks two things. Item state must follow the existing `getReview` purpose/mode/path blocking lists. The readiness confirmation must be retracted after reopening and non-blocking edits to the service name and to item selection, mode, path, purpose and no-collection attestation. Retention, third-party and international-transfer edits use the same `setFacts` path but have no separate case. Readiness findings, step completion, JSON/TXT bytes, strict restore and legal sources/retrieval dates are unchanged and not revalidated.
+
+## Current gap
+The seven-step workspace now captures the product's intended fact categories, including independent explicit retention applicability, but retention-period/legal-basis detail, third-party provision, international transfer, contact/controller information, and legal-basis review still need requirement-level mappings to the authoritative register, deterministic validation, and regression fixtures before PolicyWeave can claim those steps are legally complete. CSS-level focus contrast and deterministic step-focus transfer now have executable regression contracts, but real-browser accessibility evidence remains required before claiming WCAG conformance.
