@@ -25,7 +25,9 @@ describe('policy boundary contracts', () => {
     const exported = createPolicyExport(initialItems, false, { ...initialFacts, serviceUrl: 'https://operator@example.test' })
 
     expect(exported.policy_facts.service_profile.service_url).toBeNull()
-    expect(exported.review_finding_codes).toContain('service_url_format')
+    expect(exported.review_finding_codes).toContain('service_url')
+    expect(getDraftReview({ ...initialFacts, serviceUrl: 'https://***@example.test' }).map((finding) => finding.code))
+      .toContain('service_url_format')
     expect(JSON.stringify(exported)).not.toContain('operator')
   })
 

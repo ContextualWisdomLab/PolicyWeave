@@ -6,6 +6,33 @@ import App from './App'
 afterEach(cleanup)
 
 describe('authoring progress truthfulness', () => {
+  it('does not claim temporary storage for a memory-only workspace', () => {
+    const { container } = render(<App />)
+    expect(container.querySelector('.topbar')?.textContent).not.toContain('임시저장')
+    expect(container.querySelector('.version')?.textContent).toBe('앱 버전 0.1.0')
+    expect(container.querySelector('.meta')?.textContent).toContain('앱 버전 0.1.0')
+    expect(container.querySelector('.save-state')?.textContent).toContain('브라우저 작업 중')
+  })
+
+  it('explains the memory-only boundary before inputs on every authoring step', () => {
+    const { container } = render(<App />)
+    for (let index = 0; index < 7; index += 1) {
+      fireEvent.click(container.querySelectorAll<HTMLButtonElement>('.rail li button')[index])
+      const notice = container.querySelector('.form-panel .session-notice')
+      expect(notice, `session boundary notice missing on step ${index + 1}`).not.toBeNull()
+      expect(notice?.textContent).toContain('자동 저장되지 않습니다')
+      expect(notice?.textContent).toContain('새로고침')
+      expect(notice?.textContent).toContain('JSON 내보내기')
+      expect(container.querySelectorAll('.session-notice')).toHaveLength(1)
+      expect(notice?.hasAttribute('aria-live')).toBe(false)
+      expect(notice?.getAttribute('tabindex')).toBeNull()
+      expect(notice?.getAttribute('role')).not.toBe('alert')
+      const firstControl = container.querySelector('.form-panel input, .form-panel select')
+      if (firstControl) expect(notice!.compareDocumentPosition(firstControl) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+      expect(container.querySelector('.progress-copy span')?.textContent).toBe('0/7 완료')
+    }
+  })
+
   it('starts with the first unresolved authoring responsibility and zero completed responsibilities', () => {
     const { container } = render(<App />)
 
