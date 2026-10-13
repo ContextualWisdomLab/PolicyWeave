@@ -26,15 +26,15 @@ const compiled = ts.transpileModule(declarations, { compilerOptions: { target: t
 assert.equal(compiled.diagnostics.length, 0, 'helper extraction setup')
 const observations = new WeakMap()
 const helpers = new Function('expect', 'writeFile', 'observations', `${compiled.outputText}; return {${names.join(',')}}`)(expect, writeFile, observations)
-const scratch = join(homedir(), '.hermes/cache/scratch/url-observation-contract-20261005')
+const scratch = process.env.URL_CONTRACT_OUTPUT_ROOT ?? join(homedir(), '.hermes/cache/scratch/url-observation-contract-20261013')
 await mkdir(scratch, { recursive: true })
 const run = await import('node:fs/promises').then(({ mkdtemp }) => mkdtemp(join(scratch, 'contract-')))
 let controls = 0
 
 function baselineDescriptors() {
-  const pairs = [[URL, 'createObjectURL'], [URL, 'revokeObjectURL'], [HTMLAnchorElement.prototype, 'click'], [File.prototype, 'text'], ...['getItem', 'setItem', 'removeItem', 'clear', 'key'].map((key) => [Storage.prototype, key]), ...['open', 'deleteDatabase'].map((key) => [IDBFactory.prototype, key])]
+  const pairs = [[URL, 'createObjectURL'], [URL, 'revokeObjectURL'], [HTMLAnchorElement.prototype, 'click'], [File.prototype, 'stream'], ...['getItem', 'setItem', 'removeItem', 'clear', 'key'].map((key) => [Storage.prototype, key]), ...['open', 'deleteDatabase'].map((key) => [IDBFactory.prototype, key])]
   window.contractDescriptors = pairs.map(([owner, key]) => ({ owner, key, descriptor: Object.getOwnPropertyDescriptor(owner, key) }))
-  window.contractText = File.prototype.text
+  window.contractStream = File.prototype.stream
 }
 function descriptorsRestored() {
   return window.contractDescriptors.every(({ owner, key, descriptor }) => {
@@ -45,14 +45,15 @@ function descriptorsRestored() {
 async function nativeActivity(page, filename = 'active.json') {
   return page.evaluate(async (name) => {
     const file = new File(['synthetic native bytes'], name, { type: 'application/json' })
-    const text = await file.text()
+    const stream = file.stream()
+    const bytes = await new Response(stream).text()
     const url = URL.createObjectURL(file)
     const anchor = document.createElement('a')
     anchor.href = url
     anchor.download = name
     anchor.click()
     const revokeResult = URL.revokeObjectURL(url)
-    return { text, revokeUndefined: revokeResult === undefined }
+    return { bytes, revokeUndefined: revokeResult === undefined }
   }, filename)
 }
 
@@ -76,21 +77,22 @@ test('actual URL observer admission and native lifetime', { timeout: 60000 }, as
   try {
     await t.test('active native read/download positive and pre-reload restore audit', async () => {
       const { page, info } = await fresh('active')
-      assert.deepEqual(await nativeActivity(page), { text: 'synthetic native bytes', revokeUndefined: true })
+      assert.deepEqual(await nativeActivity(page), { bytes: 'synthetic native bytes', revokeUndefined: true })
       const audit = await helpers.auditReceipt(page, info, 'audit.json', true)
-      assert.deepEqual(audit.events.map(({ kind }) => kind), ['native-file-text', 'native-create', 'native-click', 'native-revoke'])
+      assert.deepEqual(audit.events.map(({ kind }) => kind), ['native-file-stream', 'native-create', 'native-click', 'native-revoke'])
+      assert.deepEqual(audit.events[0], { kind: 'native-file-stream', filename: 'active.json' })
       assert.equal(audit.restored, true)
       assert.equal(await page.evaluate(descriptorsRestored), true)
       assert.equal(await page.evaluate(() => window.__urlPortabilityAudit.restore()), true)
       await page.reload()
-      assert.deepEqual(await nativeActivity(page, 'reload.json'), { text: 'synthetic native bytes', revokeUndefined: true })
+      assert.deepEqual(await nativeActivity(page, 'reload.json'), { bytes: 'synthetic native bytes', revokeUndefined: true })
       assert.equal((await helpers.auditReceipt(page, info, 'reload.json')).events[0].filename, 'reload.json')
       controls++
     })
     await t.test('post-restoration native activity cannot be admitted vacuously', async () => {
       const { page, info } = await fresh('inactive')
       assert.equal(await page.evaluate(() => window.__urlPortabilityAudit.restore()), true)
-      assert.deepEqual(await nativeActivity(page, 'late.json'), { text: 'synthetic native bytes', revokeUndefined: true })
+      assert.deepEqual(await nativeActivity(page, 'late.json'), { bytes: 'synthetic native bytes', revokeUndefined: true })
       assert.deepEqual(await page.evaluate(() => window.__urlPortabilityAudit.events), [])
       await assert.rejects(helpers.auditReceipt(page, info, 'late.json'), /URL portability observer is no longer active/)
       controls++
@@ -100,12 +102,17 @@ test('actual URL observer admission and native lifetime', { timeout: 60000 }, as
       assert.deepEqual(await page.evaluate(async () => {
         const audit = window.__urlPortabilityAudit
         audit.hold('held.json')
-        const pending = new File(['held native bytes'], 'held.json').text()
+        const pending = new File(['held native bytes'], 'held.json').stream()
+        const outer = pending.getReader()
+        const reading = outer.read()
         const wasPending = audit.pending
+        audit.release()
+        const chunk = await reading
         const restored = audit.restore()
         const restoredAgain = audit.restore()
-        return { wasPending, restored, restoredAgain, text: await pending, pending: audit.pending, events: audit.events.map(({ kind }) => kind) }
-      }), { wasPending: true, restored: true, restoredAgain: true, text: 'held native bytes', pending: false, events: ['held-owned-file', 'native-file-text'] })
+        outer.releaseLock()
+        return { wasPending, restored, restoredAgain, chunk: chunk.done ? undefined : new TextDecoder().decode(chunk.value), pending: audit.pending, events: audit.events.map(({ kind }) => kind) }
+      }), { wasPending: true, restored: true, restoredAgain: true, chunk: 'held native bytes', pending: false, events: ['held-owned-file', 'native-file-stream'] })
       assert.equal(await page.evaluate(descriptorsRestored), true)
       await assert.rejects(helpers.auditReceipt(page, info, 'held.json'), /URL portability observer is no longer active/)
       controls++
@@ -121,9 +128,9 @@ test('actual URL observer admission and native lifetime', { timeout: 60000 }, as
       const { page } = await fresh('receiver')
       assert.deepEqual(await page.evaluate(async () => {
         let rejects = false
-        try { await Reflect.apply(File.prototype.text, { name: 'invalid-receiver.json' }, []) } catch (error) { rejects = error instanceof TypeError }
+        try { Reflect.apply(File.prototype.stream, { name: 'invalid-receiver.json' }, []) } catch (error) { rejects = error instanceof TypeError }
         const restore = window.__urlPortabilityAudit.restore()
-        return { rejects, restore, equal: File.prototype.text === window.contractText, own: Object.hasOwn(File.prototype, 'text') }
+        return { rejects, restore, equal: File.prototype.stream === window.contractStream, own: Object.hasOwn(File.prototype, 'stream') }
       }), { rejects: true, restore: true, equal: true, own: false })
       controls++
     })

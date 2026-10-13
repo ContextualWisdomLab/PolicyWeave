@@ -71,10 +71,10 @@ begin
    where policy_revision_id = '10000000-0000-4000-8000-000000000001'
      and collection_item_key = 'contact_email';
 
-  if stored_count <> 1
-     or stored_label <> 'Account contact email'
-     or stored_mode <> 'optional'
-     or stored_path <> 'Account profile form' then
+  if stored_count is distinct from 1
+     or stored_label is distinct from 'Account contact email'
+     or stored_mode is distinct from 'optional'
+     or stored_path is distinct from 'Account profile form' then
     raise exception 'collection-item UPSERT was not idempotent';
   end if;
 end;

@@ -3,7 +3,7 @@
  * Run: TMPDIR="$HOME/.hermes/cache/scratch" node --test tests/review_summary_guard_contract.mjs
  * Only private App copies are mutated. Both variants remove the summary button's
  * disabled prop; the negative also removes the handler guard. Real React DOM
- * events must reach the enabled button while a synthetic File.text() is pending.
+ * events must reach the enabled button while a synthetic File.stream() is pending.
  * Installed dependencies are shared by a symlink (versions checked against the
  * manifest and lock), not copied/reinstalled or claimed to be a clean install.
  * Fixture source, config and Vite caches stay in scratch. Raw reports/receipts
@@ -21,7 +21,19 @@ import { fileURLToPath } from 'node:url'
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const marker = 'HANDLER_GUARD_PENDING_IMPORT_ALLOCATION'
-const sourcePaths = ['src/App.tsx', 'src/policy.ts', 'src/policy-review-report.ts', 'package.json', 'package-lock.json', 'vite.config.ts', 'tests/review_summary_guard_contract.mjs']
+const fixtureSourcePaths = ['src/App.tsx', 'src/local-draft-reader.ts', 'src/policy.ts', 'src/policy-review-report.ts']
+const sourcePaths = [...fixtureSourcePaths, 'package.json', 'package-lock.json', 'vite.config.ts', 'tests/review_summary_guard_contract.mjs']
+
+test('private fixture includes the current relative source import closure', () => {
+  for (const path of fixtureSourcePaths) {
+    const source = readFileSync(join(projectRoot, path), 'utf8')
+    for (const [, relative] of source.matchAll(/from ['"](\.[^'"]+)['"]/g)) {
+      const target = resolve(dirname(join(projectRoot, path)), relative)
+      assert.ok(fixtureSourcePaths.some((candidate) => join(projectRoot, candidate) === `${target}.ts`),
+        `private fixture missing relative import: ${path} -> ${relative}`)
+    }
+  }
+})
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex')
 
 function replaceExactlyOnce(source, needle, replacement) {
@@ -31,6 +43,8 @@ function replaceExactlyOnce(source, needle, replacement) {
 
 const fixtureTest = `
 import React from 'react'
+import { ReadableStream } from 'node:stream/web'
+import { TextEncoder } from 'node:util'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import App from './src/App'
@@ -38,7 +52,7 @@ import { createPolicyExport, initialFacts, initialItems } from './src/policy'
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers() })
 
-it('real enabled summary click allocates zero URLs while File.text is pending', async () => {
+it('real enabled summary click allocates zero URLs while File.stream is pending', async () => {
   vi.useFakeTimers()
   const allocate = vi.fn(() => 'blob:review-guard-fixture')
   const revoke = vi.fn()
@@ -48,15 +62,32 @@ it('real enabled summary click allocates zero URLs while File.text is pending', 
   const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement
   let finish!: (text: string) => void
   let settled = false
-  const pendingRead = new Promise<string>((resolve) => { finish = resolve })
-  const read = vi.fn(() => pendingRead)
+  const cancel = vi.fn()
+  const heldStream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      finish = (text) => { controller.enqueue(new TextEncoder().encode(text)); controller.close() }
+    },
+    cancel,
+  })
+  const acquireReader = vi.spyOn(heldStream, 'getReader')
+  const stream = vi.fn(() => heldStream)
+  const text = vi.fn(() => { throw new Error('obsolete File.text path must not be used') })
   const file = new File(['pending synthetic draft'], 'synthetic-draft.json', { type: 'application/json' })
-  Object.defineProperty(file, 'text', { value: read })
+  Object.defineProperty(file, 'stream', { value: stream })
+  Object.defineProperty(file, 'text', { value: text })
+  let pendingRead: Promise<void> = Promise.resolve()
   const nativeClick = vi.fn()
   try {
     fireEvent.change(fileInput, { target: { files: [file] } })
     const button = getByRole('button', { name: '검토 요약 다운로드' }) as HTMLButtonElement
-    expect(read).toHaveBeenCalledOnce()
+    expect(stream).toHaveBeenCalledOnce()
+    expect(acquireReader).toHaveBeenCalledOnce()
+    expect(text).not.toHaveBeenCalled()
+    const reader = acquireReader.mock.results[0].value
+    pendingRead = reader.closed
+    const releaseLock = vi.spyOn(reader, 'releaseLock')
+    expect(heldStream.locked).toBe(true)
+    expect(releaseLock).not.toHaveBeenCalled()
     expect(fileInput.disabled).toBe(true)
     expect(container.querySelector('fieldset')?.disabled).toBe(true)
     expect(container.querySelector('.save-state')?.textContent).toContain('JSON 초안 확인 중')
@@ -76,6 +107,9 @@ it('real enabled summary click allocates zero URLs while File.text is pending', 
       await pendingRead
       settled = true
     })
+    expect(releaseLock).toHaveBeenCalledOnce()
+    expect(heldStream.locked).toBe(false)
+    expect(cancel).not.toHaveBeenCalled()
     expect(fileInput.disabled).toBe(false)
     expect(container.querySelector('.save-state')?.textContent).not.toContain('JSON 초안 확인 중')
     fireEvent.click(button)
@@ -91,6 +125,7 @@ it('real enabled summary click allocates zero URLs while File.text is pending', 
     if (!settled) {
       await act(async () => { finish('{}'); await pendingRead; settled = true })
     }
+    expect(heldStream.locked).toBe(false)
     vi.runAllTimers()
   }
 })
@@ -162,6 +197,8 @@ function verifyReport(receipt, evidenceRoot, name, shouldFail) {
   assert.equal(report.testResults.length, 1)
   const results = report.testResults[0].assertionResults
   assert.equal(results.length, 1)
+  assert.equal(results[0].fullName, 'real enabled summary click allocates zero URLs while File.stream is pending')
+  assert.equal(results[0].title, 'real enabled summary click allocates zero URLs while File.stream is pending')
   assert.equal(results[0].status, shouldFail ? 'failed' : 'passed')
   if (shouldFail) {
     assert.equal(results[0].failureMessages.length, 1)
@@ -218,7 +255,7 @@ test('independent handler guard survives enabled-button positive and rejects gua
       writeFileSync(join(fixtureRoot, 'package.json'), '{"private":true,"type":"module"}\n')
       symlinkSync(join(projectRoot, 'node_modules'), join(fixtureRoot, 'node_modules'), 'dir')
       writeFileSync(join(fixtureRoot, 'src/App.tsx'), app)
-      for (const path of ['src/policy.ts', 'src/policy-review-report.ts']) writeFileSync(join(fixtureRoot, path), original[path])
+      for (const path of fixtureSourcePaths.filter((path) => path !== 'src/App.tsx')) writeFileSync(join(fixtureRoot, path), original[path])
       writeFileSync(join(fixtureRoot, 'guard.test.tsx'), fixtureTest)
       writeFileSync(join(fixtureRoot, 'vitest.config.mjs'), `import react from '@vitejs/plugin-react'\nimport { defineConfig } from 'vitest/config'\nexport default defineConfig({ plugins: [react()], cacheDir: './.vite-cache', test: { environment: 'jsdom', include: ['guard.test.tsx'], pool: 'forks', maxWorkers: 1, fileParallelism: false, testTimeout: 60000 } })\n`)
       // Retain exact mutation inputs separately from disposable runtime/cache trees.
